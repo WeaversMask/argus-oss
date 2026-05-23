@@ -1,0 +1,116 @@
+# Security & Sensitive Data — Working Rules
+
+> **Read before your first commit.** Applies to all agents and humans working on this codebase.
+
+## What Must NEVER Be Committed
+
+### Credentials & Secrets
+- API keys (npm, GitHub, GHCR, OSV cache, OAuth providers, anything)
+- Database connection strings with embedded passwords
+- Private keys (`.pem`, `.key`, `.p12`, `.pfx`, anything similar)
+- Certificates with private material
+- SSO certificates and OIDC client secrets
+- JWT signing secrets
+- Encryption keys of any kind
+- Webhook secrets / signing tokens
+- License keys for commercial tools
+
+### Local Environment Data
+- `.env`, `.env.local`, `.env.development`, any non-template env file
+- Local database files (`*.db`, `*.sqlite`, etc.)
+- Personal scan outputs (may contain proprietary code from your machine)
+- IDE workspace files containing absolute paths (`.vscode/settings.json`, `.idea/workspace.xml`)
+- Build outputs and source maps (source maps embed absolute source paths)
+
+### Customer & Beta Partner Data
+- Real code from beta partners used as test fixtures (use synthetic fixtures instead)
+- Internal hostnames, IP addresses, or infrastructure topology
+- Customer email addresses, names, or identifiers
+- Real CVE reports tied to a specific customer
+- Anonymised data that could be re-identified
+
+### Personal Data of Contributors
+- Author home directory paths in any file (no `/Users/joe/...` or `C:\Users\joe\...`)
+- Personal email addresses outside of `git config` and authored commits
+- Local machine identifiers
+
+---
+
+## Defences in Place
+
+### 1. `.gitignore`
+The root `.gitignore` is intentionally strict. If you need to commit a file that's currently ignored, prefer to rename the file pattern rather than `git add -f`.
+
+### 2. Secret-Scanning Pre-Commit Hook (P0-03)
+Phase 0 task P0-03 installs **gitleaks** as a pre-commit hook. It scans staged changes for:
+- High-entropy strings (likely API keys)
+- Known credential formats (AWS keys, GitHub tokens, Slack tokens, etc.)
+- Private key file headers (`-----BEGIN ... PRIVATE KEY-----`)
+
+If gitleaks flags something, the commit is **blocked**. To override (rare, requires justification):
+```bash
+SKIP=gitleaks git commit -m "..."
+```
+Document the justification in the commit message and notify the team.
+
+### 3. CI Secret Scanning
+GitHub Actions runs `gitleaks` against the full repo history on every PR. This catches anything the pre-commit hook missed (including secrets pushed directly to a branch by an agent bypassing the hook).
+
+### 4. Build Output Path Sanitisation
+- TypeScript: `compilerOptions.sourceRoot` is set so source maps reference paths relative to the package root, not `/Users/...` or `/home/...`
+- Bundlers: configure `devtool: 'source-map'` (or equivalent) with project-relative paths
+- Docker builds use `--no-cache` for the final layer to avoid leaking build args
+
+---
+
+## If You Accidentally Commit a Secret
+
+**Immediately, in this order:**
+
+1. **Rotate the secret.** It's compromised the moment it's pushed, even if you delete the commit. Git history can be cached, mirrored, and indexed by bots within seconds.
+2. **Remove from history** using `git filter-repo` (not just a new commit deleting the line — the secret is still in history).
+3. **Force-push the cleaned history** if the branch hasn't been merged.
+4. **Notify the team** — file an incident report under `docs/incidents/`.
+5. **If the secret was in a merged branch**, additionally:
+   - Revoke any access the secret granted
+   - Audit logs for unauthorized use during the exposure window
+   - Mention in the next phase handover
+
+---
+
+## Test Fixtures with Secret-Like Content
+
+Some rules and adapters (notably the TruffleHog adapter) need fixtures that contain secret-shaped strings to verify detection works. These must:
+
+1. Use the `@argus/testing` `fakeSecret()` helper, which produces deterministic obviously-fake values:
+   ```typescript
+   // Generates strings like: AKIA-FAKE-TEST-FIXTURE-NEVERREAL01
+   const fixture = fakeSecret('aws-access-key')
+   ```
+2. Be located under `tests/fixtures/secret-detection/` (which is allowlisted in the gitleaks config)
+3. Include a `README.md` in the fixture directory explaining the fakes are deterministic test data
+
+Never paste real secrets — even expired or "test" secrets from a real provider — into fixtures. Use the helper.
+
+---
+
+## Environment Variables — Pattern
+
+For every config that uses environment variables, commit a `.env.example` (or `.env.template`) showing the structure with placeholder values:
+
+```bash
+# .env.example
+DATABASE_URL=postgres://user:password@host:5432/dbname
+GITHUB_TOKEN=ghp_replace_me_with_a_real_token
+JWT_SECRET=generate-a-random-32-byte-string
+```
+
+This file IS committed. The real `.env` (with actual values) is not.
+
+The application validates required env vars at startup via Zod and refuses to start with helpful errors if anything is missing.
+
+---
+
+## Reporting a Vulnerability
+
+If you find a security issue in Argus itself (not a secret committed by accident), follow the process in `SECURITY.md` at the repo root rather than opening a public issue.
