@@ -5,7 +5,7 @@
 **Last updated:** _2026-05-23 by claude-opus-4-7_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _1 of 8 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _2 of 8 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -22,9 +22,9 @@
 | _—_ | _—_ | _—_ | _—_ |
 
 ### Up Next (top of backlog within current phase)
-1. _P0-02 — Base TypeScript configuration_
-2. _P0-03 — ESLint + Prettier + commitlint + gitleaks_
-3. _P0-04 — Vitest test infrastructure_
+1. _P0-03 — ESLint + Prettier + commitlint + gitleaks_
+2. _P0-04 — Vitest test infrastructure_
+3. _P0-05 — GitHub Actions CI pipeline_
 
 ---
 
@@ -32,7 +32,7 @@
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
-| P0 — Foundation | 🟡 In progress | 1/8 | P0-01 merged 2026-05-23 |
+| P0 — Foundation | 🟡 In progress | 2/8 | P0-02 done 2026-05-23 |
 | P1 — Domain Core | ⏸ Not started | — | — |
 | P2 — MVP | ⏸ Not started | — | — |
 | P3 — Layer Enforcement | ⏸ Not started | — | — |
@@ -53,7 +53,8 @@
 
 | Task ID | Title | Completed | PR | Notes |
 |---|---|---|---|---|
-| P0-01 | Initialise monorepo with pnpm workspaces + Turborepo | 2026-05-23 | _pending_ | pnpm 9.15.9 pinned; turbo 2.x; workspace:* smoke-tested |
+| P0-02 | Base TypeScript configuration | 2026-05-23 | _pending_ | TS 6.0.3 pinned; tsconfig.base.json with strict + verbatimModuleSyntax; "no any in linter" deferred to P0-03 |
+| P0-01 | Initialise monorepo with pnpm workspaces + Turborepo | 2026-05-23 | [#1](https://github.com/WeaversMask/argus/pull/1) | pnpm 9.15.9 pinned; turbo 2.x; workspace:* smoke-tested |
 
 ---
 
