@@ -2,10 +2,10 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _YYYY-MM-DD by <name|agent-id>_
+**Last updated:** _2026-05-23 by claude-opus-4-7_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _0% (0 of 12 phases complete)_
+**Overall progress:** _1 of 8 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -22,9 +22,9 @@
 | _—_ | _—_ | _—_ | _—_ |
 
 ### Up Next (top of backlog within current phase)
-1. _P0-01 — Initialise monorepo with pnpm workspaces + Turborepo_
-2. _P0-02 — Base TypeScript configuration_
-3. _P0-03 — ESLint + Prettier + commitlint_
+1. _P0-02 — Base TypeScript configuration_
+2. _P0-03 — ESLint + Prettier + commitlint + gitleaks_
+3. _P0-04 — Vitest test infrastructure_
 
 ---
 
@@ -32,7 +32,7 @@
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
-| P0 — Foundation | ⏸ Not started | — | — |
+| P0 — Foundation | 🟡 In progress | 1/8 | P0-01 merged 2026-05-23 |
 | P1 — Domain Core | ⏸ Not started | — | — |
 | P2 — MVP | ⏸ Not started | — | — |
 | P3 — Layer Enforcement | ⏸ Not started | — | — |
@@ -53,7 +53,7 @@
 
 | Task ID | Title | Completed | PR | Notes |
 |---|---|---|---|---|
-| _—_ | _—_ | _—_ | _—_ | _—_ |
+| P0-01 | Initialise monorepo with pnpm workspaces + Turborepo | 2026-05-23 | _pending_ | pnpm 9.15.9 pinned; turbo 2.x; workspace:* smoke-tested |
 
 ---
 
