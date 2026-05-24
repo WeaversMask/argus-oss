@@ -5,16 +5,19 @@
 ## For Agents Starting a Session
 
 **Always load (every session):**
+
 1. [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) — current state, what's in progress
 2. [`HANDOVER.md`](./HANDOVER.md) — context from the previous session
 3. [`plan/00-principles.md`](./plan/00-principles.md) — non-negotiable engineering rules
 4. [`plan/protocols/agentic-execution.md`](./plan/protocols/agentic-execution.md) — how to pick up work
 
 **Then load only the active phase:**
+
 - See `IMPLEMENTATION.md` → "Current Phase" field
 - Open `plan/phases/phase-XX-<name>.md`
 
 **Load on demand:**
+
 - [`SECURITY-NOTES.md`](./SECURITY-NOTES.md) — **read once before your first commit**; what must never be committed
 - [`plan/01-repo-structure.md`](./plan/01-repo-structure.md) — when creating new files or unsure where something goes
 - [`plan/02-roadmap.md`](./plan/02-roadmap.md) — when planning cross-phase work
@@ -71,6 +74,7 @@ argus/
 ## For Humans
 
 If you're new to the project, read these in order:
+
 1. [`plan/00-principles.md`](./plan/00-principles.md)
 2. [`plan/01-repo-structure.md`](./plan/01-repo-structure.md)
 3. [`plan/02-roadmap.md`](./plan/02-roadmap.md)

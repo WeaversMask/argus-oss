@@ -19,6 +19,7 @@ Argus comprises multiple deployable applications (CLI, server, web UI, LSP, VS C
 ## Options Considered
 
 ### Option A: Polyrepo (one repository per package)
+
 - ✅ Clear ownership boundaries
 - ✅ Independent CI per package
 - ❌ Cross-package changes require coordinated PRs
@@ -26,6 +27,7 @@ Argus comprises multiple deployable applications (CLI, server, web UI, LSP, VS C
 - ❌ Type-safe sharing requires publishing to a registry first
 
 ### Option B: Monorepo with npm workspaces + custom scripts
+
 - ✅ Single repo, easy onboarding
 - ✅ Native npm — no new tools
 - ❌ npm workspaces are slow for large repos
@@ -33,6 +35,7 @@ Argus comprises multiple deployable applications (CLI, server, web UI, LSP, VS C
 - ❌ Lock file performance issues at scale
 
 ### Option C: Monorepo with pnpm workspaces + Turborepo (chosen)
+
 - ✅ pnpm is the fastest, most efficient package manager for monorepos (content-addressable storage)
 - ✅ Turborepo provides build caching, parallelisation, and dependency-aware task running
 - ✅ Type-safe workspace protocol references (`workspace:*`)
@@ -40,6 +43,7 @@ Argus comprises multiple deployable applications (CLI, server, web UI, LSP, VS C
 - ❌ Two tools to learn (mild)
 
 ### Option D: Monorepo with Nx
+
 - ✅ More features than Turborepo (code generators, plugin system)
 - ✅ Mature, battle-tested at scale
 - ❌ Heavyweight; opinionated
@@ -50,6 +54,7 @@ Argus comprises multiple deployable applications (CLI, server, web UI, LSP, VS C
 **Adopt Option C: pnpm workspaces + Turborepo.**
 
 Rationale:
+
 - pnpm + Turborepo is the de facto standard for modern TypeScript monorepos
 - Lighter weight than Nx with sufficient features for this project's scale
 - Remote caching unlocks fast CI without expensive build infrastructure
@@ -58,17 +63,20 @@ Rationale:
 ## Consequences
 
 ### Positive
+
 - Type changes propagate instantly across packages
 - Single `pnpm install` from root sets up the entire workspace
 - Turborepo cache hits cut CI time by ~80% on incremental changes
 - Workspace protocol enables internal references without publishing
 
 ### Negative
+
 - New contributors need to learn pnpm-specific commands (`pnpm add -F <package>` instead of `npm install` in a sub-folder)
 - Remote cache requires either Vercel account or self-hosted infrastructure
 - Some tools (older Jest configs, certain bundlers) have quirks with pnpm's symlink-based `node_modules`
 
 ### Neutral
+
 - Future migration to Nx is feasible if the project outgrows Turborepo
 
 ## Pinned Versions

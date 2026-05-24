@@ -24,6 +24,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 ## Tasks
 
 ### [P2-01] First 10 built-in rules (quality + style)
+
 - **Deps:** P1 complete
 - **Outputs:** `packages/rules-builtin/src/`
   - `quality/cyclomatic-complexity.ts`
@@ -43,6 +44,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - **Effort:** XL
 
 ### [P2-02] CLI scaffolding with commander
+
 - **Deps:** P1 complete
 - **Outputs:** `apps/cli/`
   - `argus check [path]` command
@@ -55,6 +57,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - **Effort:** M
 
 ### [P2-03] Console output formatter
+
 - **Deps:** P2-02
 - **Outputs:** `apps/cli/src/formatters/console.ts`
   - Colour-coded severity, file path with `line:col`, rule ID, message
@@ -65,6 +68,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - **Effort:** S
 
 ### [P2-04] JSON output formatter
+
 - **Deps:** P2-02
 - **Outputs:** `apps/cli/src/formatters/json.ts`
 - **Acceptance:**
@@ -73,6 +77,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - **Effort:** S
 
 ### [P2-05] Diff-only scan mode
+
 - **Deps:** P2-02
 - **Outputs:** `packages/orchestrator/src/diff-extractor.ts` + `--diff` CLI flag
 - **Acceptance:**
@@ -81,6 +86,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - **Effort:** M
 
 ### [P2-06] Auto-fix engine (formatting only)
+
 - **Deps:** P2-01
 - **Outputs:** `argus fix` command, magic-string-based edits delegated to Prettier for formatting rules
 - **Acceptance:**
@@ -112,6 +118,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 ## Definition of Done for Phase 2
 
 The next agent can:
+
 1. Run `argus check` on a real project and get useful findings
 2. Add a new rule by following the documented pattern (no engine changes needed)
 3. See `argus` running in CI against its own codebase

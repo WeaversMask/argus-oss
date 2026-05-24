@@ -5,6 +5,7 @@
 ## What Must NEVER Be Committed
 
 ### Credentials & Secrets
+
 - API keys (npm, GitHub, GHCR, OSV cache, OAuth providers, anything)
 - Database connection strings with embedded passwords
 - Private keys (`.pem`, `.key`, `.p12`, `.pfx`, anything similar)
@@ -16,6 +17,7 @@
 - License keys for commercial tools
 
 ### Local Environment Data
+
 - `.env`, `.env.local`, `.env.development`, any non-template env file
 - Local database files (`*.db`, `*.sqlite`, etc.)
 - Personal scan outputs (may contain proprietary code from your machine)
@@ -23,6 +25,7 @@
 - Build outputs and source maps (source maps embed absolute source paths)
 
 ### Customer & Beta Partner Data
+
 - Real code from beta partners used as test fixtures (use synthetic fixtures instead)
 - Internal hostnames, IP addresses, or infrastructure topology
 - Customer email addresses, names, or identifiers
@@ -30,6 +33,7 @@
 - Anonymised data that could be re-identified
 
 ### Personal Data of Contributors
+
 - Author home directory paths in any file (no `/Users/joe/...` or `C:\Users\joe\...`)
 - Personal email addresses outside of `git config` and authored commits
 - Local machine identifiers
@@ -39,24 +43,43 @@
 ## Defences in Place
 
 ### 1. `.gitignore`
+
 The root `.gitignore` is intentionally strict. If you need to commit a file that's currently ignored, prefer to rename the file pattern rather than `git add -f`.
 
 ### 2. Secret-Scanning Pre-Commit Hook (P0-03)
+
 Phase 0 task P0-03 installs **gitleaks** as a pre-commit hook. It scans staged changes for:
+
 - High-entropy strings (likely API keys)
 - Known credential formats (AWS keys, GitHub tokens, Slack tokens, etc.)
 - Private key file headers (`-----BEGIN ... PRIVATE KEY-----`)
 
-If gitleaks flags something, the commit is **blocked**. To override (rare, requires justification):
+If gitleaks flags something, the commit is **blocked**.
+
+**Installation.** `pnpm install` runs `scripts/install-gitleaks.sh` via the `prepare` script. It downloads the pinned gitleaks binary into `.bin/gitleaks` (gitignored). The hook prefers this local binary, then falls back to `gitleaks` on `PATH` (e.g. `brew install gitleaks`). If neither exists, the hook fails clearly with installation instructions — it does NOT silently allow the commit.
+
+To skip the local download (e.g. CI, which uses the official action instead):
+
 ```bash
-SKIP=gitleaks git commit -m "..."
+ARGUS_SKIP_GITLEAKS_INSTALL=1 pnpm install
 ```
-Document the justification in the commit message and notify the team.
+
+To bump gitleaks, change `GITLEAKS_VERSION` in `scripts/install-gitleaks.sh` and re-run `pnpm install`. CI's pinned version is the `gitleaks-action@v2` default — bump it in `.github/workflows/ci.yml` in the same PR to keep local and CI in sync.
+
+**Skipping the scan.** Rare, requires written justification in the commit message:
+
+```bash
+SKIP=gitleaks git commit -m "fix(thing): legitimate-secret-shaped-string-explained"
+```
+
+The `SKIP` env var is comma-separated and applies to other hook steps too: `SKIP=lint`, `SKIP=format`, `SKIP=commitlint`, or combinations like `SKIP=gitleaks,lint`. Never use `--no-verify` to bypass all hooks at once — name the specific gate you're skipping and explain why.
 
 ### 3. CI Secret Scanning
-GitHub Actions runs `gitleaks` against the full repo history on every PR. This catches anything the pre-commit hook missed (including secrets pushed directly to a branch by an agent bypassing the hook).
+
+GitHub Actions runs `gitleaks` (via the official `gitleaks/gitleaks-action@v2`) against the full repo history on every PR and every push to `main`. This catches anything the pre-commit hook missed (including secrets pushed directly to a branch by an agent that used `SKIP=gitleaks`). The same `.gitleaks.toml` config is honoured, so the fixture allowlist applies in both places.
 
 ### 4. Build Output Path Sanitisation
+
 - TypeScript: `compilerOptions.sourceRoot` is set so source maps reference paths relative to the package root, not `/Users/...` or `/home/...`
 - Bundlers: configure `devtool: 'source-map'` (or equivalent) with project-relative paths
 - Docker builds use `--no-cache` for the final layer to avoid leaking build args
@@ -85,7 +108,7 @@ Some rules and adapters (notably the TruffleHog adapter) need fixtures that cont
 1. Use the `@argus/testing` `fakeSecret()` helper, which produces deterministic obviously-fake values:
    ```typescript
    // Generates strings like: AKIA-FAKE-TEST-FIXTURE-NEVERREAL01
-   const fixture = fakeSecret('aws-access-key')
+   const fixture = fakeSecret("aws-access-key");
    ```
 2. Be located under `tests/fixtures/secret-detection/` (which is allowlisted in the gitleaks config)
 3. Include a `README.md` in the fixture directory explaining the fakes are deterministic test data

@@ -81,20 +81,20 @@ argus/
 
 ## Where Things Go — Quick Lookup
 
-| If you're adding... | It goes in... |
-|---|---|
-| A new domain concept (e.g. `Severity`) | `packages/core/src/domain/` |
-| A new port (interface) | `packages/core/src/ports/` |
-| A new built-in rule | `packages/rules-builtin/src/<category>/` |
-| A new external tool wrapper | `packages/adapters/<tool-name>/` |
-| A new SQLite repository | `packages/persistence/src/sqlite/` |
-| A new report format | `packages/reports/src/formatters/<format>/` |
-| A new CLI command | `apps/cli/src/commands/` |
-| A new tRPC router | `apps/server/src/routes/` and `packages/api-contracts/src/routers/` |
-| A new React page | `apps/web/src/pages/` |
-| A new shared UI primitive | `packages/ui-components/src/primitives/` |
-| A test data builder | `packages/testing/src/builders/` |
-| An in-memory port fake | `packages/testing/src/mocks/` |
+| If you're adding...                    | It goes in...                                                       |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| A new domain concept (e.g. `Severity`) | `packages/core/src/domain/`                                         |
+| A new port (interface)                 | `packages/core/src/ports/`                                          |
+| A new built-in rule                    | `packages/rules-builtin/src/<category>/`                            |
+| A new external tool wrapper            | `packages/adapters/<tool-name>/`                                    |
+| A new SQLite repository                | `packages/persistence/src/sqlite/`                                  |
+| A new report format                    | `packages/reports/src/formatters/<format>/`                         |
+| A new CLI command                      | `apps/cli/src/commands/`                                            |
+| A new tRPC router                      | `apps/server/src/routes/` and `packages/api-contracts/src/routers/` |
+| A new React page                       | `apps/web/src/pages/`                                               |
+| A new shared UI primitive              | `packages/ui-components/src/primitives/`                            |
+| A test data builder                    | `packages/testing/src/builders/`                                    |
+| An in-memory port fake                 | `packages/testing/src/mocks/`                                       |
 
 ## Why This Structure
 
@@ -109,10 +109,10 @@ argus/
 
 Once the platform can scan itself (Phase 2), these become enforced rules:
 
-| From | May NOT import from |
-|---|---|
-| `packages/core/*` | Any other package |
-| `packages/rule-engine` | `apps/*`, `packages/persistence/*`, `packages/adapters/*` |
-| `packages/rules-builtin` | `apps/*`, `packages/persistence/*` |
-| `packages/persistence/*` | `apps/*` |
-| Any `packages/*` | `apps/*` |
+| From                     | May NOT import from                                       |
+| ------------------------ | --------------------------------------------------------- |
+| `packages/core/*`        | Any other package                                         |
+| `packages/rule-engine`   | `apps/*`, `packages/persistence/*`, `packages/adapters/*` |
+| `packages/rules-builtin` | `apps/*`, `packages/persistence/*`                        |
+| `packages/persistence/*` | `apps/*`                                                  |
+| Any `packages/*`         | `apps/*`                                                  |

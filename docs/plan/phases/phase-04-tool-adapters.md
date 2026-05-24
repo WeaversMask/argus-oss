@@ -24,6 +24,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 ## Tasks
 
 ### [P4-01] Tool adapter port and shared subprocess utilities
+
 - **Deps:** P3 complete
 - **Outputs:** `packages/adapters/_shared/`
   - Subprocess timeout handling
@@ -33,6 +34,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Effort:** S
 
 ### [P4-02] jscpd adapter (duplication)
+
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/jscpd/`
 - **Acceptance:**
@@ -41,6 +43,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Effort:** M
 
 ### [P4-03] Semgrep adapter (security patterns)
+
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/semgrep/`
 - **Acceptance:**
@@ -50,6 +53,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Effort:** M
 
 ### [P4-04] TruffleHog adapter (secrets)
+
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/trufflehog/`
 - **Acceptance:**
@@ -59,6 +63,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Effort:** M
 
 ### [P4-05] osv-scanner adapter (CVEs)
+
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/osv/`
 - **Acceptance:**
@@ -67,6 +72,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Effort:** M
 
 ### [P4-06] license-checker adapter
+
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/license-checker/`
 - **Acceptance:**
@@ -97,6 +103,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 ## Definition of Done for Phase 4
 
 The next agent can:
+
 1. Run a scan and see security, secret, CVE, license, and duplication findings alongside code-quality and architecture findings
 2. Swap any single adapter for an alternative implementation by writing a new adapter that passes the contract tests
 3. Start Phase 5 with full analysis coverage in place

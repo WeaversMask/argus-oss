@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Argus commit-msg hook — validates conventional-commits format via commitlint.
+#
+# Bypass (rare, requires justification):
+#   SKIP=commitlint git commit ...
+
+case ",${SKIP}," in
+  *",commitlint,"*)
+    echo "⚠️  commit-msg: SKIP=commitlint — bypassing conventional-commit validation"
+    exit 0
+    ;;
+esac
+
+pnpm exec commitlint --edit "$1"

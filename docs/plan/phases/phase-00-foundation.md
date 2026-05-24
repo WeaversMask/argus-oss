@@ -18,6 +18,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 ## Tasks
 
 ### [P0-01] Initialise monorepo with pnpm workspaces + Turborepo
+
 - **Deps:** none
 - **Outputs:** `package.json`, `pnpm-workspace.yaml`, `turbo.json`, empty `apps/` and `packages/` folders
 - **Acceptance:**
@@ -27,6 +28,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** S
 
 ### [P0-02] Base TypeScript configuration
+
 - **Deps:** P0-01
 - **Outputs:** `tsconfig.base.json` with `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`; per-package `tsconfig.json` extending base
 - **Acceptance:**
@@ -35,6 +37,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** S
 
 ### [P0-03] ESLint + Prettier + commitlint + gitleaks
+
 - **Deps:** P0-02
 - **Outputs:**
   - `eslint.config.js` (flat config)
@@ -53,6 +56,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** S
 
 ### [P0-04] Vitest test infrastructure
+
 - **Deps:** P0-02
 - **Outputs:** Shared Vitest config in `packages/testing`, coverage thresholds set to 85% line / 80% branch
 - **Acceptance:**
@@ -62,6 +66,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** M
 
 ### [P0-05] GitHub Actions CI pipeline
+
 - **Deps:** P0-03, P0-04
 - **Outputs:** `.github/workflows/ci.yml` running lint → typecheck → test → build on every PR and main push
 - **Acceptance:**
@@ -71,6 +76,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** M
 
 ### [P0-06] Docker development environment
+
 - **Deps:** P0-01
 - **Outputs:** `Dockerfile.dev`, `docker-compose.yml` for local dev with Redis (for BullMQ later) and Postgres (for later)
 - **Acceptance:**
@@ -79,6 +85,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** S
 
 ### [P0-07] Documentation scaffolding
+
 - **Deps:** P0-01
 - **Outputs:** All `docs/` files already exist; verify they're in place and ADR-0001 documents the monorepo decision
 - **Acceptance:**
@@ -88,6 +95,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 - **Effort:** S
 
 ### [P0-08] Changesets release workflow
+
 - **Deps:** P0-05
 - **Outputs:** `.changeset/` configured, release workflow in GitHub Actions
 - **Acceptance:**
@@ -119,6 +127,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 ## Definition of Done for Phase 0
 
 The next agent should be able to:
+
 1. Clone the repo
 2. Run `pnpm install`
 3. Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` — all green

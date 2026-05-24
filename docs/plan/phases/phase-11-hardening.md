@@ -24,6 +24,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 ## Tasks
 
 ### [P11-01] Performance profiling and optimisation
+
 - **Deps:** P10 complete
 - **Outputs:** Flame graphs for hot paths, caching layer for AST parsing, benchmark suite
 - **Acceptance:** All performance targets from the spec doc §4.6 met:
@@ -34,12 +35,14 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 - **Effort:** L
 
 ### [P11-02] Security audit
+
 - **Deps:** P11-01
 - **Outputs:** External pen test report, dependency audit, threat model document
 - **Acceptance:** No high/critical findings open; all medium findings have documented mitigations
 - **Effort:** L
 
 ### [P11-03] Full documentation site
+
 - **Deps:** P10 complete
 - **Outputs:** Docusaurus (or Mintlify) site with:
   - User guide
@@ -51,6 +54,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 - **Effort:** XL
 
 ### [P11-04] Migration guides
+
 - **Deps:** P11-03
 - **Outputs:** Guides for users coming from:
   - SonarQube
@@ -59,11 +63,13 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 - **Effort:** M
 
 ### [P11-05] Beta program exit
+
 - **Deps:** All previous tasks
 - **Outputs:** 10 design partners onboarded, feedback incorporated, case studies drafted
 - **Effort:** L
 
 ### [P11-06] 1.0 launch
+
 - **Deps:** P11-01 through P11-05
 - **Outputs:** Marketing site, launch blog post, Hacker News / Product Hunt launch
 - **Effort:** M
@@ -93,6 +99,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 ## Definition of Done for Phase 11
 
 The product is in production:
+
 1. Anyone can install and use it
 2. Documentation answers common questions
 3. Beta partners have signed off

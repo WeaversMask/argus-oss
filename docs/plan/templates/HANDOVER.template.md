@@ -21,6 +21,7 @@ Two paragraphs maximum. Where we are, what was just finished, what the next agen
 - Reference PRs by number
 
 PRs merged in this session:
+
 - #XXX — feat(...)
 - #XXX — chore(...)
 

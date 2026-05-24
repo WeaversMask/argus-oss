@@ -1,0 +1,101 @@
+# Argus CI — lint, format, commit-message validation, secret scanning.
+#
+# This workflow lands in P0-03 and is extended in P0-05 with typecheck / test /
+# build steps. Keep job names stable so branch-protection rules don't churn.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint + format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          # CI does not need the repo-local gitleaks binary; the dedicated
+          # secret-scan job below uses the official gitleaks-action.
+          ARGUS_SKIP_GITLEAKS_INSTALL: "1"
+          # Husky hooks are irrelevant in CI; skip the prepare step entirely.
+          HUSKY: "0"
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Prettier (check)
+        run: pnpm format:check
+
+  commitlint:
+    name: Commit message validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          ARGUS_SKIP_GITLEAKS_INSTALL: "1"
+          HUSKY: "0"
+
+      - name: Validate PR commit messages
+        run: |
+          pnpm exec commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to   "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so gitleaks can scan every commit in a PR (and the
+          # full repo history on push-to-main).
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          # Use repo-committed config (.gitleaks.toml) including the fixture
+          # allowlist. The action picks it up automatically.
+          GITLEAKS_CONFIG: .gitleaks.toml

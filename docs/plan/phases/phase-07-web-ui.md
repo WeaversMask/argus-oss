@@ -24,42 +24,50 @@ The full product experience: dashboard, violations explorer, architecture visual
 ## Tasks
 
 ### [P7-01] React app shell + auth flow
+
 - **Deps:** P6 complete
 - **Outputs:** `apps/web/`, routing (React Router or TanStack Router), login page, protected routes
 - **Acceptance:** Cold-start to logged-in dashboard in under 3 seconds on a typical broadband connection
 - **Effort:** M
 
 ### [P7-02] Dashboard page
+
 - **Deps:** P7-01
 - **Outputs:** Project scorecard, trend sparklines, top violated rules, most problematic files
 - **Effort:** L
 
 ### [P7-03] Violations explorer
+
 - **Deps:** P7-01
 - **Outputs:** Faceted filter table, full-text search, inline code preview with violation highlighting, rule explanation panel, bulk actions
 - **Effort:** XL
 
 ### [P7-04] Architecture visualiser (React Flow)
+
 - **Deps:** P7-01, P3 (layer data via API)
 - **Outputs:** Interactive dependency graph with violated-edge highlighting, layer summary view toggle, cycle highlight, SVG/PNG export
 - **Effort:** XL
 
 ### [P7-05] File drilldown
+
 - **Deps:** P7-01
 - **Outputs:** File browser tree, source viewer with inline violations, complexity heatmap overlay, duplication-block jump links
 - **Effort:** L
 
 ### [P7-06] Rule management UI
+
 - **Deps:** P7-01
 - **Outputs:** Rule catalogue browser, enable/disable toggles, severity adjustment, threshold tuning, rule playground (Monaco editor + live evaluation)
 - **Effort:** L
 
 ### [P7-07] Visual config editor
+
 - **Deps:** P7-01
 - **Outputs:** YAML form editor, layer manifest builder with drag-and-drop, raw-YAML toggle, validation feedback inline, config diff view
 - **Effort:** XL
 
 ### [P7-08] User & access management UI
+
 - **Deps:** P6-06, P7-01
 - **Outputs:** User list, role assignment, API key management, audit log viewer, SSO config
 - **Effort:** M
@@ -88,6 +96,7 @@ The full product experience: dashboard, violations explorer, architecture visual
 ## Definition of Done for Phase 7
 
 The next agent can:
+
 1. Open the UI and navigate every view
 2. Configure a project entirely through the UI (no manual YAML)
 3. See real-time updates as scans progress

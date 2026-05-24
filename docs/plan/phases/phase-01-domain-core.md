@@ -24,6 +24,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 ## Tasks
 
 ### [P1-01] Core domain entities
+
 - **Deps:** P0 complete
 - **Outputs:** `packages/core/src/domain/*.ts`
   - `Scan`, `ScanMode`, `ScanResult`
@@ -42,6 +43,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Effort:** L
 
 ### [P1-02] Core port interfaces
+
 - **Deps:** P1-01
 - **Outputs:** `packages/core/src/ports/*.ts`
   - `AstParserPort`, `RuleRunnerPort`, `ToolAdapterPort`, `DependencyResolverPort`
@@ -53,6 +55,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Effort:** M
 
 ### [P1-03] AST abstraction layer
+
 - **Deps:** P1-02
 - **Outputs:** `packages/ast/`
   - Tree-sitter wrapper exposing a unified `ASTNode` type across languages
@@ -66,6 +69,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Effort:** L
 
 ### [P1-04] Rule engine
+
 - **Deps:** P1-02, P1-03
 - **Outputs:** `packages/rule-engine/`
   - `Engine` class: registers rules, walks AST once per file, dispatches to rules registered for each node type
@@ -78,6 +82,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Effort:** L
 
 ### [P1-05] Config system
+
 - **Deps:** P1-01
 - **Outputs:** `packages/config/`
   - Zod schemas for `reviewtool.yaml`
@@ -91,6 +96,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Effort:** M
 
 ### [P1-06] Domain services
+
 - **Deps:** P1-01
 - **Outputs:** `packages/core/src/services/`
   - `LayerClassifier`: pure function `(filePath, manifest) → Layer | null`
@@ -125,6 +131,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 ## Definition of Done for Phase 1
 
 The next agent should be able to:
+
 1. Import any domain type from `@argus/core` and use it with full type safety
 2. Implement a new rule against the rule engine and have it dispatched correctly
 3. Load a YAML config and get back a typed object or a useful error
