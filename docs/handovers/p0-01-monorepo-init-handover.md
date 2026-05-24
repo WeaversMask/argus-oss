@@ -28,6 +28,7 @@ Next up is **P0-02 — Base TypeScript configuration**. It depends only on P0-01
 - Archived previous handover to `docs/handovers/p0-initial-handover.md`
 
 PRs merged in this session:
+
 - _pending_ — PR not yet opened (see "Open Questions" below)
 
 ---
@@ -46,7 +47,7 @@ PRs merged in this session:
 
 1. **Turbo "No tasks were executed" warning is normal for an empty workspace.** Every `pnpm turbo run <task>` prints `WARNING No tasks were executed as part of this run.` until P0-02+ create actual packages. Exit code is 0, so it does not break CI. Don't waste time silencing it — the warning self-resolves the moment the first package with a matching script appears.
 2. **`packages/*` glob does NOT match nested `packages/adapters/*` packages.** When P4 adds the first adapter (e.g. `packages/adapters/jscpd`), the workspace YAML will need an additional `packages/adapters/*` line, otherwise pnpm silently ignores those folders. I deliberately did not add it now — see Deferred above.
-3. **`packages/persistence` is a single package, not nested.** The repo-structure doc shows `sqlite/`, `postgres/`, `migrations/` as subdirectories *inside* the persistence package — they are not separate workspaces.
+3. **`packages/persistence` is a single package, not nested.** The repo-structure doc shows `sqlite/`, `postgres/`, `migrations/` as subdirectories _inside_ the persistence package — they are not separate workspaces.
 4. **pnpm warned that 11.2.2 is available.** Ignore. `packageManager` is intentionally pinned per phase guidance. Future bumps go through a dedicated PR.
 5. **`.work/` is gitignored.** Working files for in-progress tasks live there and are private to each agent. Don't try to share state through them.
 

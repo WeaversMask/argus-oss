@@ -24,30 +24,35 @@ Real-time IDE feedback while typing. A single LSP server serves VS Code, JetBrai
 ## Tasks
 
 ### [P10-01] LSP server scaffolding
+
 - **Deps:** P9 complete
 - **Outputs:** `apps/lsp/`, implements `vscode-languageserver`
 - **Acceptance:** Server starts, responds to `initialize` request, handles graceful shutdown
 - **Effort:** M
 
 ### [P10-02] On-change diagnostics
+
 - **Deps:** P10-01
 - **Outputs:** Incremental analysis on file save (or debounced on type)
 - **Acceptance:** <500ms diagnostic latency on typical file (1000 lines)
 - **Effort:** L
 
 ### [P10-03] Code actions (quick fixes)
+
 - **Deps:** P10-01
 - **Outputs:** LSP code action provider for auto-fixable violations
 - **Acceptance:** Quick fix appears in lightbulb menu; applying it edits the file via LSP `WorkspaceEdit`
 - **Effort:** M
 
 ### [P10-04] Hover documentation
+
 - **Deps:** P10-01
 - **Outputs:** Rule explanation appears on hover over a violation
 - **Acceptance:** Hover content includes rule ID, severity, message, and link to docs
 - **Effort:** S
 
 ### [P10-05] VS Code extension packaging
+
 - **Deps:** P10-01 through P10-04
 - **Outputs:** Published to VS Code Marketplace
 - **Acceptance:** One-click install; configuration via VS Code settings UI
@@ -77,6 +82,7 @@ Real-time IDE feedback while typing. A single LSP server serves VS Code, JetBrai
 ## Definition of Done for Phase 10
 
 The next agent can:
+
 1. Install the VS Code extension and see real-time diagnostics
 2. Use quick fixes for auto-fixable violations
 3. Hover for rule documentation

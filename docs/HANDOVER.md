@@ -1,114 +1,139 @@
-# Handover — P0-02 → P0-03
+# Handover — P0-03 → P0-04
 
 **From:** claude-opus-4-7
 **To:** next picker
-**Date:** 2026-05-23
+**Date:** 2026-05-24
 **Phase:** P0 — Foundation
-**Last task completed:** P0-02 — Base TypeScript configuration
+**Last task completed:** P0-03 — ESLint + Prettier + commitlint + gitleaks
 
 ---
 
 ## Context
 
-`tsconfig.base.json` is in place at the repo root with every strict flag the principles call for (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, plus `verbatimModuleSyntax`, `noPropertyAccessFromIndexSignature`, and the usual unused-locals/unused-params/no-implicit-returns set). TypeScript is pinned at exact `6.0.3` in the root `package.json`. The extends pattern was end-to-end smoke-tested: a scratch package containing four deliberate violations triggered the four distinct diagnostics expected (TS7006, TS18048, TS2375, TS1484) and was removed before commit.
+The repository now has a full code-quality gate: ESLint 10 (flat config, `@typescript-eslint`, explicit-any banned), Prettier 3.8, commitlint 21 (conventional, restricted to the six commit types from `00-principles.md`), Husky 9 hooks (`pre-commit` and `commit-msg`), and gitleaks 8.30.1 installed into a repo-local `.bin/` (gitignored) via `scripts/install-gitleaks.sh`. The `prepare` script auto-installs both husky and gitleaks on every `pnpm install`. A `SKIP=<gate>` env var (comma-separated; documented in `docs/SECURITY-NOTES.md`) provides per-hook escape hatches. The matching `.github/workflows/ci.yml` runs lint, format-check, commit-message validation (PR-only), and `gitleaks/gitleaks-action@v2` on every PR and push-to-main.
 
-Next up is **P0-03 — ESLint + Prettier + commitlint + gitleaks**. This is the largest task in P0 by surface area — four tools, four hooks, plus a CI integration piece. It also enforces the half of P0-02's acceptance criterion that was deferred ("no `any` types pass the linter"). Read `docs/SECURITY-NOTES.md` before touching anything; it explains the gitleaks workflow and the test-fixture allowlist.
+Next up is **P0-04 — Vitest test infrastructure**. It depends only on P0-02 (TypeScript). The goal is a shared Vitest config in `packages/testing` with coverage thresholds (85% line, 80% branch), a way to run `pnpm test` across all packages, and aggregated monorepo-wide coverage reporting. This is the first task that creates a real, persistent workspace package (no more smoke-and-delete). Phase 0 still forbids placeholder source code in app/library packages, but `packages/testing` is the testing-infrastructure exception called out in the repo-structure doc.
 
 ---
 
 ## What I Did
 
-- Pinned `typescript@6.0.3` (exact) as a root devDep — the locally installed `latest` dist-tag
-- Created `tsconfig.base.json` (full file lives at the repo root; key flags listed below)
-- Smoke-tested the `extends` pattern with `packages/_smoke-ts`: valid file passed, deliberately broken file failed with all four expected diagnostics, then removed scratch package
-- Verified `pnpm typecheck` propagates non-zero exit through turbo when a package fails (essential for CI in P0-05)
-- Updated `IMPLEMENTATION.md` (P0-02 → Recently Completed, P0 status 🟡 2/8)
-- Archived previous handover to `docs/handovers/p0-01-monorepo-init-handover.md`
+- ESLint 10.4.0 flat config in `eslint.config.mjs` — `@typescript-eslint/no-explicit-any: error`, `consistent-type-imports: error` (auto-fixes for `verbatimModuleSyntax`), plus the usual no-floating-promises / no-misused-promises / await-thenable / no-non-null-assertion / no-console set. Separate rule blocks for tests (relaxes some) and `.cjs` config files (CJS globals).
+- Prettier 3.8.3 with `.prettierrc.json` (semi, double-quote, trailing-comma=all, printWidth=100) and `.prettierignore`. One-shot `pnpm format` reformatted 25 existing docs to the new baseline; this is the bulk of the diff and is content-neutral (table alignment + blank lines around block elements).
+- commitlint 21.0.1 with `commitlint.config.cjs` extending `@commitlint/config-conventional`, restricted to `feat | fix | chore | refactor | docs | test` per principles.
+- Husky 9.1.7 with `.husky/pre-commit` (lint → format:check → gitleaks) and `.husky/commit-msg` (commitlint). Each step gated by `SKIP` env var.
+- `scripts/install-gitleaks.sh` — POSIX bash, detects OS/arch, downloads pinned gitleaks v8.30.1 into `.bin/gitleaks`, idempotent, fails-soft on network errors (clearly logged). `ARGUS_SKIP_GITLEAKS_INSTALL=1` opt-out for CI.
+- `.gitleaks.toml` extending the default rule set with allowlists for `tests/fixtures/secret-detection/`, `pnpm-lock.yaml`, and the `AKIA-FAKE-TEST-FIXTURE-*` pattern used by the `fakeSecret()` helper that P0-04 will land.
+- `.github/workflows/ci.yml` with four jobs: `lint` (eslint + prettier --check), `commitlint` (PR-only, validates the commit range), `secret-scan` (full-history gitleaks-action). `lint` job uses `node-version-file: package.json` so the Node version stays in one place.
+- `docs/SECURITY-NOTES.md` updated with the install path, the SKIP override family, and an explicit warning against `--no-verify`.
+- Root `package.json`: scripts now include `lint`, `lint:fix`, `format`, `format:check`, `prepare`.
+- `.gitignore` gained `.bin/`.
+- Smoke tests for all 5 gates passed end-to-end (see `.work/P0-03.md` for the matrix); scratch artefacts removed before commit.
 
 PRs merged in this session:
-- _pending_ — branch `p0-02-typescript-base` pushed, PR not yet opened
+
+- _pending_ — branch `p0-03-lint-format-secrets` pushed, PR not yet opened (gh auth still broken)
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **No per-package `tsconfig.json` files.** No packages exist yet. The smoke test verified the extends pattern. Each future package authors its own `tsconfig.json` (with `extends: "../../tsconfig.base.json"`) when it is created. Reason: Phase 0 notes — "Don't add real source code yet."
-- **No root `tsconfig.json`.** Only `tsconfig.base.json`. A root `tsconfig.json` would only be useful for running `tsc` against the entire workspace from the root — turbo already handles that via the per-package `typecheck` script. Add a root tsconfig later only if a tool (e.g. an IDE) demands one.
-- **"No `any` types pass the linter" — half deferred.** The implicit half is covered now (`strict: true` makes implicit any a compile error, verified). The explicit half (`let x: any`) is the ESLint job and lands in P0-03 via `@typescript-eslint/no-explicit-any`. P0-03 should treat this as an acceptance hand-off, not a fresh requirement.
-- **No project references (`references: [...]`).** Faster incremental compile but forces every package to opt in and complicates per-package overrides. Revisit after ~5 packages exist (mid Phase 1).
-- **No alternative `moduleResolution` for Node-targeted apps.** `"bundler"` works for every consumer the repo currently has. `apps/cli` (when it lands) may need to override to `"node16"` for native ESM resolution rules; revisit at app creation time.
+- **No `lint-staged`.** Considered. Decision: not needed yet. Full-repo lint and format-check are <1 s on this size of monorepo. Once packages grow and hook latency becomes noticeable, add `lint-staged` and swap the pre-commit body for `pnpm exec lint-staged`. Don't add prematurely — another dep, another config.
+- **No `tests/fixtures/secret-detection/README.md`.** `SECURITY-NOTES.md` already references this directory, but it doesn't exist yet (nothing lives in it). When P0-04 creates the `packages/testing` package and the `fakeSecret()` helper, add `tests/fixtures/secret-detection/README.md` explaining the synthetic-fixture convention. The gitleaks allowlist already covers the path so creating the directory won't break anything.
+- **No remote Turbo cache.** Phase notes mention this. Defer to P0-05 (CI pipeline) so the decision (Vercel hosted vs self-hosted) is made once with full context.
+- **No commitlint scope-enum restriction.** Could enumerate allowed scopes (`p0-03`, `core`, `cli`, etc.) but the phase task list isn't stable enough yet. Add after Phase 1 lands its first real package boundaries.
+- **No GitHub PR/issue templates.** That's part of P0-07.
+- **No branch-protection rules enabled.** Cannot be done from code — requires repo admin to flip on "Require status checks: lint, secret-scan" in the GitHub UI. Note in your PR description so a maintainer does this when merging.
+- **gh CLI auth still broken.** Same as the last two handovers. Branch pushed, PR creation needs manual click on the GitHub URL.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **TypeScript is on 6.x, not 5.x.** The `latest` dist-tag is `6.0.3`. Some phase docs and ADRs may still quote 5.x — the strict flags all behave identically, but be aware when reading older guidance. No 6.x breaking change affects our setup.
-2. **`verbatimModuleSyntax` requires `import type` for all type-only imports.** This is a strict ergonomic shift that auto-imports in editors often get wrong. Add an ESLint autofix rule (`@typescript-eslint/consistent-type-imports`) in P0-03 so developers don't fight the compiler by hand.
-3. **`noPropertyAccessFromIndexSignature` is on.** It bans `obj.foo` when `foo` only matches an index signature like `{ [key: string]: unknown }`; you must write `obj["foo"]`. Mostly hits config-shaped code; expect a couple of friction points the first time someone touches a `Record<string, ...>`. The principle ("no primitive obsession") justifies keeping it on.
-4. **Root typecheck via turbo correctly propagates exit codes.** Verified: `pnpm typecheck` exited 2 when the smoke package had errors. Critical for P0-05 CI design.
-5. **`sourceRoot: ""` in the base.** Setting it explicitly to empty string makes source-map paths package-relative (rather than absolute), satisfying `SECURITY-NOTES.md` §"Build Output Path Sanitisation". Don't remove this without reading that doc.
-6. **The smoke-test cleanup pattern is the standard.** P0-01 used it (`_smoke-a`/`_smoke-b`), P0-02 used it (`_smoke-ts`). Any future Phase 0 task that needs a real workspace package to verify itself should create one, verify, then remove. Phase 0 commits should not contain placeholder source.
+1. **`typescript-eslint@8.20.0` (the version I first installed) pinned TS at <5.8.** We're on 6.0.3. Bumped to `8.59.4` whose peer range is `<6.1.0`. If you bump TS again, check `pnpm view typescript-eslint peerDependencies` first.
+2. **`eslint.config.js` triggers `MODULE_TYPELESS_PACKAGE_JSON` on every run.** Renamed to `eslint.config.mjs`. Keep this name; do not "fix" it by adding `"type": "module"` at root because that would force every CommonJS config file (commitlint, future ones) to `.cjs` extension.
+3. **`.cjs` files need a flat-config block declaring CJS globals.** Otherwise `no-undef` flags `module`, `require`, `exports`. The block lives at the bottom of `eslint.config.mjs`; mirror it if you add more `.cjs` config files.
+4. **gitleaks has its OWN allowlist for canonical AWS docs example keys.** `AKIAIOSFODNN7EXAMPLE` will NOT trigger a leak — gitleaks ships it as a known false-positive. When writing tests that need to verify gitleaks fires, use a randomly-generated AKIA-shaped string instead.
+5. **`pnpm format` reformatted every existing doc.** It's noise but it's a one-time cost — future `format:check` runs will stay clean. The diff is in this PR for transparency rather than hidden in a "chore: prettier" commit.
+6. **gitleaks v8 `protect --staged` subcommand still works** but the v9 release (whenever it ships) is expected to migrate to `git --staged` or similar. If you upgrade gitleaks past 8.x, expect the pre-commit hook command to need updating.
+7. **`prepare` runs on `pnpm install` _in every package install context_**, including in CI. CI sets `HUSKY=0` and `ARGUS_SKIP_GITLEAKS_INSTALL=1` to skip both — preserve this in any new CI job.
+8. **Prettier formats Markdown tables aggressively.** Column widths get padded to the longest cell. If the IMPLEMENTATION.md "Recently Completed" table gets a wide entry, the whole column expands. Cosmetic but the diff can look outsized.
 
 ---
 
 ## State of the System
 
-- ✅ `pnpm install` clean (39 packages now, +1 typescript@6.0.3)
-- ✅ `pnpm typecheck` — exits 0 with zero workspaces, exits 2 when a workspace fails (smoke-verified)
-- ✅ `pnpm turbo run build|test|lint|typecheck` all exit 0
-- ⏸ Tests: none yet (P0-04)
-- ⏸ Lint: none yet (P0-03)
-- ⏸ CI: none yet (P0-05)
+- ✅ `pnpm install` clean (177 packages now; +commitlint/eslint/prettier/husky family)
+- ✅ `pnpm lint` exits 0 on clean tree
+- ✅ `pnpm format:check` exits 0 on clean tree
+- ✅ `pnpm typecheck` exits 0 (zero workspaces — turbo no-op)
+- ✅ `.husky/pre-commit` end-to-end exit 0 on clean tree
+- ✅ gitleaks blocks AWS-shaped strings outside the fixture allowlist (verified)
+- ✅ `SKIP=gitleaks`, `SKIP=lint`, `SKIP=format`, `SKIP=commitlint` all work (verified)
+- ⏸ Tests: still none (P0-04)
+- ⏸ Branch protection: not enabled (requires admin)
 - ⏸ Dogfooding scan: not possible until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-03 — ESLint + Prettier + commitlint + gitleaks** in this order:
+Pick up **P0-04 — Vitest test infrastructure** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — specifically the P0-03 section
-2. Read [`docs/SECURITY-NOTES.md`](./SECURITY-NOTES.md) end to end. Pay attention to §"Test Fixtures with Secret-Like Content" — the gitleaks allowlist must cover `tests/fixtures/secret-detection/`
-3. Install Husky v9+ (modern setup — older guides don't apply, per phase notes)
-4. Choose ESLint flat config (`eslint.config.js`) over the legacy `.eslintrc`. Wire `@typescript-eslint`, `@typescript-eslint/no-explicit-any` (P0-02 acceptance hand-off), `@typescript-eslint/consistent-type-imports` (so editors don't fight `verbatimModuleSyntax`), and a Prettier-compat layer (`eslint-config-prettier`)
-5. Wire commitlint with `@commitlint/config-conventional` matching the commit types listed in `00-principles.md` (`feat`, `fix`, `chore`, `refactor`, `docs`, `test`)
-6. Install gitleaks (the binary is the cleanest path — Homebrew on macOS, apt on Linux, GitHub Action in CI). Configure `.gitleaks.toml` with the fixture allowlist *before* enabling the hook, otherwise legitimate fixtures will block commits
-7. Acceptance check: try to commit a file containing a fake AWS access key string outside the allowlist — must be blocked. Then try `SKIP=gitleaks git commit -m "..."` — must succeed (documented escape hatch)
-8. Add `lint` scripts to root and ensure `pnpm lint` is wired through turbo
-9. Smoke-test by creating a scratch package with an explicit `any`, confirming the linter catches it, then removing
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-04 section
+2. Add `packages/testing/` as the first **persistent** workspace package. It's the testing infrastructure home — `packages/testing` per [`docs/plan/01-repo-structure.md`](./plan/01-repo-structure.md). Give it `package.json` (name `@argus/testing`, `type: "module"`, `exports` map), `tsconfig.json` extending the base, and a `src/` with at least `index.ts`
+3. Install `vitest` + `@vitest/coverage-v8`. Vitest is on 3.x as of mid-2026 — verify `pnpm view vitest dist-tags`
+4. Create `packages/testing/src/vitest.config.ts` exporting a shared config factory. Pattern: `defineConfig({ coverage: { thresholds: { lines: 85, branches: 80 } } })`. Each downstream package imports and extends
+5. Wire a `test` script in `packages/testing/package.json` that runs `vitest run`
+6. Verify `pnpm test` from root runs through turbo and picks up the package
+7. Add at least one trivial test (e.g. `expect(true).toBe(true)`) so coverage and pass/fail wiring is exercised end-to-end
+8. Acceptance: "Custom matchers can be imported from `@argus/testing`" — add a placeholder custom matcher (e.g. `expect.extend({ toBeNonEmpty })`) and re-export from `@argus/testing`. Verify another package's test can import and use it
+9. Decide: monorepo-wide coverage aggregation. Vitest has `--coverage.reporter` but cross-package aggregation needs either a single root vitest invocation that walks all packages, or per-package coverage + a merge step (e.g. `nyc merge`). Recommend the single-root approach with `vitest.workspace.ts` listing each package — simpler, no merge step needed
 10. Update IMPLEMENTATION.md & rewrite HANDOVER.md
-11. Open PR
+11. Open PR — be aware that this is the first PR that will EXERCISE the new CI workflow end-to-end. Expect a small CI iteration loop if any YAML or script bug surfaces
 
-Estimated effort: **S → M** (the phase doc says S, but four tools + hooks + CI integration realistically lands closer to M; budget accordingly).
+Estimated effort: **M** (the phase doc says M and it really is M — Vitest workspace config has sharp edges)
 
 ---
 
 ## Open Questions for the Next Agent
 
-- **Husky directory layout.** Husky v9 prefers `.husky/` with one file per hook. Standard — no choice here, just follow upstream docs.
-- **Prettier config location.** `.prettierrc` (JSON) vs `prettier.config.js` (JS). JS allows comments and conditional logic but is unnecessary for our needs. Recommend JSON.
-- **ESLint rule severity.** `error` vs `warn`. The principles say "no silent suppression" — recommend treating violations as errors so PRs cannot merge with `warn`-level noise. Friction is the point.
-- **Gitleaks install method.** Native binary (best perf, manual install) vs `gitleaks` npm package (one-step install but adds JS overhead) vs Docker (heaviest but most portable). Phase 0 environment is dev laptops — recommend native binary with a `scripts/install-gitleaks.sh` helper.
-- **Where does the linter cover `*.md`?** Probably not — Prettier formats Markdown, ESLint stays on `.ts`/`.tsx`. Worth being explicit in the config.
+- **Vitest workspace vs per-package configs.** `vitest.workspace.ts` is the modern way to run all packages from a single invocation. Recommend it; it gives one coverage report without merging.
+- **Should `@argus/testing` be its own pnpm workspace package, or live under `packages/testing/` as a directory?** The repo-structure doc lists it as a workspace package. Yes, a workspace package — referenced from other packages via `"@argus/testing": "workspace:*"` in devDeps.
+- **Coverage on what?** Per package, exclude `tests/`, `src/**/*.test.ts`, `src/types/`, `src/**/index.ts` (barrel files). The principles say "≥85% line, ≥80% branch on NEW code" — `vitest` doesn't natively diff-based coverage; CI can use `vitest --coverage` and then a coverage-diff action. Defer the diff-coverage tooling to P0-05 (CI).
+- **Custom matcher boilerplate.** The first matcher is the hardest because of typing. Use Vitest's `expect.extend` and augment `interface Assertion<T>`. Pin the pattern early so all future matchers follow it.
+- **Snapshot tests.** Decide if `__snapshots__/` is allowed. Recommend no — snapshots rot, prefer explicit assertions. Add an ESLint rule if you want to enforce.
 
 ---
 
 ## Files Touched This Session
 
 ```
-.work/P0-02.md                                       [created — gitignored]
-package.json                                         [modified — +typescript@6.0.3]
+.work/P0-03.md                                       [created — gitignored]
+.bin/gitleaks                                        [created — gitignored, downloaded via install script]
+.gitignore                                           [modified — +.bin/]
+.gitleaks.toml                                       [created]
+.husky/pre-commit                                    [created/overwritten husky init template]
+.husky/commit-msg                                    [created]
+.prettierrc.json                                     [created]
+.prettierignore                                      [created]
+eslint.config.mjs                                    [created — renamed from .js to silence MODULE_TYPELESS warning]
+commitlint.config.cjs                                [created]
+scripts/install-gitleaks.sh                          [created]
+.github/workflows/ci.yml                             [created — lint, commitlint (PR), secret-scan jobs]
+package.json                                         [modified — +eslint/prettier/commitlint/husky/typescript-eslint, prepare script, new scripts]
 pnpm-lock.yaml                                       [modified]
-tsconfig.base.json                                   [created]
-docs/IMPLEMENTATION.md                               [modified]
+docs/SECURITY-NOTES.md                               [modified — gitleaks install + SKIP family]
+docs/IMPLEMENTATION.md                               [modified — P0-03 → Recently Completed]
 docs/HANDOVER.md                                     [modified — this file]
-docs/handovers/p0-01-monorepo-init-handover.md       [created — archive of previous handover]
+docs/handovers/p0-02-typescript-base-handover.md     [created — archive of previous handover]
+docs/{25 existing markdown files}                    [modified — one-shot prettier baseline; content-neutral]
 ```
 
 ---
 
 ## Sign-off
 
-TypeScript strict-mode floor is set across the entire workspace. Every future package that extends `tsconfig.base.json` inherits the same guarantees. Next agent can start P0-03 immediately; the linter task is the natural hand-off for the deferred "no any" half of P0-02.
+Every commit from this point forward is gated by lint, format, conventional-commit validation, and secret scanning — both locally and in CI. P0-04 can land tests on a strong baseline.
 
 — claude-opus-4-7

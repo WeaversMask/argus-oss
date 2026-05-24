@@ -24,6 +24,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 ## Tasks
 
 ### [P5-01] Schema design and migration system
+
 - **Deps:** P4 complete
 - **Outputs:** `packages/persistence/migrations/`, tooling (`umzug` or `drizzle-kit`)
 - **Acceptance:**
@@ -32,6 +33,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 - **Effort:** M
 
 ### [P5-02] SQLite implementations of all repository ports
+
 - **Deps:** P5-01
 - **Outputs:** `packages/persistence/sqlite/`
 - **Acceptance:**
@@ -40,6 +42,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 - **Effort:** L
 
 ### [P5-03] Postgres implementations (mirror)
+
 - **Deps:** P5-02
 - **Outputs:** `packages/persistence/postgres/`
 - **Acceptance:**
@@ -48,6 +51,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 - **Effort:** M
 
 ### [P5-04] Trend calculator service
+
 - **Deps:** P5-02
 - **Outputs:** Service in `packages/core/src/services/trend-calculator.ts`
 - **Acceptance:**
@@ -56,6 +60,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 - **Effort:** M
 
 ### [P5-05] Suppression system
+
 - **Deps:** P5-02
 - **Outputs:** Inline suppression parsing + repository-stored suppressions
 - **Acceptance:**
@@ -88,6 +93,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 ## Definition of Done for Phase 5
 
 The next agent can:
+
 1. Run a scan and see results persisted; run again and see the delta
 2. Add a suppression and watch it apply to the next scan
 3. Switch the storage backend by changing a single config line

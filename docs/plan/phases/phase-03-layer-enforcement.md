@@ -25,6 +25,7 @@ Architectural conformance checking — the platform's differentiating capability
 ## Tasks
 
 ### [P3-01] Layer manifest schema and loader
+
 - **Deps:** P2 complete
 - **Outputs:** `packages/layer-enforcer/src/manifest-loader.ts`, Zod schema in `packages/config`
 - **Acceptance:**
@@ -34,6 +35,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** M
 
 ### [P3-02] Layer classifier
+
 - **Deps:** P3-01
 - **Outputs:** `packages/layer-enforcer/src/classifier.ts`
 - **Acceptance:**
@@ -43,6 +45,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** M
 
 ### [P3-03] Dependency graph builder
+
 - **Deps:** P1-03 (AST), P3-02
 - **Outputs:** `packages/dependency-graph/`
   - Walks ASTs collecting imports
@@ -54,6 +57,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** L
 
 ### [P3-04] Direction checker
+
 - **Deps:** P3-03
 - **Outputs:** `packages/layer-enforcer/src/direction-checker.ts`
 - **Acceptance:**
@@ -63,6 +67,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** M
 
 ### [P3-05] Type contract checker
+
 - **Deps:** P3-03
 - **Outputs:** `packages/layer-enforcer/src/type-contract-checker.ts`
 - **Acceptance:**
@@ -72,6 +77,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** L
 
 ### [P3-06] Dependency Inversion checker
+
 - **Deps:** P3-03
 - **Outputs:** `packages/layer-enforcer/src/dip-checker.ts`
 - **Acceptance:**
@@ -80,6 +86,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** M
 
 ### [P3-07] Exchangeability checker
+
 - **Deps:** P3-03
 - **Outputs:** `packages/layer-enforcer/src/exchangeability-checker.ts`
 - **Acceptance:**
@@ -89,6 +96,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Effort:** L
 
 ### [P3-08] Conformance scoring and reporting
+
 - **Deps:** P3-04 through P3-07
 - **Outputs:** Per-layer conformance score in scan output
 - **Acceptance:**
@@ -118,6 +126,7 @@ Architectural conformance checking — the platform's differentiating capability
 ## Definition of Done for Phase 3
 
 The next agent can:
+
 1. Define a layer manifest for a real project and have it correctly classify every file
 2. See architecture violations in the same output as code-quality violations
 3. Get a conformance score per layer

@@ -24,12 +24,14 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 ## Tasks
 
 ### [P6-01] Fastify server bootstrap
+
 - **Deps:** P5 complete
 - **Outputs:** `apps/server/src/index.ts`
 - **Acceptance:** Server starts, exposes `/health`, structured logging via `pino`
 - **Effort:** S
 
 ### [P6-02] tRPC routers
+
 - **Deps:** P6-01
 - **Outputs:** Routers for projects, scans, violations, suppressions, rules, layers
 - **Acceptance:**
@@ -38,6 +40,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 - **Effort:** L
 
 ### [P6-03] BullMQ integration
+
 - **Deps:** P6-01
 - **Outputs:** Job queue setup, scan worker, Redis dependency
 - **Acceptance:**
@@ -47,6 +50,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 - **Effort:** L
 
 ### [P6-04] Worker pool for parallel parsing
+
 - **Deps:** P6-03
 - **Outputs:** `packages/workers/` — `worker_threads` pool
 - **Acceptance:**
@@ -55,6 +59,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 - **Effort:** L
 
 ### [P6-05] Authentication
+
 - **Deps:** P6-01
 - **Outputs:** Passport.js with local + OIDC + SAML strategies
 - **Acceptance:**
@@ -64,6 +69,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 - **Effort:** L
 
 ### [P6-06] Authorization & roles
+
 - **Deps:** P6-05
 - **Outputs:** Owner/Editor/Viewer role enforcement on all tRPC routes
 - **Acceptance:**
@@ -94,6 +100,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 ## Definition of Done for Phase 6
 
 The next agent can:
+
 1. Start the server with `pnpm dev:server` and hit `/health`
 2. Submit a scan via tRPC and poll for completion
 3. Authenticate via local credentials or OIDC

@@ -89,15 +89,15 @@ Escalations are filed as "Open Decisions" in `IMPLEMENTATION.md` with the agent'
 
 The intent of this modular structure is to keep working context lean:
 
-| Document | Size | Load Frequency |
-|---|---|---|
-| `IMPLEMENTATION.md` | ~150 lines | Every session |
-| `HANDOVER.md` | ~80 lines | Every session |
-| `00-principles.md` | ~80 lines | Every session |
-| `agentic-execution.md` (this file) | ~150 lines | Every session |
-| Active phase file | ~200 lines | Every session |
-| `01-repo-structure.md` | ~150 lines | When creating new files |
-| `02-roadmap.md` | ~50 lines | When planning cross-phase work |
-| `quality-gates.md` | ~60 lines | Before opening a PR |
+| Document                           | Size       | Load Frequency                 |
+| ---------------------------------- | ---------- | ------------------------------ |
+| `IMPLEMENTATION.md`                | ~150 lines | Every session                  |
+| `HANDOVER.md`                      | ~80 lines  | Every session                  |
+| `00-principles.md`                 | ~80 lines  | Every session                  |
+| `agentic-execution.md` (this file) | ~150 lines | Every session                  |
+| Active phase file                  | ~200 lines | Every session                  |
+| `01-repo-structure.md`             | ~150 lines | When creating new files        |
+| `02-roadmap.md`                    | ~50 lines  | When planning cross-phase work |
+| `quality-gates.md`                 | ~60 lines  | Before opening a PR            |
 
 **Steady-state load: ~660 lines** vs. ~1000+ lines for a monolithic plan. The savings compound across many sessions.

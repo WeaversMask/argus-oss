@@ -24,76 +24,91 @@ All seven output formats (PDF, DOCX, HTML, CSV/Excel, JSON, SARIF, Markdown) and
 ## Tasks
 
 ### [P8-01] Report builder ports
+
 - **Deps:** P7 complete
 - **Outputs:** Format-agnostic `Report` domain model in `packages/reports/src/ports/`
 - **Acceptance:** A `Report` instance can be passed to any formatter without modification
 - **Effort:** S
 
 ### [P8-02] Scan Summary report builder
+
 - **Deps:** P8-01
 - **Outputs:** Builder producing a `Report` from a scan
 - **Effort:** M
 
 ### [P8-03] Architecture Conformance report builder
+
 - **Deps:** P8-01
 - **Outputs:** Includes embedded layer diagram (SVG)
 - **Effort:** L
 
 ### [P8-04] Security Audit report builder (OWASP-mapped)
+
 - **Deps:** P8-01
 - **Outputs:** Findings grouped by OWASP Top 10 category
 - **Effort:** M
 
 ### [P8-05] Trend report builder
+
 - **Deps:** P8-01, P5-04
 - **Outputs:** Time-series charts as embedded images
 - **Effort:** M
 
 ### [P8-06] Compliance report builder
+
 - **Deps:** P8-01
 - **Outputs:** Suppression log appendix, configuration history, sign-off fields
 - **Effort:** M
 
 ### [P8-07] PDF formatter (Puppeteer)
+
 - **Deps:** P8-02
 - **Acceptance:** Renders A4 and Letter sizes correctly; page numbers and TOC
 - **Effort:** M
 
 ### [P8-08] DOCX formatter
+
 - **Deps:** P8-02
 - **Acceptance:** Editable in Word, LibreOffice, and Google Docs; styles applied; tables and embedded images render
 - **Effort:** M
 
 ### [P8-09] HTML formatter (self-contained)
+
 - **Deps:** P8-02
 - **Acceptance:** Single-file output with embedded charts; renders offline
 - **Effort:** M
 
 ### [P8-10] CSV / Excel formatter
+
 - **Deps:** P8-02
 - **Acceptance:** Excel output uses native charts, not embedded images
 - **Effort:** S
 
 ### [P8-11] JSON formatter
+
 - **Deps:** P8-02
 - **Acceptance:** Validates against schema in `@argus/api-contracts`
 - **Effort:** S
 
 ### [P8-12] SARIF formatter
+
 - **Deps:** P8-02
 - **Acceptance:** Validates against official SARIF 2.1.0 schema; opens in VS Code SARIF viewer
 - **Effort:** M
 
 ### [P8-13] Markdown formatter
+
 - **Deps:** P8-02
 - **Effort:** S
 
 ### [P8-14] Report Builder UI
+
 - **Deps:** P8-07 through P8-13, P7 complete
 - **Outputs:** UI for selecting type, format, sections, filters, branding (logo, header/footer)
 - **Effort:** L
 
 ### [P8-15] Scheduled report generation
+
 - **Deps:** P8-14, P6-03
 - **Outputs:** Cron-based scheduled reports, email/webhook delivery
 - **Effort:** M
@@ -122,6 +137,7 @@ All seven output formats (PDF, DOCX, HTML, CSV/Excel, JSON, SARIF, Markdown) and
 ## Definition of Done for Phase 8
 
 The next agent can:
+
 1. Generate any report type in any format via UI or API
 2. Schedule a weekly compliance report delivered to email
 3. Brand reports with org logo

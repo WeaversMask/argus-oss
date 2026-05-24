@@ -70,6 +70,9 @@ storage/
 .scratch/
 .notes/
 
+# ── Repo-local binaries (installed by scripts/install-*.sh) ─────────────────
+.bin/
+
 # ── IDE & editor (may contain absolute workspace paths) ─────────────────────
 .vscode/
 !.vscode/extensions.json

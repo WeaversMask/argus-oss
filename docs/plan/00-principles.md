@@ -37,6 +37,7 @@
 ## Definition of Done
 
 A task is done when:
+
 - [ ] All acceptance criteria in the phase task definition are met
 - [ ] Tests added and passing locally
 - [ ] Lint and type-check clean

@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+# Argus pre-commit hook
+#
+# Runs lint, format check, and secret scanning before allowing the commit.
+#
+# Each step can be skipped individually via the SKIP env var (comma-separated):
+#   SKIP=lint git commit ...
+#   SKIP=format git commit ...
+#   SKIP=gitleaks git commit ...
+#   SKIP=lint,format,gitleaks git commit ...
+#
+# Skipping any of these requires justification in the commit message. See
+# docs/SECURITY-NOTES.md for the SKIP=gitleaks policy specifically.
+
+set -e
+
+is_skipped() {
+  case ",${SKIP}," in
+    *",$1,"*) return 0 ;;
+    *)        return 1 ;;
+  esac
+}
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if is_skipped lint; then
+  echo "⚠️  pre-commit: SKIP=lint — bypassing eslint"
+else
+  pnpm lint
+fi
+
+if is_skipped format; then
+  echo "⚠️  pre-commit: SKIP=format — bypassing prettier --check"
+else
+  pnpm format:check
+fi
+
+if is_skipped gitleaks; then
+  echo "⚠️  pre-commit: SKIP=gitleaks — bypassing secret scan. Document the reason in the commit message."
+else
+  gitleaks_bin=""
+  if [ -x "$repo_root/.bin/gitleaks" ]; then
+    gitleaks_bin="$repo_root/.bin/gitleaks"
+  elif command -v gitleaks >/dev/null 2>&1; then
+    gitleaks_bin="gitleaks"
+  else
+    echo "❌ pre-commit: gitleaks not found."
+    echo "   Run: ./scripts/install-gitleaks.sh"
+    echo "   Or install system-wide (brew install gitleaks) and retry."
+    echo "   To bypass once (requires justification): SKIP=gitleaks git commit ..."
+    exit 1
+  fi
+  "$gitleaks_bin" protect --staged --redact --config "$repo_root/.gitleaks.toml" --no-banner
+fi
