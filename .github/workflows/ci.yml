@@ -86,6 +86,13 @@ jobs:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # gitleaks-action calls GET /repos/{owner}/{repo}/pulls/{n}/commits to
+    # enumerate the PR's commits, which the default contents:read scope does
+    # not grant. Add pull-requests:read here so the rest of the workflow
+    # stays on least-privilege.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
