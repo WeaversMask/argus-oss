@@ -1,0 +1,27 @@
+import { defineConfig } from "vitest/config";
+
+/**
+ * Root Vitest config — runs every workspace project in a single invocation.
+ * Add new packages to `test.projects` as they land.
+ *
+ * Coverage is aggregated across projects because each project inherits the
+ * shared coverage settings from `@argus/testing`'s `defineProjectConfig`,
+ * and Vitest 4 merges per-project coverage into a single report when
+ * `--coverage` is passed at the root.
+ */
+export default defineConfig({
+  test: {
+    projects: ["packages/testing/vitest.config.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary"],
+      reportsDirectory: "coverage",
+      thresholds: {
+        lines: 85,
+        branches: 80,
+        functions: 85,
+        statements: 85,
+      },
+    },
+  },
+});

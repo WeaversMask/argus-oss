@@ -2,10 +2,10 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-05-24 by claude-opus-4-7_
+**Last updated:** _2026-05-25 by claude-opus-4-7_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _3 of 8 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _4 of 8 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -25,9 +25,9 @@
 
 ### Up Next (top of backlog within current phase)
 
-1. _P0-04 — Vitest test infrastructure_
-2. _P0-05 — GitHub Actions CI pipeline (extends existing ci.yml with typecheck/test/build)_
-3. _P0-06 — Docker development environment_
+1. _P0-05 — GitHub Actions CI pipeline (extends existing ci.yml with typecheck/test/build)_
+2. _P0-06 — Docker development environment_
+3. _P0-07 — Documentation scaffolding + ADR-0001_
 
 ---
 
@@ -35,7 +35,7 @@
 
 | Phase                  | Status         | Completed | Notes                 |
 | ---------------------- | -------------- | --------- | --------------------- |
-| P0 — Foundation        | 🟡 In progress | 3/8       | P0-03 done 2026-05-24 |
+| P0 — Foundation        | 🟡 In progress | 4/8       | P0-04 done 2026-05-25 |
 | P1 — Domain Core       | ⏸ Not started  | —         | —                     |
 | P2 — MVP               | ⏸ Not started  | —         | —                     |
 | P3 — Layer Enforcement | ⏸ Not started  | —         | —                     |
@@ -54,11 +54,12 @@
 
 ## Recently Completed (last 10 tasks)
 
-| Task ID | Title                                                | Completed  | PR                                                | Notes                                                                                                                                                                      |
-| ------- | ---------------------------------------------------- | ---------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-03   | ESLint + Prettier + commitlint + gitleaks            | 2026-05-24 | _pending_                                         | ESLint 10 flat config, Prettier 3.8, commitlint 21 (conventional), Husky 9, gitleaks 8.30.1 via repo-local .bin/; CI workflow with lint/format/commitlint/secret-scan jobs |
-| P0-02   | Base TypeScript configuration                        | 2026-05-23 | [#2](https://github.com/WeaversMask/argus/pull/2) | TS 6.0.3 pinned; tsconfig.base.json with strict + verbatimModuleSyntax; "no any in linter" deferred to P0-03 (delivered)                                                   |
-| P0-01   | Initialise monorepo with pnpm workspaces + Turborepo | 2026-05-23 | [#1](https://github.com/WeaversMask/argus/pull/1) | pnpm 9.15.9 pinned; turbo 2.x; workspace:\* smoke-tested                                                                                                                   |
+| Task ID | Title                                                | Completed  | PR                                                | Notes                                                                                                                                                                                                                                                                                           |
+| ------- | ---------------------------------------------------- | ---------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-04   | Vitest test infrastructure                           | 2026-05-25 | _pending_                                         | Vitest 4.1.7 + @vitest/coverage-v8; first persistent workspace package `@argus/testing` with `defineProjectConfig`, `fakeSecret()`, and `toBeNonEmpty` custom matcher; root `vitest.config.ts` runs all projects in one invocation with aggregated coverage at 85% line / 80% branch thresholds |
+| P0-03   | ESLint + Prettier + commitlint + gitleaks            | 2026-05-24 | _pending_                                         | ESLint 10 flat config, Prettier 3.8, commitlint 21 (conventional), Husky 9, gitleaks 8.30.1 via repo-local .bin/; CI workflow with lint/format/commitlint/secret-scan jobs                                                                                                                      |
+| P0-02   | Base TypeScript configuration                        | 2026-05-23 | [#2](https://github.com/WeaversMask/argus/pull/2) | TS 6.0.3 pinned; tsconfig.base.json with strict + verbatimModuleSyntax; "no any in linter" deferred to P0-03 (delivered)                                                                                                                                                                        |
+| P0-01   | Initialise monorepo with pnpm workspaces + Turborepo | 2026-05-23 | [#1](https://github.com/WeaversMask/argus/pull/1) | pnpm 9.15.9 pinned; turbo 2.x; workspace:\* smoke-tested                                                                                                                                                                                                                                        |
 
 ---
 
@@ -84,7 +85,7 @@
 
 ## Metrics Snapshot
 
-- **Test coverage:** _—_
+- **Test coverage:** 100% lines / 100% branches on `@argus/testing` (9 tests, only package with sources today)
 - **Self-scan results:** _—_
 - **CI build time (cold / cached):** _—_
 
