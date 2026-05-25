@@ -1,140 +1,124 @@
-# Handover — P0-04 → P0-05
+# Handover — P0-05 → P0-06
 
 **From:** claude-opus-4-7
 **To:** next picker
 **Date:** 2026-05-25
 **Phase:** P0 — Foundation
-**Last task completed:** P0-04 — Vitest test infrastructure
+**Last task completed:** P0-05 — GitHub Actions CI pipeline
 
 ---
 
 ## Context
 
-The monorepo now has a working test runner. Vitest 4.1.7 + `@vitest/coverage-v8` are pinned at the root; the first persistent workspace package, `@argus/testing`, exposes `defineProjectConfig` (shared coverage thresholds: 85% line / 80% branch), a `fakeSecret()` fixture helper aligned with `.gitleaks.toml`, and a `toBeNonEmpty` custom matcher with full `declare module "vitest"` augmentation. A root `vitest.config.ts` runs every workspace project in a single invocation via Vitest's `test.projects` API (the v4 replacement for `vitest.workspace.ts`), so `pnpm test` produces one aggregated coverage report. `pnpm test:packages` (Turbo) still works as a per-package fallback.
+The CI gate is now feature-complete for Phase 0. The existing `ci.yml` (lint + commitlint + secret-scan from P0-03) gained three new jobs — `typecheck`, `test`, `build` — that run in parallel against every PR and every push to `main`. Each job re-creates the same pnpm/Node/install boilerplate the lint job already uses; the `test` job runs the aggregated root `vitest run --coverage` from P0-04 and uploads the `coverage/` directory as a GitHub Actions artefact (14-day retention) so reviewers can spot-check without needing Codecov yet. Three workflow-level env vars (`TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_REMOTE_CACHE_SIGNATURE_KEY`) are pre-wired — they resolve to empty strings until a repo admin sets the matching secrets, at which point Turbo Remote Cache lights up with no further workflow change. Until then, each Turbo-using job has its own `actions/cache@v4` keyed on `.turbo` so warm-run cache hits still work.
 
-Next up is **P0-05 — GitHub Actions CI pipeline**. The existing `.github/workflows/ci.yml` already has lint / format-check / commitlint / secret-scan jobs. P0-05 extends it with `typecheck`, `test`, and `build` jobs, wires Turbo remote cache (decision pending — Vercel Remote Cache vs self-hosted; see Open Questions), and asks a maintainer to flip branch-protection on the new required checks. This is the first task that exercises `pnpm test` in CI end-to-end — expect a small iteration loop if anything is platform-specific.
+Next up is **P0-06 — Docker development environment**. Small task: `Dockerfile.dev` plus a `docker-compose.yml` that brings up Redis (for BullMQ later) and Postgres (for persistence later) alongside the app, with volume mounts so edits propagate. No code changes — just the Docker scaffolding. P0-06 only depends on P0-01, so it's unblocked and can start immediately. Open Decision **D-1** (Turbo remote cache: Vercel vs self-hosted) was filed in IMPLEMENTATION.md with a recommendation but does **not** block P0-06 — the workflow already works at expected speed via the local-disk cache.
 
 ---
 
 ## What I Did
 
-- Created `packages/testing/` — the first persistent workspace package. `package.json` declares `@argus/testing`, `type: "module"`, `sideEffects: false`, and an `exports` map with three subpaths (`.`, `./config`, `./setup`) that point at `src/*.ts` directly (no build step yet — `bundler` module resolution + workspace symlinks + `verbatimModuleSyntax` cooperate).
-- `packages/testing/src/config.ts` exports `defineProjectConfig(overrides?)` — wraps Vitest's `defineConfig` with shared defaults (Node env, coverage provider v8, thresholds 85% line / 80% branch / 85% func / 85% stmt, sensible coverage excludes including `src/**/types.ts` for module-augmentation files).
-- `packages/testing/src/matchers/to-be-non-empty.ts` + `matchers/types.ts` — the matcher uses `MatcherResult` (the `vitest` re-export alias for `@vitest/expect`'s `ExpectationResult`). The augmentation file uses `Matchers<T = any>` because `@vitest/expect`'s base interface has the same default — declaration merging requires it. There is exactly one `eslint-disable-next-line @typescript-eslint/no-explicit-any` in the file, with a comment block explaining why.
-- `packages/testing/src/fixtures/fake-secret.ts` — three kinds (`aws-access-key`, `github-token`, `generic-api-key`), deterministic with a seed parameter, prefixes match the `AKIA-FAKE-TEST-FIXTURE-` regex already allow-listed in `.gitleaks.toml`.
-- `packages/testing/src/setup.ts` — calls `expect.extend({ toBeNonEmpty })`. Wired by both per-package and root vitest configs via `setupFiles: ["@argus/testing/setup"]`.
-- Root `vitest.config.ts` — `test.projects: ["packages/testing/vitest.config.ts"]` plus aggregated coverage with the same 85/80 thresholds.
-- Root `tsconfig.json` (new, minimal) — exists primarily so `typescript-eslint`'s `projectService: true` can find the root `vitest.config.ts`. Excludes `apps/` and `packages/` (each has its own tsconfig).
-- Root `package.json` — `pnpm test` is now `vitest run --coverage` (aggregated). `pnpm test:packages` runs `turbo run test` (per-package). `pnpm test:watch` runs `vitest`. Added `vitest` and `@vitest/coverage-v8` to root devDeps so the root binary resolves.
-- `turbo.json` — added `inputs` to the `test` task so Turbo invalidates the per-package cache on the right files (`src/**`, `tests/**`, `package.json`, `tsconfig.json`, `vitest.config.ts`).
-- Smoke test in `packages/testing/tests/smoke.test.ts` (9 tests, 100% coverage) — exercises the matcher pass/fail paths via `expect(() => …).toThrowError(…)`, validates `defineProjectConfig` returns the merged shape, and asserts `fakeSecret` determinism and prefix shape.
+- Extended [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) with three new jobs:
+  - **`typecheck`** — runs `pnpm typecheck` (Turbo `typecheck`), 10-minute timeout, `.turbo` cached via `actions/cache@v4`
+  - **`test`** — runs `pnpm test` (aggregated `vitest run --coverage` via the root config), 15-minute timeout, uploads `coverage/` as a workflow artefact named `coverage-${{ github.run_id }}` with 14-day retention, `.turbo` cached
+  - **`build`** — runs `pnpm build` (Turbo `build`, no-op today — no workspace package has a build script), 15-minute timeout, `.turbo` cached
+- Lifted shared env vars (`ARGUS_SKIP_GITLEAKS_INSTALL=1`, `HUSKY=0`) from per-job `env:` blocks to a workflow-level `env:` block so every job inherits them. Cleans up the file and prevents drift if a future job forgets to set them.
+- Added `TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_REMOTE_CACHE_SIGNATURE_KEY` at workflow scope, all sourced from `secrets.*`. Empty strings when the secrets are absent — Turbo silently treats that as "no remote cache" and falls back to local cache.
+- Filed Open Decision **D-1** in [`IMPLEMENTATION.md`](./IMPLEMENTATION.md): Vercel Remote Cache vs self-hosted `turborepo-remote-cache`. Recommended Vercel for the speed-to-ship.
+- Reused the existing `lint` job's setup pattern (no composite action) — six near-identical setup blocks. At this size it's the right trade; revisit if jobs multiply.
+- Job names: `lint`, `typecheck`, `test`, `build`, `commitlint`, `secret-scan`. These are the names branch protection will refer to. Documented at the top of the YAML.
 
 PRs in this session:
 
-- _pending_ — branch `p0-04-vitest-infrastructure` (stacked on `p0-03-lint-format-secrets`; rebase onto main once P0-03 merges)
+- _pending_ — branch `p0-05-ci-pipeline` off `main`
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **No second workspace package.** The phase doc explicitly forbids placeholder source in app/library packages outside `packages/testing` ("Don't add real source code yet"). The original handover suggested "verify another package's test can import and use it" — I left that gap deliberately. Cross-package consumption will be exercised by the first real package in Phase 1 (`packages/core`). The import surface is in place; nothing here will need to change to support it.
-- **No CI changes.** The phase doc assigns `typecheck` / `test` / `build` jobs to P0-05. The lint / format / commitlint / secret-scan jobs are unchanged and still pass.
-- **No diff-based coverage.** The principles say "≥85% line, ≥80% branch on NEW code." Vitest enforces totals, not diff-coverage. Defer the diff tool to P0-05 alongside the CI work — likely a separate `vitest-coverage-report-action` or a custom script.
-- **No `vitest.workspace.ts`.** Vitest 4 deprecated the workspace file in favour of `test.projects` inside `vitest.config.ts`. I went with the modern form. If you read older docs that still mention `vitest.workspace.ts`, ignore them.
-- **No snapshot tests.** The previous handover recommended against them; I agree and did not introduce any. If you want to enforce, add `vitest/no-snapshot` (no such rule exists yet) or an ESLint custom rule later.
-- **No `lint-staged` (still).** Same reasoning as P0-03 — the hook is fast enough at this size. Revisit when packages multiply.
-- **No `gh pr create`.** `gh` auth is still broken on this machine (same as the last three handovers). Branch was pushed; PR needs to be opened from the GitHub UI.
-- **PR #1 / #2 sequence assumes P0-03 lands first.** Because P0-03 was committed but never merged (no PR opened — gh auth), this branch is stacked on `p0-03-lint-format-secrets`. The PR diff will include P0-03's commit until that lands. Either (a) open P0-03's PR first and merge it, then rebase this branch onto main, or (b) open both PRs and merge P0-03 → P0-04 in order.
+- **No composite "setup-node-pnpm" action.** Six jobs repeat the same four steps. A composite action in `.github/actions/setup/action.yml` would dedupe to ~2 lines per job. Skipped because (a) at six jobs the duplication is still readable and (b) it adds a file reviewers have to load. Reconsider when CI grows past ~8 jobs or when we add cross-OS matrices.
+- **No Vercel Remote Cache configured.** Open Decision D-1. The env vars are pre-wired so a maintainer can `gh secret set TURBO_TOKEN` + `gh secret set TURBO_TEAM` and remote cache turns on without a workflow change.
+- **No diff-coverage gate.** Total coverage is enforced by vitest's `thresholds` (85% line / 80% branch); diff coverage on the PR-changed lines is not. Same reasoning as P0-04 — defer until packages grow. Easy follow-up: download the coverage artefact in a separate `coverage-report` job and run `vitest-coverage-report-action` for a PR comment, or compute it ourselves from `coverage/lcov.info` + the PR diff.
+- **No Codecov / Coveralls upload.** Artefact upload is enough for Phase 0. Hook up to an external service in P11 Hardening if/when public coverage badges are wanted.
+- **No branch protection enabled.** Requires admin. Surfaced in the PR description, again — this has been pending since P0-03 and continues to be pending. Required checks should be: `lint`, `typecheck`, `test`, `build`, `commitlint`, `secret-scan`.
+- **No retry / flake-detection.** Vitest is deterministic at this size. Add `vitest --retry=1` later if a flaky test slips in; not worth the noise today.
+- **No `actionlint` or `pre-commit` linter for the workflow YAML.** Validated via `python3 -c "import yaml; yaml.safe_load(...)"`. If a real lint pass becomes valuable, `actionlint` is the standard.
+- **No `gh pr create`.** Same pattern as the last three handovers — `gh` auth is broken on this machine. Branch will be pushed; PR needs to be opened from the GitHub UI or by a human with auth.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **Vitest 4 does not re-export `SyncExpectationResult`.** The first matcher draft used `SyncExpectationResult`, which is imported but not re-exported by `vitest`. Use `MatcherResult` (aliased from `@vitest/expect`'s `ExpectationResult`) instead. The relevant re-export lives at `vitest/dist/index.d.ts` line 15.
-2. **`Matchers<T = any>` type-parameter mismatch.** Augmenting `vitest`'s `Matchers` requires the default to be `any` (declaration merging is strict about identical type parameters). The repo bans `any` via ESLint — I left a single justified disable comment with a block-comment explaining the constraint and pointing at the upstream `.d.ts`. Don't refactor that comment away without changing the augmentation pattern.
-3. **Root `vitest.config.ts` was invisible to ESLint's projectService.** Symptom: `Parsing error: <file> was not found by the project service. Consider either including it in the tsconfig.json or including it in allowDefaultProject.` Fix: minimal root `tsconfig.json` that only includes `vitest.config.ts`. Don't expand its `include` to cover `apps/**` or `packages/**` — that would double-register every file with its package-level tsconfig and cause type-aware-rule churn.
-4. **`@types/node` peer-dep range matters.** I first installed `@types/node@22.10.5` and got a peer warning from `vite@8` ("requires `^20.19.0 || >=22.12.0`"). Bumped to `22.19.19`. If you upgrade Vite or Vitest, re-check the peer range — `pnpm view vite peerDependencies @types/node`.
-5. **Vitest config files are not included in v8 coverage by default**, even when they live under `src/**`. That's why `defineProjectConfig` showed 50% line coverage initially — vitest reads the config at startup but doesn't instrument the file. I added a direct unit test in `smoke.test.ts` that calls `defineProjectConfig()` to bring it to 100%.
-6. **Type-augmentation files have zero statements but show up in coverage tables.** `packages/testing/src/matchers/types.ts` is `export {}` + a `declare module` — the per-package coverage table listed it at 0/0/0/0 even though it's not real code. Excluded via `src/**/types.ts` in the shared coverage config. Keep the convention: any future `types.ts` files (module augmentation only) inherit the exclude automatically.
-7. **Two coverage thresholds.** The shared `defineProjectConfig` puts thresholds on per-package coverage; root `vitest.config.ts` puts thresholds on the aggregated report. Both pass at 100% today, but they ARE independent — adding a new project without enough tests will fail the root threshold even if the per-project one passes (because the root threshold is computed against the union of all files).
-8. **`pnpm test` and `pnpm test:packages` produce different outputs.** Root invocation uses Vitest projects (one report). Turbo invocation runs per-package vitest (per-package report). Pick the right one for CI in P0-05; my recommendation is `pnpm test` for the green-bar check + coverage gate, with `pnpm test:packages` reserved for parallelism when packages grow.
+1. **`pnpm build` exits 0 with a `WARNING No tasks were executed`.** No workspace package has a `build` script yet, so Turbo reports the warning but the command succeeds. Don't add a stub `build` script to `@argus/testing` to silence the warning — once real packages ship, the warning disappears naturally. Watch for it being interpreted as a failure by downstream tooling later (Changesets, release scripts) — it isn't.
+2. **`TURBO_*` env vars at workflow scope are safe even when unset.** When `secrets.TURBO_TOKEN` is undefined GitHub resolves the expression to an empty string. Turbo treats empty `TURBO_TOKEN` as "remote cache disabled" — it does not warn or fail. This is the cleanest way to pre-wire remote cache.
+3. **Each Turbo-using job gets its own `actions/cache` entry, keyed by job name.** Sharing a single `.turbo` cache key across `typecheck`, `test`, and `build` would let one job's miss invalidate the others. Keep them separate. Cache cost on GitHub-hosted runners is generous, so the duplicate storage is fine.
+4. **Coverage artefact name includes `${{ github.run_id }}`.** This makes downloads unambiguous across re-runs and avoids the artefact-name-collision error if a PR is force-pushed. The retention is 14 days, set explicitly to avoid the org default.
+5. **Workflow-level `env:` propagates into every job AND every step**, which is convenient — but it also means `secrets.*` are read for every job, including `secret-scan` and `commitlint`. That's fine (the secrets are empty by default and Turbo isn't invoked in those jobs), but worth knowing if a future workflow needs job-specific isolation.
+6. **`format:check` failed locally during smoke** — `docs/IMPLEMENTATION.md` had Prettier formatting drift from a previous edit. Auto-fixed via `prettier --write`. If you edit Markdown tables manually, run `pnpm format:check` before pushing or expect a CI red.
 
 ---
 
 ## State of the System
 
-- ✅ `pnpm install` clean (235 packages, +56 from this PR — vitest + transitive)
+- ✅ `pnpm install` clean (no changes from this PR)
 - ✅ `pnpm lint` exits 0
 - ✅ `pnpm format:check` exits 0
 - ✅ `pnpm typecheck` exits 0 (1 package: `@argus/testing`)
 - ✅ `pnpm test` exits 0 — 9 tests passing, 100% statements/branches/functions/lines
-- ✅ `pnpm test:packages` (Turbo) exits 0 with identical results
+- ✅ `pnpm build` exits 0 (no-op, expected — no packages with build script yet)
+- ✅ `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"` parses clean
 - ✅ `.husky/pre-commit` end-to-end exit 0 with the staged change
-- ✅ Coverage thresholds (85% line / 80% branch) enforced and well above floor
-- ⏸ CI: existing P0-03 jobs (lint, format, commitlint, secret-scan) unchanged; typecheck/test/build jobs land in P0-05
-- ⏸ Branch protection: still not enabled (requires admin to flip on)
+- ⏸ CI: this PR is the first run of the new pipeline; expect cold-cache timings (~5 min total wall clock predicted, well under the 10-min budget)
+- ⏸ Branch protection: still not enabled (requires admin to flip on — see PR description)
+- ⏸ Turbo Remote Cache: env vars wired; secrets pending Open Decision D-1
 - ⏸ Dogfood scan: still N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-05 — GitHub Actions CI pipeline** in this order:
+Pick up **P0-06 — Docker development environment** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-05 section
-2. Look at the existing [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — it has four jobs (`lint`, `commitlint`, `secret-scan`); extend with `typecheck`, `test`, and `build`. Reuse the same `pnpm/action-setup@v4` + `setup-node@v4` + `node-version-file: package.json` boilerplate and the `ARGUS_SKIP_GITLEAKS_INSTALL=1` + `HUSKY=0` env that the existing jobs already use
-3. Wire Turbo remote cache. Open Decision: Vercel Remote Cache (hosted, one click via `TURBO_TOKEN` + `TURBO_TEAM` secrets) vs self-hosted `turbo-cache` (Docker image, more setup, no vendor lock-in). Both work — Vercel is faster to ship. File this as an Open Decision in IMPLEMENTATION.md and pick one; if you defer, also defer the cache wiring to a follow-up
-4. Decide on a coverage gate. Recommend running `pnpm test` (aggregated) with `--coverage` and uploading `coverage/lcov.info` to a service (Codecov, Coveralls) OR using `vitest-coverage-report-action` to comment on PRs. Avoid blocking on diff-coverage tooling — the thresholds in vitest.config.ts are already enforced
-5. Add a `build` job that runs `pnpm build` (Turbo no-op today but real once packages ship source)
-6. Acceptance: pipeline under 10 minutes on a typical change with Turbo cache hits. Cold builds will be slower — that's fine
-7. Branch protection — write a note in your PR description asking a repo admin to enable "Require status checks" for `lint`, `typecheck`, `test`, `build`, `secret-scan`, `commitlint`. This is the same ask the last two handovers have flagged; please surface it in the PR body so it actually gets done
-8. Update IMPLEMENTATION.md & rewrite HANDOVER.md, archive this one to `docs/handovers/p0-04-vitest-infrastructure-handover.md`
-9. Open PR — and ideally merge P0-03 and P0-04 first so this one is rooted on main
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-06 section
+2. Read [`docs/SECURITY-NOTES.md`](./SECURITY-NOTES.md) one more time before touching Docker — Dockerfile build args can leak secrets in image layers; the file flags that specifically
+3. Create `Dockerfile.dev` at the repo root (or under `docker/` if you prefer a folder — but the phase doc says root). Multi-stage isn't necessary for a dev image; use `node:20-alpine` or `node:22-alpine` (match `engines.node` in [`package.json`](../package.json)), `corepack enable && corepack prepare pnpm@$(jq -r .packageManager package.json | cut -d@ -f2) --activate`, copy lockfile + workspace files, `pnpm install --frozen-lockfile`, then `pnpm dev` as the default CMD
+4. Create `docker-compose.yml` with three services:
+   - `app` — built from `Dockerfile.dev`, volume-mounts the repo, exposes whatever ports the future apps will need (none today — leave a comment)
+   - `postgres` — `postgres:16-alpine`, volume for `/var/lib/postgresql/data`, env from `.env.example` (also commit a stub `.env.example` if not already present)
+   - `redis` — `redis:7-alpine`, no auth for dev, volume for `/data`
+5. Add a `.dockerignore` mirroring `.gitignore` plus `node_modules`, `.turbo`, `coverage`, `dist`, `.git`
+6. Smoke test: `docker compose up -d postgres redis` should bring up just the data stores (the `app` service has nothing to do yet). `docker compose down -v` to tear down. Document this in the PR
+7. Update [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) + rewrite this `HANDOVER.md`, archive this one to `docs/handovers/p0-05-ci-pipeline-handover.md`
+8. Open PR — ideally merge P0-05 first so this one is rooted on main
 
-Estimated effort: **M** (matches the phase doc).
+Estimated effort: **S** (matches the phase doc).
 
 ---
 
 ## Open Questions for the Next Agent
 
-- **Turbo remote cache: Vercel vs self-hosted?** No strong opinion. Vercel is one secret pair away; self-hosted is one Docker container away. File as an Open Decision before you write the YAML so it doesn't churn later.
-- **Should `pnpm test` in CI run via vitest projects mode or via Turbo?** I recommend vitest projects mode (`pnpm test`) — one aggregated coverage artefact, simpler upload, matches local dev. Turbo-orchestrated tests (`pnpm test:packages`) are still available if a future job needs per-package parallelism.
-- **Diff-coverage enforcement.** Vitest's threshold is total-coverage, not diff-coverage. The principles say "≥85% line, ≥80% branch on NEW code." Options: (a) accept total-coverage as a proxy until packages grow; (b) add `dorny/test-reporter` or a custom step that computes line-level diff coverage from `lcov.info` + the PR diff. I'd defer (b) to P0-08 or after.
-- **Should `@argus/testing` be published?** Probably not — it's internal. Keep `"private": true` (already set). Revisit only if we want to share the matchers/fixtures with downstream consumers of the open-source release.
-- **Browser-mode tests.** Vitest 4 has a stable browser mode (Playwright/WebDriverIO). No need yet — web UI lands in P7. Mention to whoever picks up P7 that the test substrate already supports it via per-project `environment: "browser"`.
+- **Should the `app` service be in `docker-compose.yml` today, given it has nothing to run?** I'd argue yes — having the service definition committed (with `command: tail -f /dev/null` or similar) means new contributors only run one command. Either way, document the choice in the PR.
+- **Volume mounts on macOS are notoriously slow.** If the future `apps/` workloads turn out to be IO-heavy, we may want to use `:delegated` or `:cached` mount options, or switch to a sync tool (mutagen, docker-sync). Don't pre-optimise; mention in the PR so we're not surprised when it bites.
+- **Postgres / Redis versions.** The roadmap implies BullMQ (Redis 7 OK) and a relational store (Postgres 16 fine). Lock the versions to specific tags, not `latest`. Easy to bump later.
+- **Should `pnpm dev` be the default CMD?** Today there's no `dev` script that does anything meaningful (no app code). Either pick `command: tail -f /dev/null` for now or omit the `app` service entirely until Phase 1. Document the choice.
+- **Diff-coverage tool.** Still deferred from P0-04 → P0-05. Realistic landing point is P0-08 (Changesets) or a small "P0-09 — diff coverage" follow-up. The coverage artefact uploaded by this PR is the input the tool would consume.
 
 ---
 
 ## Files Touched This Session
 
 ```
-.work/P0-04.md                                          [created — gitignored]
-docs/IMPLEMENTATION.md                                  [modified — P0-04 → Recently Completed]
+.work/P0-05.md                                          [created — gitignored]
+.github/workflows/ci.yml                                [modified — added typecheck/test/build jobs, workflow-level env, Turbo cache wiring]
+docs/IMPLEMENTATION.md                                  [modified — P0-05 → Recently Completed, Open Decision D-1, PR links restored for P0-03/P0-04]
 docs/HANDOVER.md                                        [modified — this file]
-docs/handovers/p0-03-lint-format-secrets-handover.md    [created — archive of previous handover]
-package.json                                            [modified — vitest+@vitest/coverage-v8 devDeps, new test scripts]
-pnpm-lock.yaml                                          [modified — +56 packages]
-tsconfig.json                                           [created — root, primarily for ESLint projectService]
-turbo.json                                              [modified — test.inputs scoping]
-vitest.config.ts                                        [created — root projects + aggregated coverage]
-packages/testing/package.json                           [created]
-packages/testing/tsconfig.json                          [created]
-packages/testing/vitest.config.ts                       [created]
-packages/testing/src/index.ts                           [created — barrel]
-packages/testing/src/config.ts                          [created]
-packages/testing/src/setup.ts                           [created]
-packages/testing/src/fixtures/index.ts                  [created]
-packages/testing/src/fixtures/fake-secret.ts            [created]
-packages/testing/src/matchers/index.ts                  [created]
-packages/testing/src/matchers/types.ts                  [created]
-packages/testing/src/matchers/to-be-non-empty.ts        [created]
-packages/testing/tests/smoke.test.ts                    [created]
+docs/handovers/p0-04-vitest-infrastructure-handover.md  [created — archive of previous handover]
 ```
 
 ---
 
 ## Sign-off
 
-The monorepo now has a working test substrate with aggregated coverage at 100%. P0-05 can extend CI on a stable, green baseline.
+CI pipeline now runs lint / typecheck / test / build / commitlint / secret-scan on every PR. The next picker can start P0-06 immediately on a green main.
 
 — claude-opus-4-7
