@@ -1,139 +1,140 @@
-# Handover — P0-03 → P0-04
+# Handover — P0-04 → P0-05
 
 **From:** claude-opus-4-7
 **To:** next picker
-**Date:** 2026-05-24
+**Date:** 2026-05-25
 **Phase:** P0 — Foundation
-**Last task completed:** P0-03 — ESLint + Prettier + commitlint + gitleaks
+**Last task completed:** P0-04 — Vitest test infrastructure
 
 ---
 
 ## Context
 
-The repository now has a full code-quality gate: ESLint 10 (flat config, `@typescript-eslint`, explicit-any banned), Prettier 3.8, commitlint 21 (conventional, restricted to the six commit types from `00-principles.md`), Husky 9 hooks (`pre-commit` and `commit-msg`), and gitleaks 8.30.1 installed into a repo-local `.bin/` (gitignored) via `scripts/install-gitleaks.sh`. The `prepare` script auto-installs both husky and gitleaks on every `pnpm install`. A `SKIP=<gate>` env var (comma-separated; documented in `docs/SECURITY-NOTES.md`) provides per-hook escape hatches. The matching `.github/workflows/ci.yml` runs lint, format-check, commit-message validation (PR-only), and `gitleaks/gitleaks-action@v2` on every PR and push-to-main.
+The monorepo now has a working test runner. Vitest 4.1.7 + `@vitest/coverage-v8` are pinned at the root; the first persistent workspace package, `@argus/testing`, exposes `defineProjectConfig` (shared coverage thresholds: 85% line / 80% branch), a `fakeSecret()` fixture helper aligned with `.gitleaks.toml`, and a `toBeNonEmpty` custom matcher with full `declare module "vitest"` augmentation. A root `vitest.config.ts` runs every workspace project in a single invocation via Vitest's `test.projects` API (the v4 replacement for `vitest.workspace.ts`), so `pnpm test` produces one aggregated coverage report. `pnpm test:packages` (Turbo) still works as a per-package fallback.
 
-Next up is **P0-04 — Vitest test infrastructure**. It depends only on P0-02 (TypeScript). The goal is a shared Vitest config in `packages/testing` with coverage thresholds (85% line, 80% branch), a way to run `pnpm test` across all packages, and aggregated monorepo-wide coverage reporting. This is the first task that creates a real, persistent workspace package (no more smoke-and-delete). Phase 0 still forbids placeholder source code in app/library packages, but `packages/testing` is the testing-infrastructure exception called out in the repo-structure doc.
+Next up is **P0-05 — GitHub Actions CI pipeline**. The existing `.github/workflows/ci.yml` already has lint / format-check / commitlint / secret-scan jobs. P0-05 extends it with `typecheck`, `test`, and `build` jobs, wires Turbo remote cache (decision pending — Vercel Remote Cache vs self-hosted; see Open Questions), and asks a maintainer to flip branch-protection on the new required checks. This is the first task that exercises `pnpm test` in CI end-to-end — expect a small iteration loop if anything is platform-specific.
 
 ---
 
 ## What I Did
 
-- ESLint 10.4.0 flat config in `eslint.config.mjs` — `@typescript-eslint/no-explicit-any: error`, `consistent-type-imports: error` (auto-fixes for `verbatimModuleSyntax`), plus the usual no-floating-promises / no-misused-promises / await-thenable / no-non-null-assertion / no-console set. Separate rule blocks for tests (relaxes some) and `.cjs` config files (CJS globals).
-- Prettier 3.8.3 with `.prettierrc.json` (semi, double-quote, trailing-comma=all, printWidth=100) and `.prettierignore`. One-shot `pnpm format` reformatted 25 existing docs to the new baseline; this is the bulk of the diff and is content-neutral (table alignment + blank lines around block elements).
-- commitlint 21.0.1 with `commitlint.config.cjs` extending `@commitlint/config-conventional`, restricted to `feat | fix | chore | refactor | docs | test` per principles.
-- Husky 9.1.7 with `.husky/pre-commit` (lint → format:check → gitleaks) and `.husky/commit-msg` (commitlint). Each step gated by `SKIP` env var.
-- `scripts/install-gitleaks.sh` — POSIX bash, detects OS/arch, downloads pinned gitleaks v8.30.1 into `.bin/gitleaks`, idempotent, fails-soft on network errors (clearly logged). `ARGUS_SKIP_GITLEAKS_INSTALL=1` opt-out for CI.
-- `.gitleaks.toml` extending the default rule set with allowlists for `tests/fixtures/secret-detection/`, `pnpm-lock.yaml`, and the `AKIA-FAKE-TEST-FIXTURE-*` pattern used by the `fakeSecret()` helper that P0-04 will land.
-- `.github/workflows/ci.yml` with four jobs: `lint` (eslint + prettier --check), `commitlint` (PR-only, validates the commit range), `secret-scan` (full-history gitleaks-action). `lint` job uses `node-version-file: package.json` so the Node version stays in one place.
-- `docs/SECURITY-NOTES.md` updated with the install path, the SKIP override family, and an explicit warning against `--no-verify`.
-- Root `package.json`: scripts now include `lint`, `lint:fix`, `format`, `format:check`, `prepare`.
-- `.gitignore` gained `.bin/`.
-- Smoke tests for all 5 gates passed end-to-end (see `.work/P0-03.md` for the matrix); scratch artefacts removed before commit.
+- Created `packages/testing/` — the first persistent workspace package. `package.json` declares `@argus/testing`, `type: "module"`, `sideEffects: false`, and an `exports` map with three subpaths (`.`, `./config`, `./setup`) that point at `src/*.ts` directly (no build step yet — `bundler` module resolution + workspace symlinks + `verbatimModuleSyntax` cooperate).
+- `packages/testing/src/config.ts` exports `defineProjectConfig(overrides?)` — wraps Vitest's `defineConfig` with shared defaults (Node env, coverage provider v8, thresholds 85% line / 80% branch / 85% func / 85% stmt, sensible coverage excludes including `src/**/types.ts` for module-augmentation files).
+- `packages/testing/src/matchers/to-be-non-empty.ts` + `matchers/types.ts` — the matcher uses `MatcherResult` (the `vitest` re-export alias for `@vitest/expect`'s `ExpectationResult`). The augmentation file uses `Matchers<T = any>` because `@vitest/expect`'s base interface has the same default — declaration merging requires it. There is exactly one `eslint-disable-next-line @typescript-eslint/no-explicit-any` in the file, with a comment block explaining why.
+- `packages/testing/src/fixtures/fake-secret.ts` — three kinds (`aws-access-key`, `github-token`, `generic-api-key`), deterministic with a seed parameter, prefixes match the `AKIA-FAKE-TEST-FIXTURE-` regex already allow-listed in `.gitleaks.toml`.
+- `packages/testing/src/setup.ts` — calls `expect.extend({ toBeNonEmpty })`. Wired by both per-package and root vitest configs via `setupFiles: ["@argus/testing/setup"]`.
+- Root `vitest.config.ts` — `test.projects: ["packages/testing/vitest.config.ts"]` plus aggregated coverage with the same 85/80 thresholds.
+- Root `tsconfig.json` (new, minimal) — exists primarily so `typescript-eslint`'s `projectService: true` can find the root `vitest.config.ts`. Excludes `apps/` and `packages/` (each has its own tsconfig).
+- Root `package.json` — `pnpm test` is now `vitest run --coverage` (aggregated). `pnpm test:packages` runs `turbo run test` (per-package). `pnpm test:watch` runs `vitest`. Added `vitest` and `@vitest/coverage-v8` to root devDeps so the root binary resolves.
+- `turbo.json` — added `inputs` to the `test` task so Turbo invalidates the per-package cache on the right files (`src/**`, `tests/**`, `package.json`, `tsconfig.json`, `vitest.config.ts`).
+- Smoke test in `packages/testing/tests/smoke.test.ts` (9 tests, 100% coverage) — exercises the matcher pass/fail paths via `expect(() => …).toThrowError(…)`, validates `defineProjectConfig` returns the merged shape, and asserts `fakeSecret` determinism and prefix shape.
 
-PRs merged in this session:
+PRs in this session:
 
-- _pending_ — branch `p0-03-lint-format-secrets` pushed, PR not yet opened (gh auth still broken)
+- _pending_ — branch `p0-04-vitest-infrastructure` (stacked on `p0-03-lint-format-secrets`; rebase onto main once P0-03 merges)
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **No `lint-staged`.** Considered. Decision: not needed yet. Full-repo lint and format-check are <1 s on this size of monorepo. Once packages grow and hook latency becomes noticeable, add `lint-staged` and swap the pre-commit body for `pnpm exec lint-staged`. Don't add prematurely — another dep, another config.
-- **No `tests/fixtures/secret-detection/README.md`.** `SECURITY-NOTES.md` already references this directory, but it doesn't exist yet (nothing lives in it). When P0-04 creates the `packages/testing` package and the `fakeSecret()` helper, add `tests/fixtures/secret-detection/README.md` explaining the synthetic-fixture convention. The gitleaks allowlist already covers the path so creating the directory won't break anything.
-- **No remote Turbo cache.** Phase notes mention this. Defer to P0-05 (CI pipeline) so the decision (Vercel hosted vs self-hosted) is made once with full context.
-- **No commitlint scope-enum restriction.** Could enumerate allowed scopes (`p0-03`, `core`, `cli`, etc.) but the phase task list isn't stable enough yet. Add after Phase 1 lands its first real package boundaries.
-- **No GitHub PR/issue templates.** That's part of P0-07.
-- **No branch-protection rules enabled.** Cannot be done from code — requires repo admin to flip on "Require status checks: lint, secret-scan" in the GitHub UI. Note in your PR description so a maintainer does this when merging.
-- **gh CLI auth still broken.** Same as the last two handovers. Branch pushed, PR creation needs manual click on the GitHub URL.
+- **No second workspace package.** The phase doc explicitly forbids placeholder source in app/library packages outside `packages/testing` ("Don't add real source code yet"). The original handover suggested "verify another package's test can import and use it" — I left that gap deliberately. Cross-package consumption will be exercised by the first real package in Phase 1 (`packages/core`). The import surface is in place; nothing here will need to change to support it.
+- **No CI changes.** The phase doc assigns `typecheck` / `test` / `build` jobs to P0-05. The lint / format / commitlint / secret-scan jobs are unchanged and still pass.
+- **No diff-based coverage.** The principles say "≥85% line, ≥80% branch on NEW code." Vitest enforces totals, not diff-coverage. Defer the diff tool to P0-05 alongside the CI work — likely a separate `vitest-coverage-report-action` or a custom script.
+- **No `vitest.workspace.ts`.** Vitest 4 deprecated the workspace file in favour of `test.projects` inside `vitest.config.ts`. I went with the modern form. If you read older docs that still mention `vitest.workspace.ts`, ignore them.
+- **No snapshot tests.** The previous handover recommended against them; I agree and did not introduce any. If you want to enforce, add `vitest/no-snapshot` (no such rule exists yet) or an ESLint custom rule later.
+- **No `lint-staged` (still).** Same reasoning as P0-03 — the hook is fast enough at this size. Revisit when packages multiply.
+- **No `gh pr create`.** `gh` auth is still broken on this machine (same as the last three handovers). Branch was pushed; PR needs to be opened from the GitHub UI.
+- **PR #1 / #2 sequence assumes P0-03 lands first.** Because P0-03 was committed but never merged (no PR opened — gh auth), this branch is stacked on `p0-03-lint-format-secrets`. The PR diff will include P0-03's commit until that lands. Either (a) open P0-03's PR first and merge it, then rebase this branch onto main, or (b) open both PRs and merge P0-03 → P0-04 in order.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **`typescript-eslint@8.20.0` (the version I first installed) pinned TS at <5.8.** We're on 6.0.3. Bumped to `8.59.4` whose peer range is `<6.1.0`. If you bump TS again, check `pnpm view typescript-eslint peerDependencies` first.
-2. **`eslint.config.js` triggers `MODULE_TYPELESS_PACKAGE_JSON` on every run.** Renamed to `eslint.config.mjs`. Keep this name; do not "fix" it by adding `"type": "module"` at root because that would force every CommonJS config file (commitlint, future ones) to `.cjs` extension.
-3. **`.cjs` files need a flat-config block declaring CJS globals.** Otherwise `no-undef` flags `module`, `require`, `exports`. The block lives at the bottom of `eslint.config.mjs`; mirror it if you add more `.cjs` config files.
-4. **gitleaks has its OWN allowlist for canonical AWS docs example keys.** `AKIAIOSFODNN7EXAMPLE` will NOT trigger a leak — gitleaks ships it as a known false-positive. When writing tests that need to verify gitleaks fires, use a randomly-generated AKIA-shaped string instead.
-5. **`pnpm format` reformatted every existing doc.** It's noise but it's a one-time cost — future `format:check` runs will stay clean. The diff is in this PR for transparency rather than hidden in a "chore: prettier" commit.
-6. **gitleaks v8 `protect --staged` subcommand still works** but the v9 release (whenever it ships) is expected to migrate to `git --staged` or similar. If you upgrade gitleaks past 8.x, expect the pre-commit hook command to need updating.
-7. **`prepare` runs on `pnpm install` _in every package install context_**, including in CI. CI sets `HUSKY=0` and `ARGUS_SKIP_GITLEAKS_INSTALL=1` to skip both — preserve this in any new CI job.
-8. **Prettier formats Markdown tables aggressively.** Column widths get padded to the longest cell. If the IMPLEMENTATION.md "Recently Completed" table gets a wide entry, the whole column expands. Cosmetic but the diff can look outsized.
+1. **Vitest 4 does not re-export `SyncExpectationResult`.** The first matcher draft used `SyncExpectationResult`, which is imported but not re-exported by `vitest`. Use `MatcherResult` (aliased from `@vitest/expect`'s `ExpectationResult`) instead. The relevant re-export lives at `vitest/dist/index.d.ts` line 15.
+2. **`Matchers<T = any>` type-parameter mismatch.** Augmenting `vitest`'s `Matchers` requires the default to be `any` (declaration merging is strict about identical type parameters). The repo bans `any` via ESLint — I left a single justified disable comment with a block-comment explaining the constraint and pointing at the upstream `.d.ts`. Don't refactor that comment away without changing the augmentation pattern.
+3. **Root `vitest.config.ts` was invisible to ESLint's projectService.** Symptom: `Parsing error: <file> was not found by the project service. Consider either including it in the tsconfig.json or including it in allowDefaultProject.` Fix: minimal root `tsconfig.json` that only includes `vitest.config.ts`. Don't expand its `include` to cover `apps/**` or `packages/**` — that would double-register every file with its package-level tsconfig and cause type-aware-rule churn.
+4. **`@types/node` peer-dep range matters.** I first installed `@types/node@22.10.5` and got a peer warning from `vite@8` ("requires `^20.19.0 || >=22.12.0`"). Bumped to `22.19.19`. If you upgrade Vite or Vitest, re-check the peer range — `pnpm view vite peerDependencies @types/node`.
+5. **Vitest config files are not included in v8 coverage by default**, even when they live under `src/**`. That's why `defineProjectConfig` showed 50% line coverage initially — vitest reads the config at startup but doesn't instrument the file. I added a direct unit test in `smoke.test.ts` that calls `defineProjectConfig()` to bring it to 100%.
+6. **Type-augmentation files have zero statements but show up in coverage tables.** `packages/testing/src/matchers/types.ts` is `export {}` + a `declare module` — the per-package coverage table listed it at 0/0/0/0 even though it's not real code. Excluded via `src/**/types.ts` in the shared coverage config. Keep the convention: any future `types.ts` files (module augmentation only) inherit the exclude automatically.
+7. **Two coverage thresholds.** The shared `defineProjectConfig` puts thresholds on per-package coverage; root `vitest.config.ts` puts thresholds on the aggregated report. Both pass at 100% today, but they ARE independent — adding a new project without enough tests will fail the root threshold even if the per-project one passes (because the root threshold is computed against the union of all files).
+8. **`pnpm test` and `pnpm test:packages` produce different outputs.** Root invocation uses Vitest projects (one report). Turbo invocation runs per-package vitest (per-package report). Pick the right one for CI in P0-05; my recommendation is `pnpm test` for the green-bar check + coverage gate, with `pnpm test:packages` reserved for parallelism when packages grow.
 
 ---
 
 ## State of the System
 
-- ✅ `pnpm install` clean (177 packages now; +commitlint/eslint/prettier/husky family)
-- ✅ `pnpm lint` exits 0 on clean tree
-- ✅ `pnpm format:check` exits 0 on clean tree
-- ✅ `pnpm typecheck` exits 0 (zero workspaces — turbo no-op)
-- ✅ `.husky/pre-commit` end-to-end exit 0 on clean tree
-- ✅ gitleaks blocks AWS-shaped strings outside the fixture allowlist (verified)
-- ✅ `SKIP=gitleaks`, `SKIP=lint`, `SKIP=format`, `SKIP=commitlint` all work (verified)
-- ⏸ Tests: still none (P0-04)
-- ⏸ Branch protection: not enabled (requires admin)
-- ⏸ Dogfooding scan: not possible until Phase 2
+- ✅ `pnpm install` clean (235 packages, +56 from this PR — vitest + transitive)
+- ✅ `pnpm lint` exits 0
+- ✅ `pnpm format:check` exits 0
+- ✅ `pnpm typecheck` exits 0 (1 package: `@argus/testing`)
+- ✅ `pnpm test` exits 0 — 9 tests passing, 100% statements/branches/functions/lines
+- ✅ `pnpm test:packages` (Turbo) exits 0 with identical results
+- ✅ `.husky/pre-commit` end-to-end exit 0 with the staged change
+- ✅ Coverage thresholds (85% line / 80% branch) enforced and well above floor
+- ⏸ CI: existing P0-03 jobs (lint, format, commitlint, secret-scan) unchanged; typecheck/test/build jobs land in P0-05
+- ⏸ Branch protection: still not enabled (requires admin to flip on)
+- ⏸ Dogfood scan: still N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-04 — Vitest test infrastructure** in this order:
+Pick up **P0-05 — GitHub Actions CI pipeline** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-04 section
-2. Add `packages/testing/` as the first **persistent** workspace package. It's the testing infrastructure home — `packages/testing` per [`docs/plan/01-repo-structure.md`](./plan/01-repo-structure.md). Give it `package.json` (name `@argus/testing`, `type: "module"`, `exports` map), `tsconfig.json` extending the base, and a `src/` with at least `index.ts`
-3. Install `vitest` + `@vitest/coverage-v8`. Vitest is on 3.x as of mid-2026 — verify `pnpm view vitest dist-tags`
-4. Create `packages/testing/src/vitest.config.ts` exporting a shared config factory. Pattern: `defineConfig({ coverage: { thresholds: { lines: 85, branches: 80 } } })`. Each downstream package imports and extends
-5. Wire a `test` script in `packages/testing/package.json` that runs `vitest run`
-6. Verify `pnpm test` from root runs through turbo and picks up the package
-7. Add at least one trivial test (e.g. `expect(true).toBe(true)`) so coverage and pass/fail wiring is exercised end-to-end
-8. Acceptance: "Custom matchers can be imported from `@argus/testing`" — add a placeholder custom matcher (e.g. `expect.extend({ toBeNonEmpty })`) and re-export from `@argus/testing`. Verify another package's test can import and use it
-9. Decide: monorepo-wide coverage aggregation. Vitest has `--coverage.reporter` but cross-package aggregation needs either a single root vitest invocation that walks all packages, or per-package coverage + a merge step (e.g. `nyc merge`). Recommend the single-root approach with `vitest.workspace.ts` listing each package — simpler, no merge step needed
-10. Update IMPLEMENTATION.md & rewrite HANDOVER.md
-11. Open PR — be aware that this is the first PR that will EXERCISE the new CI workflow end-to-end. Expect a small CI iteration loop if any YAML or script bug surfaces
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-05 section
+2. Look at the existing [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — it has four jobs (`lint`, `commitlint`, `secret-scan`); extend with `typecheck`, `test`, and `build`. Reuse the same `pnpm/action-setup@v4` + `setup-node@v4` + `node-version-file: package.json` boilerplate and the `ARGUS_SKIP_GITLEAKS_INSTALL=1` + `HUSKY=0` env that the existing jobs already use
+3. Wire Turbo remote cache. Open Decision: Vercel Remote Cache (hosted, one click via `TURBO_TOKEN` + `TURBO_TEAM` secrets) vs self-hosted `turbo-cache` (Docker image, more setup, no vendor lock-in). Both work — Vercel is faster to ship. File this as an Open Decision in IMPLEMENTATION.md and pick one; if you defer, also defer the cache wiring to a follow-up
+4. Decide on a coverage gate. Recommend running `pnpm test` (aggregated) with `--coverage` and uploading `coverage/lcov.info` to a service (Codecov, Coveralls) OR using `vitest-coverage-report-action` to comment on PRs. Avoid blocking on diff-coverage tooling — the thresholds in vitest.config.ts are already enforced
+5. Add a `build` job that runs `pnpm build` (Turbo no-op today but real once packages ship source)
+6. Acceptance: pipeline under 10 minutes on a typical change with Turbo cache hits. Cold builds will be slower — that's fine
+7. Branch protection — write a note in your PR description asking a repo admin to enable "Require status checks" for `lint`, `typecheck`, `test`, `build`, `secret-scan`, `commitlint`. This is the same ask the last two handovers have flagged; please surface it in the PR body so it actually gets done
+8. Update IMPLEMENTATION.md & rewrite HANDOVER.md, archive this one to `docs/handovers/p0-04-vitest-infrastructure-handover.md`
+9. Open PR — and ideally merge P0-03 and P0-04 first so this one is rooted on main
 
-Estimated effort: **M** (the phase doc says M and it really is M — Vitest workspace config has sharp edges)
+Estimated effort: **M** (matches the phase doc).
 
 ---
 
 ## Open Questions for the Next Agent
 
-- **Vitest workspace vs per-package configs.** `vitest.workspace.ts` is the modern way to run all packages from a single invocation. Recommend it; it gives one coverage report without merging.
-- **Should `@argus/testing` be its own pnpm workspace package, or live under `packages/testing/` as a directory?** The repo-structure doc lists it as a workspace package. Yes, a workspace package — referenced from other packages via `"@argus/testing": "workspace:*"` in devDeps.
-- **Coverage on what?** Per package, exclude `tests/`, `src/**/*.test.ts`, `src/types/`, `src/**/index.ts` (barrel files). The principles say "≥85% line, ≥80% branch on NEW code" — `vitest` doesn't natively diff-based coverage; CI can use `vitest --coverage` and then a coverage-diff action. Defer the diff-coverage tooling to P0-05 (CI).
-- **Custom matcher boilerplate.** The first matcher is the hardest because of typing. Use Vitest's `expect.extend` and augment `interface Assertion<T>`. Pin the pattern early so all future matchers follow it.
-- **Snapshot tests.** Decide if `__snapshots__/` is allowed. Recommend no — snapshots rot, prefer explicit assertions. Add an ESLint rule if you want to enforce.
+- **Turbo remote cache: Vercel vs self-hosted?** No strong opinion. Vercel is one secret pair away; self-hosted is one Docker container away. File as an Open Decision before you write the YAML so it doesn't churn later.
+- **Should `pnpm test` in CI run via vitest projects mode or via Turbo?** I recommend vitest projects mode (`pnpm test`) — one aggregated coverage artefact, simpler upload, matches local dev. Turbo-orchestrated tests (`pnpm test:packages`) are still available if a future job needs per-package parallelism.
+- **Diff-coverage enforcement.** Vitest's threshold is total-coverage, not diff-coverage. The principles say "≥85% line, ≥80% branch on NEW code." Options: (a) accept total-coverage as a proxy until packages grow; (b) add `dorny/test-reporter` or a custom step that computes line-level diff coverage from `lcov.info` + the PR diff. I'd defer (b) to P0-08 or after.
+- **Should `@argus/testing` be published?** Probably not — it's internal. Keep `"private": true` (already set). Revisit only if we want to share the matchers/fixtures with downstream consumers of the open-source release.
+- **Browser-mode tests.** Vitest 4 has a stable browser mode (Playwright/WebDriverIO). No need yet — web UI lands in P7. Mention to whoever picks up P7 that the test substrate already supports it via per-project `environment: "browser"`.
 
 ---
 
 ## Files Touched This Session
 
 ```
-.work/P0-03.md                                       [created — gitignored]
-.bin/gitleaks                                        [created — gitignored, downloaded via install script]
-.gitignore                                           [modified — +.bin/]
-.gitleaks.toml                                       [created]
-.husky/pre-commit                                    [created/overwritten husky init template]
-.husky/commit-msg                                    [created]
-.prettierrc.json                                     [created]
-.prettierignore                                      [created]
-eslint.config.mjs                                    [created — renamed from .js to silence MODULE_TYPELESS warning]
-commitlint.config.cjs                                [created]
-scripts/install-gitleaks.sh                          [created]
-.github/workflows/ci.yml                             [created — lint, commitlint (PR), secret-scan jobs]
-package.json                                         [modified — +eslint/prettier/commitlint/husky/typescript-eslint, prepare script, new scripts]
-pnpm-lock.yaml                                       [modified]
-docs/SECURITY-NOTES.md                               [modified — gitleaks install + SKIP family]
-docs/IMPLEMENTATION.md                               [modified — P0-03 → Recently Completed]
-docs/HANDOVER.md                                     [modified — this file]
-docs/handovers/p0-02-typescript-base-handover.md     [created — archive of previous handover]
-docs/{25 existing markdown files}                    [modified — one-shot prettier baseline; content-neutral]
+.work/P0-04.md                                          [created — gitignored]
+docs/IMPLEMENTATION.md                                  [modified — P0-04 → Recently Completed]
+docs/HANDOVER.md                                        [modified — this file]
+docs/handovers/p0-03-lint-format-secrets-handover.md    [created — archive of previous handover]
+package.json                                            [modified — vitest+@vitest/coverage-v8 devDeps, new test scripts]
+pnpm-lock.yaml                                          [modified — +56 packages]
+tsconfig.json                                           [created — root, primarily for ESLint projectService]
+turbo.json                                              [modified — test.inputs scoping]
+vitest.config.ts                                        [created — root projects + aggregated coverage]
+packages/testing/package.json                           [created]
+packages/testing/tsconfig.json                          [created]
+packages/testing/vitest.config.ts                       [created]
+packages/testing/src/index.ts                           [created — barrel]
+packages/testing/src/config.ts                          [created]
+packages/testing/src/setup.ts                           [created]
+packages/testing/src/fixtures/index.ts                  [created]
+packages/testing/src/fixtures/fake-secret.ts            [created]
+packages/testing/src/matchers/index.ts                  [created]
+packages/testing/src/matchers/types.ts                  [created]
+packages/testing/src/matchers/to-be-non-empty.ts        [created]
+packages/testing/tests/smoke.test.ts                    [created]
 ```
 
 ---
 
 ## Sign-off
 
-Every commit from this point forward is gated by lint, format, conventional-commit validation, and secret scanning — both locally and in CI. P0-04 can land tests on a strong baseline.
+The monorepo now has a working test substrate with aggregated coverage at 100%. P0-05 can extend CI on a stable, green baseline.
 
 — claude-opus-4-7

@@ -11,20 +11,23 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "test": "turbo run test",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:packages": "turbo run test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",
     "dev": "turbo run dev --parallel",
-    "clean": "turbo run clean && rimraf node_modules .turbo",
+    "clean": "turbo run clean && rimraf node_modules .turbo coverage",
     "prepare": "husky && ./scripts/install-gitleaks.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "21.0.1",
     "@commitlint/config-conventional": "21.0.1",
     "@eslint/js": "10.0.1",
+    "@vitest/coverage-v8": "4.1.7",
     "eslint": "10.4.0",
     "eslint-config-prettier": "10.1.8",
     "husky": "9.1.7",
@@ -32,6 +35,7 @@
     "rimraf": "^5.0.10",
     "turbo": "^2.3.3",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.4"
+    "typescript-eslint": "8.59.4",
+    "vitest": "4.1.7"
   }
 }

@@ -8,7 +8,8 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "tests/**", "package.json", "tsconfig.json", "vitest.config.ts"]
     },
     "lint": {
       "outputs": []
