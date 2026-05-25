@@ -84,7 +84,20 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
   - Volumes mounted so file edits propagate
 - **Effort:** S
 
-### [P0-07] Documentation scaffolding
+### [P0-07] Lightweight dependency audit in CI
+
+- **Deps:** P0-05
+- **Outputs:** New `audit` job in `.github/workflows/ci.yml` running `pnpm audit --audit-level=high` on every PR, every push to `main`, and on a weekly schedule (`cron: '0 12 * * 1'`)
+- **Acceptance:**
+  - Job runs in parallel with the existing CI jobs; no impact on critical-path lint/typecheck/test/build wall time
+  - Fails the workflow only on **high or critical** advisories — moderate-and-below do not block PRs (avoids noise from transitive dev-dep churn)
+  - Scheduled weekly trigger re-audits pinned versions so advisories disclosed between PRs are still surfaced
+  - Job is **not** added to branch-protection required checks (deferred to the same admin step pending for the other jobs since P0-03 — document in the PR)
+- **Effort:** XS
+- **Scope — explicit non-goal:** This is a stopgap. It catches the public-advisory subset of supply-chain risk that the npm registry indexes. It does **not** discharge `P11-02`'s dependency-audit obligation (typosquat detection, behavioural / install-script analysis, license review, threat-model alignment, external pen test). When P11-02 ships a more comprehensive tool, this job should be replaced or rolled into the replacement — do **not** remove it before then.
+- **Rationale for slotting into P0:** Approved as a deviation from the original Phase-11-only plan in response to the 2026 npm supply-chain wave (Shai-Hulud, axios, node-ipc, @tanstack/\*, @antv/\*). Cost is ~10 lines of YAML; benefit is shift-left detection across the 12+ weeks of P1–P10 development.
+
+### [P0-08] Documentation scaffolding
 
 - **Deps:** P0-01
 - **Outputs:** All `docs/` files already exist; verify they're in place and ADR-0001 documents the monorepo decision
@@ -94,7 +107,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
   - ADR-0001 written
 - **Effort:** S
 
-### [P0-08] Changesets release workflow
+### [P0-09] Changesets release workflow
 
 - **Deps:** P0-05
 - **Outputs:** `.changeset/` configured, release workflow in GitHub Actions
@@ -107,7 +120,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 
 ## Phase 0 Exit Criteria
 
-- [ ] All 8 tasks complete and merged to `main`
+- [ ] All 9 tasks complete and merged to `main`
 - [ ] CI green
 - [ ] A new contributor can clone, run `pnpm install && pnpm test`, all passes
 - [ ] Phase handover written and archived

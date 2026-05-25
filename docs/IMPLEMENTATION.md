@@ -5,7 +5,7 @@
 **Last updated:** _2026-05-25 by claude-opus-4-7_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _5 of 8 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _5 of 9 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -26,27 +26,28 @@
 ### Up Next (top of backlog within current phase)
 
 1. _P0-06 — Docker development environment_
-2. _P0-07 — Documentation scaffolding + ADR-0001_
-3. _P0-08 — Changesets release workflow_
+2. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
+3. _P0-08 — Documentation scaffolding + ADR-0001_
+4. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                 |
-| ---------------------- | -------------- | --------- | --------------------- |
-| P0 — Foundation        | 🟡 In progress | 5/8       | P0-05 done 2026-05-25 |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                     |
-| P2 — MVP               | ⏸ Not started  | —         | —                     |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                     |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                     |
-| P5 — Persistence       | ⏸ Not started  | —         | —                     |
-| P6 — API Server        | ⏸ Not started  | —         | —                     |
-| P7 — Web UI            | ⏸ Not started  | —         | —                     |
-| P8 — Reporting         | ⏸ Not started  | —         | —                     |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                     |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                     |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                     |
+| Phase                  | Status         | Completed | Notes                                                                            |
+| ---------------------- | -------------- | --------- | -------------------------------------------------------------------------------- |
+| P0 — Foundation        | 🟡 In progress | 5/9       | P0-05 done 2026-05-25; P0-07 inserted 2026-05-25 as stopgap for P11-02 dep audit |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
