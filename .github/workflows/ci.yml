@@ -1,7 +1,6 @@
-# Argus CI — lint, format, commit-message validation, secret scanning.
-#
-# This workflow lands in P0-03 and is extended in P0-05 with typecheck / test /
-# build steps. Keep job names stable so branch-protection rules don't churn.
+# Argus CI — lint, format, typecheck, test, build, commit-message validation,
+# secret scanning. Job names are referenced by branch-protection rules — do not
+# rename without coordinating the admin change in the same PR.
 
 name: CI
 
@@ -17,6 +16,19 @@ permissions:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Turbo remote cache. TURBO_TOKEN / TURBO_TEAM are populated from repo secrets
+# once an admin picks a provider (Open Decision D-1 in docs/IMPLEMENTATION.md).
+# Until then they resolve to empty strings and Turbo silently skips remote
+# cache — the local actions/cache@v4 entries below cover the warm-cache case.
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+  # Speed: every job sets these once. The repo-local gitleaks binary is only
+  # needed by the pre-commit hook on developer machines.
+  ARGUS_SKIP_GITLEAKS_INSTALL: "1"
+  HUSKY: "0"
 
 jobs:
   lint:
@@ -37,18 +49,114 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          # CI does not need the repo-local gitleaks binary; the dedicated
-          # secret-scan job below uses the official gitleaks-action.
-          ARGUS_SKIP_GITLEAKS_INSTALL: "1"
-          # Husky hooks are irrelevant in CI; skip the prepare step entirely.
-          HUSKY: "0"
 
       - name: ESLint
         run: pnpm lint
 
       - name: Prettier (check)
         run: pnpm format:check
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-typecheck-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-typecheck-
+
+      - name: Typecheck (turbo)
+        run: pnpm typecheck
+
+  test:
+    name: Test + coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-test-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-test-
+
+      # Aggregated run via root vitest.config.ts — one coverage report covering
+      # every workspace project. `pnpm test:packages` (Turbo per-package) is
+      # kept as a local-dev affordance but is not invoked here.
+      - name: Vitest (aggregated coverage)
+        run: pnpm test
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-build-
+
+      - name: Build (turbo)
+        run: pnpm build
 
   commitlint:
     name: Commit message validation
@@ -71,9 +179,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          ARGUS_SKIP_GITLEAKS_INSTALL: "1"
-          HUSKY: "0"
 
       - name: Validate PR commit messages
         run: |
