@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Argus — architecture-aware code quality platform (monorepo root)",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20.11.0",

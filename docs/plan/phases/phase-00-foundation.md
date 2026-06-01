@@ -116,11 +116,44 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
   - Merging a release PR publishes packages to npm (or internal registry)
 - **Effort:** S
 
+### [P0-10] Project license & third-party integration policy
+
+- **Deps:** none (foundational; relates to P0-07 / P0-08)
+- **Outputs:** `LICENSE` (MIT); `package.json` `"license": "MIT"`; [`ADR-0002`](../adr/0002-third-party-integration-and-licensing-policy.md); risk-register updates (R-006, R-011)
+- **Acceptance:**
+  - `LICENSE` present (MIT) and the `package.json` license field agrees
+  - ADR-0002 records the posture: copyleft engines (TruffleHog AGPL-3.0, Semgrep LGPL-2.1) are **subprocess-only**; no vendored binaries/source/submodules; no embedded Semgrep rules; Docker is a recipe (no published baked-in image); MIT project license; SPDX allowlist
+  - Audit of the already-committed tree recorded in the ADR (no copyleft-of-concern present today)
+- **Effort:** S
+- **Rationale for slotting into P0:** Integrates the open-source publishing posture **before** Phase 4 writes any tool-integration code, so every later phase inherits the boundary. Source-only public repo; not sold, not hosted.
+
+### [P0-11] Third-party notices, prerequisites & contributor guardrail
+
+- **Deps:** P0-10
+- **Outputs:** `THIRD-PARTY-NOTICES`; root `README.md` with an **"External tools / Prerequisites"** section; `CONTRIBUTING.md` guardrail; a licensing principle in [`00-principles.md`](../00-principles.md) + a gate in [`quality-gates.md`](../protocols/quality-gates.md); doc-consistency edits to phase-04 / phase-09 / phase-11
+- **Acceptance:**
+  - `THIRD-PARTY-NOTICES` generated from the dependency tree; notices preserved for every license (including permissive)
+  - README lists each external tool, the fact the user installs it separately, and its license (TruffleHog AGPL-3.0, Semgrep LGPL-2.1, osv-scanner Apache-2.0, jscpd/Prettier MIT)
+  - CONTRIBUTING + principles forbid vendoring copyleft tools/binaries/Semgrep rules and require every new dependency to pass the allowlist
+  - [P4-03] reworded away from "bundles default rule pack" → runtime-fetch / BYO / Opengrep / first-party; Docker-publish flagged in phase-09 / phase-11 with `TODO(licensing:)`
+- **Effort:** S
+
+### [P0-12] License-compliance guardrail (SPDX allowlist) in CI + local script
+
+- **Deps:** P0-10, P0-07 (CI audit job exists to sit beside)
+- **Outputs:** `license-checker` dev-dependency; `scripts/check-licenses` + a `pnpm license-check` script; a new parallel `license` job in `.github/workflows/ci.yml`
+- **Acceptance:**
+  - `pnpm license-check` passes locally against the current tree (allowlist includes `BlueOak-1.0.0` + `Python-2.0`; `lightningcss` MPL-2.0 handled as a named, notice-preserved exception)
+  - Any dependency whose license is outside the allowlist fails the check
+  - CI job runs in parallel (no critical-path impact) and is **not** added to branch-protection required checks (same deferral pending since P0-03 — document in the PR)
+- **Effort:** S
+- **Scope — relationship to other tasks:** This is the **dev-tooling self-audit**, distinct from the planned [P4-06] `license-checker` _product adapter_ (a runtime feature). Like [P0-07], it is a Phase-0 shift-left guardrail; P11-02's comprehensive audit may later supersede it. Do not remove before then.
+
 ---
 
 ## Phase 0 Exit Criteria
 
-- [ ] All 9 tasks complete and merged to `main`
+- [ ] All 12 tasks complete and merged to `main`
 - [ ] CI green
 - [ ] A new contributor can clone, run `pnpm install && pnpm test`, all passes
 - [ ] Phase handover written and archived

@@ -86,7 +86,7 @@ Rationale:
 
 ## Related ADRs
 
-_None yet._
+- [ADR-0002 — Third-Party Integration & Open-Source Licensing Policy](./0002-third-party-integration-and-licensing-policy.md)
 
 ## References
 
