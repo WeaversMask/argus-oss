@@ -1,124 +1,120 @@
-# Handover — P0-05 → P0-06
+# Handover — P0-10 → P0-11
 
-**From:** claude-opus-4-7
+**From:** claude-opus-4-8
 **To:** next picker
-**Date:** 2026-05-25
+**Date:** 2026-06-01
 **Phase:** P0 — Foundation
-**Last task completed:** P0-05 — GitHub Actions CI pipeline
+**Last task completed:** P0-10 — Project license & third-party integration policy
 
 ---
 
 ## Context
 
-The CI gate is now feature-complete for Phase 0. The existing `ci.yml` (lint + commitlint + secret-scan from P0-03) gained three new jobs — `typecheck`, `test`, `build` — that run in parallel against every PR and every push to `main`. Each job re-creates the same pnpm/Node/install boilerplate the lint job already uses; the `test` job runs the aggregated root `vitest run --coverage` from P0-04 and uploads the `coverage/` directory as a GitHub Actions artefact (14-day retention) so reviewers can spot-check without needing Codecov yet. Three workflow-level env vars (`TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_REMOTE_CACHE_SIGNATURE_KEY`) are pre-wired — they resolve to empty strings until a repo admin sets the matching secrets, at which point Turbo Remote Cache lights up with no further workflow change. Until then, each Turbo-using job has its own `actions/cache@v4` keyed on `.turbo` so warm-run cache hits still work.
+This is the **open-source licensing arc**. The maintainer decided to publish Argus as a **public, source-only repo for others to read and reuse — not sold, not hosted.** Because Argus delegates heavy work to OSS engines, two of which are copyleft (TruffleHog AGPL-3.0, Semgrep engine LGPL-2.1), the integration boundary has to be settled **before** Phase 4 writes any adapter code. That posture is now locked in [`ADR-0002`](./adr/0002-third-party-integration-and-licensing-policy.md) — **read it first; it is the governing contract for everything below.** The arc was split into three small P0 tasks: **P0-10** (the policy + license + ADR — _done, this session_), **P0-11** (notices, README prerequisites, contributor guardrail, doc-consistency edits — _next_), **P0-12** (the SPDX-allowlist CI/local guardrail — _after_).
 
-Next up is **P0-06 — Docker development environment**. Small task: `Dockerfile.dev` plus a `docker-compose.yml` that brings up Redis (for BullMQ later) and Postgres (for persistence later) alongside the app, with volume mounts so edits propagate. No code changes — just the Docker scaffolding. P0-06 only depends on P0-01, so it's unblocked and can start immediately. Open Decision **D-1** (Turbo remote cache: Vercel vs self-hosted) was filed in IMPLEMENTATION.md with a recommendation but does **not** block P0-06 — the workflow already works at expected speed via the local-disk cache.
+P0-10 is committed (`1c30f3c`) but **not pushed and has no PR** (gh auth is broken on this box — see Gotchas). The branch `p0-10-license-and-policy-adr` sits on top of `p0-06-docker-dev-env`, **not** directly on `main` (see Gotchas #1 — this matters for how the PRs stack). Four decisions are **locked — do not re-litigate them**, the maintainer confirmed each: (1) **MIT** project license; (2) **three separate PRs** for the arc; (3) **`license-checker` (npm)** powers the P0-12 gate; (4) the SPDX allowlist is the permissive set **plus `BlueOak-1.0.0` and `Python-2.0`**, with **`MPL-2.0` / `lightningcss*` kept as a named, notice-preserved exception** (not blanket-allowed).
 
 ---
 
 ## What I Did
 
-- Extended [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) with three new jobs:
-  - **`typecheck`** — runs `pnpm typecheck` (Turbo `typecheck`), 10-minute timeout, `.turbo` cached via `actions/cache@v4`
-  - **`test`** — runs `pnpm test` (aggregated `vitest run --coverage` via the root config), 15-minute timeout, uploads `coverage/` as a workflow artefact named `coverage-${{ github.run_id }}` with 14-day retention, `.turbo` cached
-  - **`build`** — runs `pnpm build` (Turbo `build`, no-op today — no workspace package has a build script), 15-minute timeout, `.turbo` cached
-- Lifted shared env vars (`ARGUS_SKIP_GITLEAKS_INSTALL=1`, `HUSKY=0`) from per-job `env:` blocks to a workflow-level `env:` block so every job inherits them. Cleans up the file and prevents drift if a future job forgets to set them.
-- Added `TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_REMOTE_CACHE_SIGNATURE_KEY` at workflow scope, all sourced from `secrets.*`. Empty strings when the secrets are absent — Turbo silently treats that as "no remote cache" and falls back to local cache.
-- Filed Open Decision **D-1** in [`IMPLEMENTATION.md`](./IMPLEMENTATION.md): Vercel Remote Cache vs self-hosted `turborepo-remote-cache`. Recommended Vercel for the speed-to-ship.
-- Reused the existing `lint` job's setup pattern (no composite action) — six near-identical setup blocks. At this size it's the right trade; revisit if jobs multiply.
-- Job names: `lint`, `typecheck`, `test`, `build`, `commitlint`, `secret-scan`. These are the names branch protection will refer to. Documented at the top of the YAML.
+P0-10 — single commit `1c30f3c` (`chore(licensing): add MIT LICENSE and third-party integration policy (ADR-0002)`):
+
+- **`LICENSE`** [created] — standard MIT text. Copyright line is **`Copyright (c) 2026 The Argus Authors`** — a **placeholder flagged for the maintainer** to replace with a preferred legal name (`TODO(licensing:)` in ADR-0002 References).
+- **`package.json`** [modified] — `"license": "UNLICENSED"` → `"license": "MIT"`. ADR-0002 §E requires the `LICENSE` file and this field to always agree.
+- **[`docs/adr/0002-third-party-integration-and-licensing-policy.md`](./adr/0002-third-party-integration-and-licensing-policy.md)** [created] — the policy. Sections **A–G** are non-negotiable, repo-wide, inherited by every later phase: (A) copyleft engines subprocess-only behind `ToolAdapter`, all external CLIs routed through that boundary; (B) no vendoring of binaries/source/rulesets; (C) Semgrep rules referenced/fetched, never embedded; (D) Docker is a recipe, no published baked-in image; (E) MIT; (F) `THIRD-PARTY-NOTICES` + README prerequisites; (G) SPDX allowlist self-audit. **The audit of the current tree lives in the ADR's Context** (not in gitignored `.work/`): `pnpm licenses list` found **no GPL/AGPL/LGPL/SSPL/Commons-Clause/Semgrep-Rules** present today; outliers are MPL-2.0×2 (`lightningcss`, `lightningcss-darwin-arm64`, dev-only transitive), BlueOak-1.0.0×5, Python-2.0×1 (`argparse`). The posture is therefore **preventive**.
+- **[`docs/adr/0001-monorepo-with-pnpm.md`](./adr/0001-monorepo-with-pnpm.md)** [modified] — added a back-link to ADR-0002 under "Related ADRs".
+- **[`docs/risks.md`](./risks.md)** [modified] — R-006 mitigation now points to the SPDX gate (P0-12) + ADR-0002; **added R-011** (copyleft engine linked/vendored instead of subprocessed; L/H; mitigated by ADR-0002 + CONTRIBUTING guardrail + license gate + adapter contract tests).
+- **[`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)** [modified] — wrote full task specs for **P0-10, P0-11, P0-12**; bumped exit criteria "9 tasks" → "12 tasks".
+- **[`docs/IMPLEMENTATION.md`](./IMPLEMENTATION.md)** [modified] — P0-10 → Recently Completed; progress "6 of 12"; P0-11/P0-12 added to Up Next; ADR-0002 added to Recent ADRs.
 
 PRs in this session:
 
-- _pending_ — branch `p0-05-ci-pipeline` off `main`
+- _none opened_ — branch `p0-10-license-and-policy-adr` is committed locally only (gh auth broken).
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **No composite "setup-node-pnpm" action.** Six jobs repeat the same four steps. A composite action in `.github/actions/setup/action.yml` would dedupe to ~2 lines per job. Skipped because (a) at six jobs the duplication is still readable and (b) it adds a file reviewers have to load. Reconsider when CI grows past ~8 jobs or when we add cross-OS matrices.
-- **No Vercel Remote Cache configured.** Open Decision D-1. The env vars are pre-wired so a maintainer can `gh secret set TURBO_TOKEN` + `gh secret set TURBO_TEAM` and remote cache turns on without a workflow change.
-- **No diff-coverage gate.** Total coverage is enforced by vitest's `thresholds` (85% line / 80% branch); diff coverage on the PR-changed lines is not. Same reasoning as P0-04 — defer until packages grow. Easy follow-up: download the coverage artefact in a separate `coverage-report` job and run `vitest-coverage-report-action` for a PR comment, or compute it ourselves from `coverage/lcov.info` + the PR diff.
-- **No Codecov / Coveralls upload.** Artefact upload is enough for Phase 0. Hook up to an external service in P11 Hardening if/when public coverage badges are wanted.
-- **No branch protection enabled.** Requires admin. Surfaced in the PR description, again — this has been pending since P0-03 and continues to be pending. Required checks should be: `lint`, `typecheck`, `test`, `build`, `commitlint`, `secret-scan`.
-- **No retry / flake-detection.** Vitest is deterministic at this size. Add `vitest --retry=1` later if a flaky test slips in; not worth the noise today.
-- **No `actionlint` or `pre-commit` linter for the workflow YAML.** Validated via `python3 -c "import yaml; yaml.safe_load(...)"`. If a real lint pass becomes valuable, `actionlint` is the standard.
-- **No `gh pr create`.** Same pattern as the last three handovers — `gh` auth is broken on this machine. Branch will be pushed; PR needs to be opened from the GitHub UI or by a human with auth.
+> The whole point of the pause. P0-11 and P0-12 are **specified but not implemented**.
+
+- **P0-11 (next task) — nothing started.** Deferred deliberately to keep PRs small and to let the maintainer confirm direction. Full spec in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) §[P0-11]. Concrete steps below in Recommended Next Steps.
+- **P0-12 — nothing started.** SPDX-allowlist guardrail. Spec in §[P0-12]. **Soft-blocked on P0-07** (the CI audit job it's meant to "sit beside" — see Open Questions; P0-07 is _not_ done yet).
+- **PR not opened for P0-10.** gh auth broken on this machine — every prior handover hit the same wall. Branch must be pushed and the PR opened from the GitHub UI by a human.
+- **Copyright holder not finalised.** `LICENSE` says "The Argus Authors" — placeholder. Needs maintainer's real legal name. Tracked as `TODO(licensing:)` in ADR-0002.
+- **P0-06 (Docker) still unstarted.** The `p0-06-docker-dev-env` branch contains **only** the P0-07 plan-insertion commit (`52b9f8e`) — no `Dockerfile.dev`, no `docker-compose.yml` yet. The full P0-06 recipe/plan is preserved in [`docs/handovers/p0-05-ci-pipeline-handover.md`](./handovers/p0-05-ci-pipeline-handover.md) (archived this session). Not part of the licensing arc; flagged only so it isn't lost.
+- **Did not touch any phase-04/09/11 docs.** ADR-0002 §"Impact on existing plan docs" lists edits (e.g. P4-03 "bundles default rule pack" contradicts §C) that are **explicitly P0-11's job**, not P0-10's. Left untouched on purpose.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **`pnpm build` exits 0 with a `WARNING No tasks were executed`.** No workspace package has a `build` script yet, so Turbo reports the warning but the command succeeds. Don't add a stub `build` script to `@argus/testing` to silence the warning — once real packages ship, the warning disappears naturally. Watch for it being interpreted as a failure by downstream tooling later (Changesets, release scripts) — it isn't.
-2. **`TURBO_*` env vars at workflow scope are safe even when unset.** When `secrets.TURBO_TOKEN` is undefined GitHub resolves the expression to an empty string. Turbo treats empty `TURBO_TOKEN` as "remote cache disabled" — it does not warn or fail. This is the cleanest way to pre-wire remote cache.
-3. **Each Turbo-using job gets its own `actions/cache` entry, keyed by job name.** Sharing a single `.turbo` cache key across `typecheck`, `test`, and `build` would let one job's miss invalidate the others. Keep them separate. Cache cost on GitHub-hosted runners is generous, so the duplicate storage is fine.
-4. **Coverage artefact name includes `${{ github.run_id }}`.** This makes downloads unambiguous across re-runs and avoids the artefact-name-collision error if a PR is force-pushed. The retention is 14 days, set explicitly to avoid the org default.
-5. **Workflow-level `env:` propagates into every job AND every step**, which is convenient — but it also means `secrets.*` are read for every job, including `secret-scan` and `commitlint`. That's fine (the secrets are empty by default and Turbo isn't invoked in those jobs), but worth knowing if a future workflow needs job-specific isolation.
-6. **`format:check` failed locally during smoke** — `docs/IMPLEMENTATION.md` had Prettier formatting drift from a previous edit. Auto-fixed via `prettier --write`. If you edit Markdown tables manually, run `pnpm format:check` before pushing or expect a CI red.
+1. **Branch base is `p0-06`, NOT `main`.** Topology: `main (17d113b)` → `52b9f8e` (P0-07 plan-insertion, tip of `p0-06-docker-dev-env`) → `1c30f3c` (P0-10, current HEAD). I branched P0-10 off the `p0-06` tip because the P0-07 plan commit lives **only** there, and phase-00/IMPLEMENTATION.md reference P0-07 — basing on `main` would have produced an incoherent phase doc. Consequence: `git log main..HEAD` shows **two** commits (P0-07 plan + P0-10). When opening PRs, either (a) get `p0-06`'s plan commit onto `main` first, or (b) open P0-10's PR with base `main` and accept it carries the P0-07 plan commit too. Decide before pushing — see Open Questions.
+2. **Prettier reformats Markdown tables and will fail CI if you don't pre-format.** `pre-commit` runs `prettier --check .` over the whole tree. Every time you edit a Markdown table (risks.md, IMPLEMENTATION.md, phase docs) Prettier wants to reflow it. **Run `npx prettier --write <files>` before `git add`** or expect a red `format:check`. This has bitten every doc-heavy task in this phase (noted in the P0-05 handover too).
+3. **`.work/` is gitignored.** I kept a `.work/P0-10.md` task file; it is correctly absent from the commit. Don't try to commit task working files — and don't put deliverables there (that's why the tree audit lives in ADR-0002's Context, which _is_ committed).
+4. **The arc is three PRs by maintainer decision.** Don't fold P0-11 + P0-12 into one PR to "save time" — granularity was explicitly chosen. One task, one branch, one PR.
+5. **MPL-2.0 is a named exception, not an allowlist entry.** When you write the allowlist (P0-12) and the notices (P0-11), `lightningcss`/`lightningcss-darwin-arm64` must be handled as a **reviewed, notice-preserved exception** — any _new_ MPL-2.0 dep must still trip the gate. The maintainer was explicit: "allow BlueOak and Python but don't disregard the license notices." THIRD-PARTY-NOTICES must preserve notices for **every** license, permissive included.
+6. **No `--no-verify`, ever.** gitleaks/lint/commitlint hooks must pass. Conventional-commit types are limited to `feat|fix|chore|refactor|docs|test` (see `commitlint.config.cjs`). Doc-only work → `docs(...)`; the licensing chore → `chore(licensing): ...`.
 
 ---
 
 ## State of the System
 
-- ✅ `pnpm install` clean (no changes from this PR)
-- ✅ `pnpm lint` exits 0
-- ✅ `pnpm format:check` exits 0
-- ✅ `pnpm typecheck` exits 0 (1 package: `@argus/testing`)
-- ✅ `pnpm test` exits 0 — 9 tests passing, 100% statements/branches/functions/lines
-- ✅ `pnpm build` exits 0 (no-op, expected — no packages with build script yet)
-- ✅ `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"` parses clean
-- ✅ `.husky/pre-commit` end-to-end exit 0 with the staged change
-- ⏸ CI: this PR is the first run of the new pipeline; expect cold-cache timings (~5 min total wall clock predicted, well under the 10-min budget)
-- ⏸ Branch protection: still not enabled (requires admin to flip on — see PR description)
-- ⏸ Turbo Remote Cache: env vars wired; secrets pending Open Decision D-1
-- ⏸ Dogfood scan: still N/A until Phase 2
+- ✅ `git status`: clean except the one untracked archive file this handover commit will pick up.
+- ✅ P0-10 committed (`1c30f3c`), all Husky hooks passed (ESLint clean, Prettier clean, gitleaks "no leaks found").
+- ✅ Tests unchanged: 9 passing in `@argus/testing` (100% on the only package with sources). P0-10 added no code.
+- ✅ `pnpm lint` / `format:check` / `typecheck` / `build` were green at commit time (no source touched since).
+- ⏸ CI: **not run** on this branch — nothing pushed yet.
+- ⏸ Branch protection: still not enabled (pending admin since P0-03). The P0-12 license job and P0-07 audit job are both planned as **non-blocking / not-required** until that same admin step.
+- ⏸ Dogfood scan: N/A until Phase 2.
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-06 — Docker development environment** in this order:
+Pick up **P0-11 — Third-party notices, prerequisites & contributor guardrail** (deps: P0-10 ✅, fully unblocked) in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-06 section
-2. Read [`docs/SECURITY-NOTES.md`](./SECURITY-NOTES.md) one more time before touching Docker — Dockerfile build args can leak secrets in image layers; the file flags that specifically
-3. Create `Dockerfile.dev` at the repo root (or under `docker/` if you prefer a folder — but the phase doc says root). Multi-stage isn't necessary for a dev image; use `node:20-alpine` or `node:22-alpine` (match `engines.node` in [`package.json`](../package.json)), `corepack enable && corepack prepare pnpm@$(jq -r .packageManager package.json | cut -d@ -f2) --activate`, copy lockfile + workspace files, `pnpm install --frozen-lockfile`, then `pnpm dev` as the default CMD
-4. Create `docker-compose.yml` with three services:
-   - `app` — built from `Dockerfile.dev`, volume-mounts the repo, exposes whatever ports the future apps will need (none today — leave a comment)
-   - `postgres` — `postgres:16-alpine`, volume for `/var/lib/postgresql/data`, env from `.env.example` (also commit a stub `.env.example` if not already present)
-   - `redis` — `redis:7-alpine`, no auth for dev, volume for `/data`
-5. Add a `.dockerignore` mirroring `.gitignore` plus `node_modules`, `.turbo`, `coverage`, `dist`, `.git`
-6. Smoke test: `docker compose up -d postgres redis` should bring up just the data stores (the `app` service has nothing to do yet). `docker compose down -v` to tear down. Document this in the PR
-7. Update [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) + rewrite this `HANDOVER.md`, archive this one to `docs/handovers/p0-05-ci-pipeline-handover.md`
-8. Open PR — ideally merge P0-05 first so this one is rooted on main
+1. **Read [`ADR-0002`](./adr/0002-third-party-integration-and-licensing-policy.md) end to end** — it _is_ the spec. Note §C (Semgrep rules) and the "Impact on existing plan docs" list.
+2. Re-read [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) §[P0-11] for the exact outputs/acceptance.
+3. **Generate `THIRD-PARTY-NOTICES`** from the dependency tree, notices preserved for **every** license incl. the MPL-2.0 `lightningcss*` exception. `license-checker` isn't installed until P0-12, so either use `pnpm licenses list` (built in) to enumerate, or add a notices generator. Note the soft circular feel between P0-11 (needs notices) and P0-12 (adds the tool) — `pnpm licenses list --json` is enough to do P0-11 without pulling P0-12 forward.
+4. **Create root `README.md`** with an **"External tools / Prerequisites"** section: each external tool, that the **user installs it separately**, and its license — TruffleHog **AGPL-3.0**, Semgrep **LGPL-2.1**, osv-scanner **Apache-2.0**, jscpd **MIT**, Prettier **MIT**, Tree-sitter **MIT**. State source-only / not-sold / not-hosted. **Re-verify each tool's current license** before writing it down (ADR-0002 References flags that licenses change between versions — don't copy mine on faith).
+5. **Add `CONTRIBUTING.md`** guardrail + a licensing principle in [`00-principles.md`](./plan/00-principles.md) + a gate in [`quality-gates.md`](./plan/protocols/quality-gates.md): forbid vendoring copyleft tools/binaries/Semgrep rules; require every new dependency to pass the allowlist.
+6. **Doc-consistency edits** (per ADR-0002 "Impact" list): in [`phase-04-tool-adapters.md`](./plan/phases/phase-04-tool-adapters.md) reword **[P4-03]** away from "bundles default rule pack (OWASP Top 10)" → runtime-fetch / BYO / Opengrep / first-party, and clarify copyleft engines are subprocesses not linked libs; flag the Docker-Hub/GHCR publish steps in [`phase-09`](./plan/phases/phase-09-ci-integrations.md) and [`phase-11`](./plan/phases/phase-11-hardening.md) with `TODO(licensing:)` per §D.
+7. Update [`IMPLEMENTATION.md`](./IMPLEMENTATION.md), rotate this `HANDOVER.md` (archive to `docs/handovers/p0-10-...` first), commit `docs(...)`, push, human opens PR.
 
-Estimated effort: **S** (matches the phase doc).
+Estimated effort: **S** (per the phase doc — but it's doc-spread across many files; budget for the Prettier dance).
 
 ---
 
 ## Open Questions for the Next Agent
 
-- **Should the `app` service be in `docker-compose.yml` today, given it has nothing to run?** I'd argue yes — having the service definition committed (with `command: tail -f /dev/null` or similar) means new contributors only run one command. Either way, document the choice in the PR.
-- **Volume mounts on macOS are notoriously slow.** If the future `apps/` workloads turn out to be IO-heavy, we may want to use `:delegated` or `:cached` mount options, or switch to a sync tool (mutagen, docker-sync). Don't pre-optimise; mention in the PR so we're not surprised when it bites.
-- **Postgres / Redis versions.** The roadmap implies BullMQ (Redis 7 OK) and a relational store (Postgres 16 fine). Lock the versions to specific tags, not `latest`. Easy to bump later.
-- **Should `pnpm dev` be the default CMD?** Today there's no `dev` script that does anything meaningful (no app code). Either pick `command: tail -f /dev/null` for now or omit the `app` service entirely until Phase 1. Document the choice.
-- **Diff-coverage tool.** Still deferred from P0-04 → P0-05. Realistic landing point is P0-08 (Changesets) or a small "P0-09 — diff coverage" follow-up. The coverage artefact uploaded by this PR is the input the tool would consume.
+- **How should the three licensing PRs stack on the git tree?** P0-10 currently sits on `p0-06`, which carries an unmerged P0-07 plan commit. Cleanest is probably: land `p0-06`'s plan commit (or P0-06 itself) on `main`, then rebase the licensing branches onto `main`. Confirm with the maintainer before pushing — this is a tree-shape decision, not a code one. (Blockers belong in IMPLEMENTATION.md → Open Decisions if it turns into one.)
+- **P0-12's P0-07 dependency.** P0-12 is specified to add a `license` CI job "beside" the P0-07 `audit` job — but **P0-07 isn't done**. Options: do P0-07 first (it's XS, ~10 lines of YAML), or add the `license` job standalone now and let P0-07 join it later. Doesn't block **P0-11** at all.
+- **Copyright holder string.** "The Argus Authors" in `LICENSE` is a placeholder — the maintainer may want a real legal name before the repo goes public.
+- **Spec-doc home.** ADR-0002 notes there's no committed canonical "spec doc"; the design surface is the phase docs + `01-repo-structure.md` + `00-principles.md`. If a canonical spec is ever added, fold the posture into it (`TODO(licensing:)`).
+- **Notices generator choice.** `pnpm licenses list` vs a dedicated tool (`generate-license-file`, `license-checker-rseidelsohn`). Whatever you pick for P0-11, keep it consistent with the `license-checker` choice already locked for P0-12.
 
 ---
 
 ## Files Touched This Session
 
 ```
-.work/P0-05.md                                          [created — gitignored]
-.github/workflows/ci.yml                                [modified — added typecheck/test/build jobs, workflow-level env, Turbo cache wiring]
-docs/IMPLEMENTATION.md                                  [modified — P0-05 → Recently Completed, Open Decision D-1, PR links restored for P0-03/P0-04]
-docs/HANDOVER.md                                        [modified — this file]
-docs/handovers/p0-04-vitest-infrastructure-handover.md  [created — archive of previous handover]
+LICENSE                                                          [created  — committed 1c30f3c]
+package.json                                                     [modified — committed 1c30f3c]
+docs/adr/0002-third-party-integration-and-licensing-policy.md    [created  — committed 1c30f3c]
+docs/adr/0001-monorepo-with-pnpm.md                              [modified — committed 1c30f3c]
+docs/risks.md                                                    [modified — committed 1c30f3c]
+docs/plan/phases/phase-00-foundation.md                          [modified — committed 1c30f3c]
+docs/IMPLEMENTATION.md                                           [modified — committed 1c30f3c]
+.work/P0-10.md                                                   [created  — gitignored, not committed]
+docs/handovers/p0-05-ci-pipeline-handover.md                     [created  — archive of prior HANDOVER]
+docs/HANDOVER.md                                                 [modified — this file, rewritten for P0-11]
 ```
 
 ---
 
 ## Sign-off
 
-CI pipeline now runs lint / typecheck / test / build / commitlint / secret-scan on every PR. The next picker can start P0-06 immediately on a green main.
+P0-10 is committed and the tree is clean and green; the licensing posture is locked in ADR-0002. The next picker can start P0-11 immediately against that contract — no further setup, just confirm the PR-stacking question before pushing.
 
-— claude-opus-4-7
+— claude-opus-4-8
