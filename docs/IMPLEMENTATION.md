@@ -2,10 +2,10 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-06-01 by claude-opus-4-8_
+**Last updated:** _2026-06-12 by claude-fable-5_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _6 of 12 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _6 of 16 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -25,31 +25,37 @@
 
 ### Up Next (top of backlog within current phase)
 
-1. _P0-06 — Docker development environment_
-2. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
-3. _P0-08 — Documentation scaffolding + ADR-0001_
-4. _P0-09 — Changesets release workflow_
-5. _P0-11 — Third-party notices, prerequisites & contributor guardrail_ (next licensing task; dep P0-10 ✅)
+> Resequenced 2026-06-12 (maintainer-approved): supply-chain controls (P0-14) land **before** any dependency-adding task; process tasks P0-15/P0-16 precede the licensing arc's resumption. New specs P0-13..P0-16 in [phase-00](./plan/phases/phase-00-foundation.md).
+
+1. _P0-15 — Agent workflow codification (CLAUDE.md + protocol amendments)_
+2. _P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking_ (**must precede every dep-adding task**)
+3. _P0-16 — Hook ergonomics: lint-staged pre-commit_ (dep P0-14)
+4. _P0-11 — Third-party notices, prerequisites & contributor guardrail_ (licensing arc resumes; [HANDOVER.md](./HANDOVER.md) context still governs it; dep P0-10 ✅)
+5. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
 6. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07)
+7. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
+8. _P0-06 — Docker development environment_
+9. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
+10. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                                     |
-| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | 🟡 In progress | 6/12      | P0-10 (licensing posture + ADR-0002) done 2026-06-01; P0-11/P0-12 added to integrate it; P0-07 inserted as P11-02 stopgap |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                                         |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                         |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                         |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                         |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                         |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                         |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                         |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                         |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                         |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                         |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                         |
+| Phase                  | Status         | Completed | Notes                                                                                                 |
+| ---------------------- | -------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | 🟡 In progress | 6/16      | P0-10 done 2026-06-01; P0-13..16 inserted 2026-06-12 (supply-chain + workflow hardening, resequenced) |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                     |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                     |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                     |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                     |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                     |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                     |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                     |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                     |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                     |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                     |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                     |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -102,6 +108,7 @@ See [`adr/`](./adr/) for full list.
 
 - _ADR-0001 — Monorepo with pnpm workspaces (pending Phase 0)_
 - [ADR-0002 — Third-party integration & open-source licensing policy](./adr/0002-third-party-integration-and-licensing-policy.md) — Accepted 2026-06-01
+- _ADR-0003 — Supply-chain hardening baseline (pending P0-14)_
 
 ---
 
