@@ -78,7 +78,7 @@ Before marking a task complete:
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
 - [ ] If user-facing: documentation updated
 - [ ] If architectural: ADR written or updated
-- [ ] **Independent review pass done:** a fresh-context agent reviewed the full diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md) and produced a **review packet** — risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min" — attached to the PR
+- [ ] **Independent review pass done:** a fresh-context agent reviewed the full diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md) and produced a **review packet** — risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min" — attached to the PR. Review passes run on a cost-efficient model by default (e.g. Sonnet-class); escalate to a stronger model only for high-risk diffs (domain core, adapter boundary, releases)
 - [ ] PR opened using [`templates/PR.template.md`](../templates/PR.template.md)
 - [ ] `IMPLEMENTATION.md` updated: task moved to Recently Completed
 - [ ] `HANDOVER.md` rewritten for the next picker (use [`templates/HANDOVER.template.md`](../templates/HANDOVER.template.md))
