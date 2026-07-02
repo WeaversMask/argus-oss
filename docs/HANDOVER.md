@@ -1,99 +1,96 @@
-# Handover — P0-15 → P0-14
+# Handover — P0-14 → P0-16
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-06-12
+**Date:** 2026-07-02
 **Phase:** P0 — Foundation
-**Last task completed:** P0-15 — Agent workflow codification (CLAUDE.md + protocol amendments)
+**Last task completed:** P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking
 
 ---
 
 ## Context
 
-This session ran the **supply-chain & workflow hardening arc**: a security/workflow review (maintainer-commissioned), the **B0 plan insertion** (tasks P0-13..P0-16, risks R-012/R-013, resequenced Up Next — PR #8), and **P0-15** (this handover's task). The backlog was deliberately resequenced: **P0-14 must merge before any task that adds a dependency** (P0-16, P0-12, P0-09), because pnpm 9 resolves brand-new registry versions with no age gate and runs their install scripts. The licensing arc (P0-11 → P0-12) is paused, **not** abandoned — its full context is archived at [`handovers/p0-10-license-policy-handover.md`](./handovers/p0-10-license-policy-handover.md); the P0-11 picker must read that plus ADR-0002.
+Supply-chain hardening is now **live**: pnpm 11.5.3 (exact-pinned), `minimumReleaseAge: 4320` (3 days), dependency install scripts blocked (`allowBuilds: {}`), all recorded in [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md). The gate was verified on adoption day — resolving a 1-day-old `@types/node` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`. Server-side controls also went live this cycle: branch protection on `main` (PR required, 6 required checks, `enforce_admins` on), and the local agent allowlist no longer auto-permits `gh pr merge` — merging is human-only in practice, not just by rule.
 
-There is an open **4-PR stack**, merge bottom-up: [#6](https://github.com/WeaversMask/argus/pull/6) (P0-07 plan) → [#7](https://github.com/WeaversMask/argus/pull/7) (P0-10 licensing) → [#8](https://github.com/WeaversMask/argus/pull/8) (B0 insertion) → #9 (P0-15, this task). CI only triggers on PRs whose base is `main`, so upper PRs show no checks until they retarget after the one below merges (delete each branch on merge; GitHub retargets automatically).
+**Next: P0-16 (lint-staged pre-commit)** — it was hard-blocked on P0-14 precisely because it adds a dependency; that addition must now pass the release-age gate. After P0-16, the licensing arc resumes at P0-11 (read [its archived handover](./handovers/p0-10-license-policy-handover.md) first — that work's context is preserved there; the work itself is done and merged).
 
 ---
 
 ## What I Did
 
-- **B0 / PR #8:** specs for P0-13..P0-16 in phase-00; Up Next resequenced; R-012/R-013; SECURITY.md folded into P0-08; exit criteria 12 → 16 tasks.
-- **P0-15 / PR #9:** root `CLAUDE.md` (auto-loaded: onboarding pointer, 50%/70% context stop-condition, permission-prompt description policy condensed, evergreen gotchas); `agentic-execution.md` gains §Permission-Prompt Descriptions (full maintainer-approved wording), §Parallel Lanes, branch-from-`main` + plan-lands-first rules, reviewer-step checklist item, handover ~100-line budget; `quality-gates.md` gains the Open-Decisions per-PR gate.
-- Pushed all stack branches; opened PRs #6/#7/#8 (previously blocked on the now-stale "gh auth broken" belief).
+- `packageManager` → `pnpm@11.5.3` (newest 11.x ≥3 weeks old); `engines` → node `>=22.13.0` / pnpm `>=11.0.0`; `.nvmrc` (22) added. Lockfile byte-identical (v9.0 format spans pnpm 9–11).
+- `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, explicit `allowBuilds: {}` — override procedures documented in [SECURITY-NOTES §5](./SECURITY-NOTES.md).
+- ADR-0003 (accepted); full suite green under Node 22 + pnpm 11 (lint / format / typecheck / 9 tests at 100% cov / build); root `prepare` (husky + gitleaks) confirmed still running.
+- Earlier this cycle: stacked-merge incident fixed via PR #10 (see Gotchas #4), P0-15 merged (#9), remote branch cleanup.
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-14 (next task) — nothing started.** Spec in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) §[P0-14].
-- **P0-16, P0-13 — nothing started.** P0-16 hard-depends on P0-14.
-- **Track A (maintainer-only, still pending):** merge the stack in order; **enable branch protection** (highest-leverage single action, now urgent since agents can push); decide D-1 (remote cache); copyright/identity decision before the repo goes public (mixed real-name/pseudonym author identities exist in git history); optionally narrow the local `Bash(gh pr *)` allowlist to create/view/diff/status.
-- **Doc compaction** (IMPLEMENTATION notes, completed-task specs) — deliberately deferred to the Phase-0 exit review per B0.
+- **P0-16, P0-11, P0-07, P0-12, P0-13** — unstarted, in Up Next order.
+- **`nvm alias default` still points at Node 20 on the dev machine.** Node 22.23.1 is installed; the maintainer decides whether to flip the default (`nvm alias default 22`). Until then, shells need `nvm use` (reads `.nvmrc`).
+- **Maintainer decisions still open:** D-1 (remote cache), copyright/identity before going public.
+- **Tracker PR links:** P0-14's row says _pending_ — fill in its PR number on the next tracker touch.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **gh auth WORKS.** The "auth broken, human must push" gotcha repeated in the last three handovers is stale — git SSH push and `gh pr create` both verified 2026-06-12. Agents push branches and open PRs; **merging remains human-only**.
-2. **Stack topology.** Do not base new work on `main` until the stack merges — tracker files (IMPLEMENTATION.md, phase-00) differ. Prefer waiting for the merge over deepening the stack past #9.
-3. **Prettier table dance still applies** until P0-16 lands: `pnpm exec prettier --write <files>` before staging.
-4. **pnpm 11 renamed the script-blocking setting:** `onlyBuiltDependencies` → `allowBuilds`, and settings moved to `pnpm-workspace.yaml` (pnpm 11 no longer reads the `pnpm` field of package.json). The P0-14 spec already says this — don't copy pre-11 blog snippets.
-5. **CLAUDE.md now exists** — it is auto-loaded into every future session. If you change workflow rules, change them there AND in the protocol file; they must not drift apart.
+1. **Node 20 is dead weight:** pnpm 11.5.3 requires node ≥22.13, and Node 20 hit EOL 2026-04-30. Any shell on node 20 fails fast with an engine error — run `nvm use` in the repo root.
+2. **First install after a pnpm major bump** prompts to purge `node_modules`; in a non-TTY shell pass `--config.confirmModulesPurge=false` (one-time; CI unaffected).
+3. **Root-level `pnpm add` needs `-w`** (workspace-root guard) — the error message says so.
+4. **Stacked-PR merge trap (the big one this cycle):** merging a stacked PR whose base branch still exists sends the content into the _base branch_, not `main` — that's how #7/#8/#9 mis-landed and needed #10 to fix. "Automatically delete head branches" is now enabled, which makes GitHub retarget the next PR automatically. Prefer non-stacked PRs from `main` regardless (protocol rule since P0-15).
+5. **When adding any dependency now:** pick a version ≥3 days old (`pnpm view <pkg> time --json`), exact-pin it, and verify the package name/repo before installing — CLAUDE.md and SECURITY-NOTES §5 have the checklist.
 
 ---
 
 ## State of the System
 
-- ✅ Tests: 9 passing (unchanged — no source code touched; docs-only session)
-- ✅ Hooks green on every commit (ESLint, Prettier, gitleaks, commitlint)
-- ⏸ CI: pending on #6 (base=main); upper stack gets CI as it retargets
-- ⏸ Branch protection: still not enabled (Track A)
+- ✅ Tests: 9 passing, 100% line/branch on `@argus/testing`; lint/format/typecheck/build green under Node 22 + pnpm 11.5.3
+- ✅ `main` complete through PR #10; branch protection live (6 required checks, enforce_admins)
+- ⏸ This task's PR: open, pending human merge (required checks must pass first)
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking** (deps: none, but see Gotcha 2 — wait for the stack to merge, then branch from `main`):
+Pick up **P0-16 — Hook ergonomics: lint-staged pre-commit** (dep P0-14 ✅ once this PR merges; branch from `main` after it lands):
 
-1. Read the §[P0-14] spec in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — it is complete, including acceptance and rollback.
-2. Pick the pnpm version: `pnpm view pnpm time --json` → newest 11.x **published ≥3 weeks ago**; check its Node floor against `engines.node` (bump both together if needed, and note P0-13 will pin CI's Node).
-3. `packageManager` bump → regenerate lockfile → full local suite.
-4. `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, `allowBuilds` allowlist (likely empty — verify no current dep needs build scripts; root `prepare` is unaffected).
-5. Negative test for the PR: attempt to resolve a <3-day-old version, show refusal.
-6. New SECURITY-NOTES section (posture + urgent-patch override) + **ADR-0003** (decisions were maintainer-approved 2026-06-12 — see PR #8 body for the summary).
-7. Tracker updates, handover rotation (budget ~100 lines), PR with review packet (new checklist item).
+1. Read §[P0-16] in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).
+2. `pnpm view lint-staged time --json` → newest version ≥3 days old; verify name + repository; `pnpm add -Dw lint-staged@<exact>` (the gate enforces the age anyway — that's the point).
+3. Rewrite `.husky/pre-commit`: staged-scope ESLint + `prettier --write` via lint-staged; **keep the gitleaks staged scan and `SKIP=` semantics exactly as they are**.
+4. Test matrix from the spec: drifted file auto-formats and commits; `SKIP=lint`/`format`/`gitleaks` still work individually; a fake AWS key in a non-fixture file is still blocked; CI lint job untouched.
+5. Tracker + handover rotation (~100-line budget), PR with review packet.
 
-Estimated effort: **S**.
+Estimated effort: **XS**.
 
 ---
 
 ## Open Questions for the Next Agent
 
-- Should P0-14 pick pnpm 11.x or the newest 10.x LTS if 11.x has a breaking wrinkle (e.g. Node floor)? Spec says 11.x; fall back only with a documented reason.
-- `minimumReleaseAgeExclude`: leave empty, or pre-seed `@argus/*` for future self-published packages? (Cosmetic today — workspace deps aren't registry-resolved.)
+- lint-staged config placement: `package.json` `"lint-staged"` key vs `.lintstagedrc` — either works; prefer `package.json` to avoid another root dotfile.
 
 ---
 
 ## Files Touched This Session
 
 ```
-docs/plan/phases/phase-00-foundation.md            [modified — PR #8]
-docs/IMPLEMENTATION.md                             [modified — PR #8 + #9]
-docs/risks.md                                      [modified — PR #8]
-CLAUDE.md                                          [created  — PR #9]
-docs/plan/protocols/agentic-execution.md           [modified — PR #9]
-docs/plan/protocols/quality-gates.md               [modified — PR #9]
-docs/handovers/p0-10-license-policy-handover.md    [created  — archive of prior HANDOVER]
-docs/HANDOVER.md                                   [rewritten — this file]
-.work/P0-15.md                                     [created  — gitignored]
+package.json                                           [modified — pnpm 11.5.3, engines]
+pnpm-workspace.yaml                                    [modified — release-age gate, allowBuilds]
+.nvmrc                                                 [created]
+docs/adr/0003-supply-chain-hardening-baseline.md       [created]
+docs/SECURITY-NOTES.md                                 [modified — §5 Supply-Chain Controls]
+docs/IMPLEMENTATION.md                                 [modified — 8/16, PR links backfilled]
+docs/HANDOVER.md                                       [rewritten — this file]
+docs/handovers/p0-15-workflow-codification-handover.md [created — archive]
+.work/P0-14.md                                         [created — gitignored]
 ```
 
 ---
 
 ## Sign-off
 
-Docs-only session; tree green at every commit. The stack (#6→#9) is ready for maintainer review and merges cleanly bottom-up; P0-14 can start from `main` the moment it lands.
+Toolchain upgrade verified end-to-end (suite green, gate demonstrably refusing fresh versions, prepare intact); P0-16 can start from `main` as soon as this PR merges.
 
 — claude-fable-5
