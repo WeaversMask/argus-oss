@@ -14,6 +14,7 @@
 - ✅ Linked task ID in PR description
 - ✅ `IMPLEMENTATION.md` updated
 - ✅ `HANDOVER.md` updated
+- ✅ Open Decisions in `IMPLEMENTATION.md` reviewed by the maintainer — answered or consciously re-dated before merge
 
 ## Per-Phase Gates (Enforced by Phase Exit Review)
 

@@ -13,7 +13,7 @@ When an agent (or human) starts a session:
 5. **Pick a task** from the phase file that has no unmet dependencies
 6. **Create `.work/<TASK-ID>.md`** using [`templates/TASK.template.md`](../templates/TASK.template.md)
 7. **Update `IMPLEMENTATION.md`** — move task to "In Progress" with your ID
-8. **Branch:** `git checkout -b <task-id>-<slug>` (e.g. `p3-05-type-contract-checker`)
+8. **Branch from `main`:** `git checkout -b <task-id>-<slug>` (e.g. `p3-05-type-contract-checker`). Base on another branch **only** when your task depends on its unmerged output — and say so in the PR description.
 
 ## What NOT to Load
 
@@ -28,12 +28,44 @@ Loading extra files pollutes context and slows decisions. **Do not preemptively 
 ## During Execution
 
 - **Commit early, commit often.** Small, conventional-commit messages.
+- **Plan/doc changes other tasks will depend on land first.** Ship them as their own small `docs(...)` PR to `main` before building on them — never buried inside a feature branch (see the P0-10 stacking gotcha in `docs/handovers/`).
 - **Run tests before every commit.** `pnpm test` in the affected package.
 - **If blocked:** document the blocker in `.work/<TASK-ID>.md` and update `IMPLEMENTATION.md` → "Blocked".
 - **If a decision is needed** that affects other tasks or future work:
   - Write an ADR draft in `docs/adr/`
   - Flag in `IMPLEMENTATION.md` under "Open Decisions"
   - Pick up another task while waiting
+
+## Permission-Prompt Descriptions
+
+> Maintainer-approved wording (2026-06-12). A condensed version lives in root `CLAUDE.md`.
+
+Write every Bash `description` so the maintainer can approve or deny from the prompt alone, without parsing the command itself. Two tiers:
+
+- **Read-only / inspection** (status, diff, grep, test runs):
+  one short clause — "Run vitest for @argus/testing (read-only check)".
+
+- **State-changing** (installs, writes, push/merge, deletions, downloads, config edits): always three parts —
+  `<action + exact target> — <why / task ID> — <scope & how to undo>`
+
+  Examples:
+  - "Add license-checker 25.0.1 as devDependency (P0-12 SPDX gate). Writes package.json + pnpm-lock.yaml; version published 14 days ago, name verified against npm. Undo: git restore both files."
+  - "Push branch p0-12-license-gate to origin — publishes commits so the PR can be opened; main is untouched. Undo: delete the remote branch."
+  - "Prettier --write on the 4 docs files touched by P0-11 — auto-format before commit so format:check passes. Formatting only, no content changes."
+
+Rules:
+
+- Never describe a command more vaguely than its real effect (no "update config" for something that deletes a file).
+- If a command does two unrelated things, split it into two calls — each prompt should be exactly one decision.
+- Anything needing more than ~2 sentences of justification gets explained in chat _before_ the call; the description then references that ("as discussed above: ...").
+
+## Parallel Lanes (multi-agent)
+
+Two writer agents may work simultaneously **only** when their declared file sets are disjoint. Rules:
+
+- Each lane declares its file set up front in its `.work/<TASK-ID>.md` and sticks to it.
+- Shared tracker files (`IMPLEMENTATION.md`, `HANDOVER.md`) are updated by whichever PR **merges first**; the other lane rebases before completing.
+- Writer parallelism beyond disjoint doc/code lanes waits for the dogfooding gate (Phase 2+) — reviewer agents in fresh contexts are always allowed and encouraged.
 
 ## Task Completion Checklist
 
@@ -46,6 +78,7 @@ Before marking a task complete:
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
 - [ ] If user-facing: documentation updated
 - [ ] If architectural: ADR written or updated
+- [ ] **Independent review pass done:** a fresh-context agent reviewed the full diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md) and produced a **review packet** — risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min" — attached to the PR
 - [ ] PR opened using [`templates/PR.template.md`](../templates/PR.template.md)
 - [ ] `IMPLEMENTATION.md` updated: task moved to Recently Completed
 - [ ] `HANDOVER.md` rewritten for the next picker (use [`templates/HANDOVER.template.md`](../templates/HANDOVER.template.md))
@@ -59,6 +92,8 @@ After every significant task (and **always** at phase boundaries):
 3. **Commit** handover changes in the same PR as the task
 
 This ensures continuity even when sessions are short or agents change.
+
+**Budget: ~100 lines.** The next picker pays for every line each session — trim by moving detail into the archived snapshot, not by omitting gotchas.
 
 ## Phase Transitions
 
@@ -91,8 +126,9 @@ The intent of this modular structure is to keep working context lean:
 
 | Document                           | Size       | Load Frequency                 |
 | ---------------------------------- | ---------- | ------------------------------ |
+| `CLAUDE.md` (repo root)            | ~30 lines  | Auto-loaded every session      |
 | `IMPLEMENTATION.md`                | ~150 lines | Every session                  |
-| `HANDOVER.md`                      | ~80 lines  | Every session                  |
+| `HANDOVER.md`                      | ~100 lines | Every session                  |
 | `00-principles.md`                 | ~80 lines  | Every session                  |
 | `agentic-execution.md` (this file) | ~150 lines | Every session                  |
 | Active phase file                  | ~200 lines | Every session                  |

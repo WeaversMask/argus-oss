@@ -5,7 +5,7 @@
 **Last updated:** _2026-06-12 by claude-fable-5_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _6 of 16 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _7 of 16 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -27,35 +27,34 @@
 
 > Resequenced 2026-06-12 (maintainer-approved): supply-chain controls (P0-14) land **before** any dependency-adding task; process tasks P0-15/P0-16 precede the licensing arc's resumption. New specs P0-13..P0-16 in [phase-00](./plan/phases/phase-00-foundation.md).
 
-1. _P0-15 — Agent workflow codification (CLAUDE.md + protocol amendments)_
-2. _P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking_ (**must precede every dep-adding task**)
-3. _P0-16 — Hook ergonomics: lint-staged pre-commit_ (dep P0-14)
-4. _P0-11 — Third-party notices, prerequisites & contributor guardrail_ (licensing arc resumes; [HANDOVER.md](./HANDOVER.md) context still governs it; dep P0-10 ✅)
-5. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
-6. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07)
-7. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
-8. _P0-06 — Docker development environment_
-9. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
-10. _P0-09 — Changesets release workflow_
+1. _P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking_ (**must precede every dep-adding task**)
+2. _P0-16 — Hook ergonomics: lint-staged pre-commit_ (dep P0-14)
+3. _P0-11 — Third-party notices, prerequisites & contributor guardrail_ (licensing arc resumes; see [archived handover](./handovers/p0-10-license-policy-handover.md); dep P0-10 ✅)
+4. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
+5. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07)
+6. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
+7. _P0-06 — Docker development environment_
+8. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
+9. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                 |
-| ---------------------- | -------------- | --------- | ----------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | 🟡 In progress | 6/16      | P0-10 done 2026-06-01; P0-13..16 inserted 2026-06-12 (supply-chain + workflow hardening, resequenced) |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                     |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                     |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                     |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                     |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                     |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                     |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                     |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                     |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                     |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                     |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                     |
+| Phase                  | Status         | Completed | Notes                                                                                                              |
+| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| P0 — Foundation        | 🟡 In progress | 7/16      | P0-10 done 2026-06-01; P0-13..16 inserted + P0-15 done 2026-06-12 (supply-chain + workflow hardening, resequenced) |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                                  |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                  |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                  |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                  |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                  |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                  |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                  |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                  |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                  |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                  |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                  |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -65,6 +64,7 @@
 
 | Task ID | Title                                                | Completed  | PR                                                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------- | ---------------------------------------------------- | ---------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-15   | Agent workflow codification (CLAUDE.md + protocols)  | 2026-06-12 | _pending_                                         | Root `CLAUDE.md` (context budget, permission-prompt policy); protocol gains plan-lands-first, reviewer step, parallel lanes, handover budget; Open-Decisions gate. Detail: PR + handover                                                                                                                                                                                                                                                                                     |
 | P0-10   | Project license & third-party integration policy     | 2026-06-01 | _pending_                                         | MIT `LICENSE` + aligned `package.json` field; ADR-0002 fixes the open-source posture (copyleft engines subprocess-only, no vendoring, no embedded Semgrep rules, Docker = recipe not published image, SPDX allowlist); audit of the current tree found **no** copyleft-of-concern. Folded into P0 to lock the integration boundary before Phase 4. P0-11/P0-12 follow.                                                                                                       |
 | P0-05   | GitHub Actions CI pipeline                           | 2026-05-25 | _pending_                                         | Extended `ci.yml` with `typecheck` / `test` / `build` jobs running in parallel; `actions/cache@v4` per-job `.turbo` cache for warm-run speedup; `TURBO_TOKEN` / `TURBO_TEAM` / `TURBO_REMOTE_CACHE_SIGNATURE_KEY` env vars pre-wired at workflow level so remote cache flips on with a secrets-only change once D-1 lands; aggregated Vitest coverage uploaded as workflow artefact (14-day retention). Branch protection still needs a repo admin to enable required checks |
 | P0-04   | Vitest test infrastructure                           | 2026-05-25 | [#4](https://github.com/WeaversMask/argus/pull/4) | Vitest 4.1.7 + @vitest/coverage-v8; first persistent workspace package `@argus/testing` with `defineProjectConfig`, `fakeSecret()`, and `toBeNonEmpty` custom matcher; root `vitest.config.ts` runs all projects in one invocation with aggregated coverage at 85% line / 80% branch thresholds                                                                                                                                                                              |
