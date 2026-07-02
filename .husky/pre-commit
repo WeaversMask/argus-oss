@@ -18,8 +18,12 @@
 
 set -e
 
+# Normalize SKIP so "lint, format" and "LINT" behave like "lint,format" —
+# lint-staged.config.mjs applies the same normalization.
+skip_normalized=$(printf '%s' "${SKIP:-}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+
 is_skipped() {
-  case ",${SKIP}," in
+  case ",${skip_normalized}," in
     *",$1,"*) return 0 ;;
     *)        return 1 ;;
   esac

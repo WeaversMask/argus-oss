@@ -7,11 +7,13 @@
 // auto-fixing lint findings would silently mutate logic-adjacent code.
 import process from "node:process";
 
-const skipped = new Set((process.env.SKIP ?? "").split(","));
+const skipped = new Set(
+  (process.env.SKIP ?? "").split(",").map((token) => token.trim().toLowerCase()),
+);
 
 const tasks = {};
 if (!skipped.has("lint")) {
-  tasks["*.{js,mjs,cjs,ts,tsx}"] = "eslint --max-warnings=0";
+  tasks["*.{js,mjs,cjs,ts,tsx,mts,cts}"] = "eslint --max-warnings=0";
 }
 if (!skipped.has("format")) {
   tasks["*"] = "prettier --write --ignore-unknown";
