@@ -40,6 +40,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 - **Outputs:** External pen test report, dependency audit, threat model document
 - **Acceptance:** No high/critical findings open; all medium findings have documented mitigations
 - **Effort:** L
+- **Note — P0-07 stopgap exists:** Phase 0 added a lightweight `pnpm audit --audit-level=high` CI job (see [`P0-07`](./phase-00-foundation.md)) as a temporary measure during the 2026 npm supply-chain wave. That job covers **only** the public-advisory subset and does **not** discharge this task's dependency-audit obligation (typosquat detection, behavioural / install-script analysis, license review, threat-model alignment). When this task lands, the more comprehensive tooling chosen here should replace or supersede the P0-07 job — do not assume P0-07 already covers it.
 
 ### [P11-03] Full documentation site
 
