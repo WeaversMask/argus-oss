@@ -1,3 +1,17 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# ── Supply-chain hardening (ADR-0003) ──────────────────────────────────────
+# Newly published versions must be ≥3 days old before pnpm resolves them —
+# malicious releases are typically detected and yanked within hours/days.
+# Urgent security patch that can't wait: add the package name to
+# minimumReleaseAgeExclude, install, then remove the entry again.
+# Procedure: docs/SECURITY-NOTES.md §"Supply-Chain Controls (pnpm)".
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude: []
+
+# No dependency may run install/build scripts. pnpm 11 blocks unlisted
+# packages by default; the empty map makes the reviewed posture explicit.
+# Add `pkg-name: true` only after reviewing what that package's script does.
+allowBuilds: {}

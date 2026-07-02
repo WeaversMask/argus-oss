@@ -4,10 +4,10 @@
   "private": true,
   "description": "Argus — architecture-aware code quality platform (monorepo root)",
   "license": "MIT",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@11.5.3",
   "engines": {
-    "node": ">=20.11.0",
-    "pnpm": ">=9.0.0"
+    "node": ">=22.13.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "build": "turbo run build",
