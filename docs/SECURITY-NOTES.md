@@ -84,6 +84,22 @@ GitHub Actions runs `gitleaks` (via the official `gitleaks/gitleaks-action@v2`) 
 - Bundlers: configure `devtool: 'source-map'` (or equivalent) with project-relative paths
 - Docker builds use `--no-cache` for the final layer to avoid leaking build args
 
+### 5. Supply-Chain Controls (pnpm) — ADR-0003
+
+Configured in `pnpm-workspace.yaml`, enforced by pnpm ≥11 (pinned via `packageManager`):
+
+- **`minimumReleaseAge: 4320`** — `pnpm add`/`update` refuses any version published less than 3 days ago (`ERR_PNPM_NO_MATURE_MATCHING_VERSION`). This is the window in which malicious releases are typically detected and yanked. It does **not** affect `--frozen-lockfile` installs of already-locked versions.
+- **`allowBuilds: {}`** — no dependency may run install/build scripts. The root project's own `prepare` (husky + gitleaks) still runs.
+
+**Urgent security patch that can't wait 3 days:**
+
+1. Confirm the advisory (CI `audit` job / Dependabot alert), then add the package to `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`
+2. `pnpm add <pkg>@<patched-version>` (verify the exact name and the publisher before installing)
+3. **Remove the exclude entry again in the same PR** — the list stays empty at rest
+4. Note the override and why in the PR description
+
+**Adding a package that genuinely needs install scripts** (native builds etc.): review what the script does first, then add `pkg-name: true` under `allowBuilds` with a justification comment — never blanket-allow.
+
 ---
 
 ## If You Accidentally Commit a Secret
