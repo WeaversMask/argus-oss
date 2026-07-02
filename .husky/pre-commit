@@ -1,12 +1,16 @@
 #!/usr/bin/env sh
 # Argus pre-commit hook
 #
-# Runs lint, format check, and secret scanning before allowing the commit.
+# Staged-scope quality gates via lint-staged (ESLint check + Prettier
+# auto-fix with re-stage), then a gitleaks secret scan of the staged
+# changes. Gitleaks runs last so it scans what will actually be committed
+# (post-Prettier content). CI keeps the full-repo lint/format jobs as the
+# backstop.
 #
-# Each step can be skipped individually via the SKIP env var (comma-separated):
-#   SKIP=lint git commit ...
-#   SKIP=format git commit ...
-#   SKIP=gitleaks git commit ...
+# Each gate can be skipped individually via the SKIP env var (comma-separated):
+#   SKIP=lint git commit ...      (skips ESLint)
+#   SKIP=format git commit ...    (skips Prettier)
+#   SKIP=gitleaks git commit ...  (skips secret scan)
 #   SKIP=lint,format,gitleaks git commit ...
 #
 # Skipping any of these requires justification in the commit message. See
@@ -14,8 +18,12 @@
 
 set -e
 
+# Normalize SKIP so "lint, format" and "LINT" behave like "lint,format" —
+# lint-staged.config.mjs applies the same normalization.
+skip_normalized=$(printf '%s' "${SKIP:-}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+
 is_skipped() {
-  case ",${SKIP}," in
+  case ",${skip_normalized}," in
     *",$1,"*) return 0 ;;
     *)        return 1 ;;
   esac
@@ -25,15 +33,17 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 if is_skipped lint; then
-  echo "⚠️  pre-commit: SKIP=lint — bypassing eslint"
-else
-  pnpm lint
+  echo "⚠️  pre-commit: SKIP=lint — bypassing eslint on staged files"
+fi
+if is_skipped format; then
+  echo "⚠️  pre-commit: SKIP=format — bypassing prettier on staged files"
 fi
 
-if is_skipped format; then
-  echo "⚠️  pre-commit: SKIP=format — bypassing prettier --check"
+if is_skipped lint && is_skipped format; then
+  : # both quality gates skipped — nothing for lint-staged to do
 else
-  pnpm format:check
+  # lint-staged.config.mjs reads SKIP and drops the corresponding task.
+  pnpm exec lint-staged --config lint-staged.config.mjs
 fi
 
 if is_skipped gitleaks; then

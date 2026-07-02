@@ -1,96 +1,93 @@
-# Handover — P0-14 → P0-16
+# Handover — P0-16 → P0-11
 
 **From:** claude-fable-5
 **To:** next picker
 **Date:** 2026-07-02
 **Phase:** P0 — Foundation
-**Last task completed:** P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking
+**Last task completed:** P0-16 — Hook ergonomics: lint-staged pre-commit
 
 ---
 
 ## Context
 
-Supply-chain hardening is now **live**: pnpm 11.5.3 (exact-pinned), `minimumReleaseAge: 4320` (3 days), dependency install scripts blocked (`allowBuilds: {}`), all recorded in [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md). The gate was verified on adoption day — resolving a 1-day-old `@types/node` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`. Server-side controls also went live this cycle: branch protection on `main` (PR required, 6 required checks, `enforce_admins` on), and the local agent allowlist no longer auto-permits `gh pr merge` — merging is human-only in practice, not just by rule.
+The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked dep scripts (P0-14, [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md)), and the pre-commit hook is now staged-scope with Prettier auto-fix (P0-16) — the "Prettier dance" that bit every doc task is dead. lint-staged 17.0.8 was the first dependency added under the new gate (12-day-old version, passed cleanly; a 1-day-old version was refused in P0-14's negative test).
 
-**Next: P0-16 (lint-staged pre-commit)** — it was hard-blocked on P0-14 precisely because it adds a dependency; that addition must now pass the release-age gate. After P0-16, the licensing arc resumes at P0-11 (read [its archived handover](./handovers/p0-10-license-policy-handover.md) first — that work's context is preserved there; the work itself is done and merged).
+**Next: P0-11 — the licensing arc resumes.** Non-negotiable first step: read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) — it carries the arc's full context (locked decisions, MPL-2.0 exception handling, notices requirements). The P0-10 _work_ is done and merged (#7/#10); only its follow-up tasks P0-11/P0-12 remain. ADR-0002 is the governing contract.
 
 ---
 
 ## What I Did
 
-- `packageManager` → `pnpm@11.5.3` (newest 11.x ≥3 weeks old); `engines` → node `>=22.13.0` / pnpm `>=11.0.0`; `.nvmrc` (22) added. Lockfile byte-identical (v9.0 format spans pnpm 9–11).
-- `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, explicit `allowBuilds: {}` — override procedures documented in [SECURITY-NOTES §5](./SECURITY-NOTES.md).
-- ADR-0003 (accepted); full suite green under Node 22 + pnpm 11 (lint / format / typecheck / 9 tests at 100% cov / build); root `prepare` (husky + gitleaks) confirmed still running.
-- Earlier this cycle: stacked-merge incident fixed via PR #10 (see Gotchas #4), P0-15 merged (#9), remote branch cleanup.
+- `lint-staged@17.0.8` exact-pinned (name/repo verified; published 2026-06-20). [`lint-staged.config.mjs`](../lint-staged.config.mjs) is SKIP-aware — `SKIP=lint` / `SKIP=format` drop the matching task inside one lint-staged invocation; JSON config couldn't do that, which is why it's not in package.json (overrides the previous handover's lean, documented).
+- [`.husky/pre-commit`](../.husky/pre-commit) rewritten: lint-staged (ESLint check-only + `prettier --write` with auto-restage) → gitleaks staged scan **last**, so it scans post-Prettier content. `SKIP=` contract and gitleaks block unchanged.
+- Verified acceptance matrix with scratch commits (all removed): drift auto-formats (5→3 lines committed); `SKIP=format` preserves drift; `SKIP=lint` bypasses a staged lint error that otherwise blocks; a high-entropy fake AWS key is blocked (`leaks found: 1`).
+- Protocol amendment (maintainer-approved 2026-07-02): review passes run on a **cost-efficient model** by default (Sonnet-class); escalate only for high-risk diffs. In `agentic-execution.md` §Task Completion Checklist.
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-16, P0-11, P0-07, P0-12, P0-13** — unstarted, in Up Next order.
-- **`nvm alias default` still points at Node 20 on the dev machine.** Node 22.23.1 is installed; the maintainer decides whether to flip the default (`nvm alias default 22`). Until then, shells need `nvm use` (reads `.nvmrc`).
-- **Maintainer decisions still open:** D-1 (remote cache), copyright/identity before going public.
-- **Tracker PR links:** P0-14's row says _pending_ — fill in its PR number on the next tracker touch.
+- **P0-11, P0-07, P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
+- **Dependabot alerts open on main:** vite (high + moderate, Windows-specific) and js-yaml (moderate DoS), all dev-only transitives. A prepared fix task exists as a session chip; patched versions are vite 8.0.16 / js-yaml 4.2.0 — check their publish age; use the SECURITY-NOTES §5 override if <3 days.
+- **Maintainer decisions still open:** D-1 (remote cache), copyright/identity + `nvm alias default 22` (Node 22.23.1 installed, default still 20).
 
 ---
 
 ## Gotchas & Surprises
 
-1. **Node 20 is dead weight:** pnpm 11.5.3 requires node ≥22.13, and Node 20 hit EOL 2026-04-30. Any shell on node 20 fails fast with an engine error — run `nvm use` in the repo root.
-2. **First install after a pnpm major bump** prompts to purge `node_modules`; in a non-TTY shell pass `--config.confirmModulesPurge=false` (one-time; CI unaffected).
-3. **Root-level `pnpm add` needs `-w`** (workspace-root guard) — the error message says so.
-4. **Stacked-PR merge trap (the big one this cycle):** merging a stacked PR whose base branch still exists sends the content into the _base branch_, not `main` — that's how #7/#8/#9 mis-landed and needed #10 to fix. "Automatically delete head branches" is now enabled, which makes GitHub retarget the next PR automatically. Prefer non-stacked PRs from `main` regardless (protocol rule since P0-15).
-5. **When adding any dependency now:** pick a version ≥3 days old (`pnpm view <pkg> time --json`), exact-pin it, and verify the package name/repo before installing — CLAUDE.md and SECURITY-NOTES §5 have the checklist.
+1. **gitleaks quietly ignores "fake-looking" secrets** — two layers: AWS's documented example key (`AKIAIOSFODNN7EXAMPLE`) is allowlisted by default, and the AWS rule has an **entropy threshold**, so low-entropy strings like `AKIAZZZ...` pass. When testing secret detection, use a random-looking key. (Cost me two failed test rounds.)
+2. **Scratch-test commits: commit the real work FIRST, then test, then `git reset --soft HEAD~1` + scoped `git restore --staged`.** I used `reset --hard` with uncommitted work in the tree and wiped my own changes once — don't repeat that.
+3. **ESLint on staged files is check-only by design** (`--max-warnings=0`, no `--fix`) — auto-fixing lint findings mutates logic-adjacent code silently; Prettier auto-fix is safe.
+4. Everything from the P0-14 handover still applies: Node 22 (`nvm use`), `pnpm add` needs `-w` at root, dep additions need a ≥3-day-old version.
 
 ---
 
 ## State of the System
 
-- ✅ Tests: 9 passing, 100% line/branch on `@argus/testing`; lint/format/typecheck/build green under Node 22 + pnpm 11.5.3
-- ✅ `main` complete through PR #10; branch protection live (6 required checks, enforce_admins)
-- ⏸ This task's PR: open, pending human merge (required checks must pass first)
+- ✅ Tests: 9 passing, 100% line/branch; lint/format/typecheck/build green (Node 22 + pnpm 11.5.3)
+- ✅ Hooks: new pre-commit verified end-to-end incl. gitleaks block; commit-msg unchanged
+- ⏸ This task's PR: open, pending human merge
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-16 — Hook ergonomics: lint-staged pre-commit** (dep P0-14 ✅ once this PR merges; branch from `main` after it lands):
+Pick up **P0-11 — Third-party notices, prerequisites & contributor guardrail** (branch from `main` after this PR merges):
 
-1. Read §[P0-16] in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).
-2. `pnpm view lint-staged time --json` → newest version ≥3 days old; verify name + repository; `pnpm add -Dw lint-staged@<exact>` (the gate enforces the age anyway — that's the point).
-3. Rewrite `.husky/pre-commit`: staged-scope ESLint + `prettier --write` via lint-staged; **keep the gitleaks staged scan and `SKIP=` semantics exactly as they are**.
-4. Test matrix from the spec: drifted file auto-formats and commits; `SKIP=lint`/`format`/`gitleaks` still work individually; a fake AWS key in a non-fixture file is still blocked; CI lint job untouched.
-5. Tracker + handover rotation (~100-line budget), PR with review packet.
+1. Read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) §Recommended Next Steps — it contains the complete P0-11 recipe (notices via `pnpm licenses list --json`, README prerequisites with re-verified tool licenses, CONTRIBUTING guardrail, phase-04/09/11 doc-consistency edits). Follow it; the locked decisions there are still binding.
+2. Also read [ADR-0002](./adr/0002-third-party-integration-and-licensing-policy.md) end to end — it is the spec.
+3. Note what has changed since that handover was written: gh auth **works** (push + `gh pr create` fine; merge is human-only), branch protection is live, Prettier auto-fixes at commit time now, and any tooling the notices generation needs must respect the release-age gate.
+4. Tracker + handover rotation, PR with a **Sonnet review packet** (per the new protocol line).
 
-Estimated effort: **XS**.
+Estimated effort: **S** (doc-spread; the Prettier pain it warned about is now gone).
 
 ---
 
 ## Open Questions for the Next Agent
 
-- lint-staged config placement: `package.json` `"lint-staged"` key vs `.lintstagedrc` — either works; prefer `package.json` to avoid another root dotfile.
+- `THIRD-PARTY-NOTICES` generation: `pnpm licenses list --json` output changed shape between pnpm 9 and 11 — verify the fields before scripting against it.
 
 ---
 
 ## Files Touched This Session
 
 ```
-package.json                                           [modified — pnpm 11.5.3, engines]
-pnpm-workspace.yaml                                    [modified — release-age gate, allowBuilds]
-.nvmrc                                                 [created]
-docs/adr/0003-supply-chain-hardening-baseline.md       [created]
-docs/SECURITY-NOTES.md                                 [modified — §5 Supply-Chain Controls]
-docs/IMPLEMENTATION.md                                 [modified — 8/16, PR links backfilled]
-docs/HANDOVER.md                                       [rewritten — this file]
-docs/handovers/p0-15-workflow-codification-handover.md [created — archive]
-.work/P0-14.md                                         [created — gitignored]
+package.json                                     [modified — lint-staged 17.0.8]
+pnpm-lock.yaml                                   [modified — lint-staged + transitives]
+lint-staged.config.mjs                           [created — SKIP-aware config]
+.husky/pre-commit                                [rewritten — staged-scope + gitleaks last]
+docs/plan/protocols/agentic-execution.md         [modified — reviewer model-tier line]
+docs/IMPLEMENTATION.md                           [modified — 9/16, PR links]
+docs/HANDOVER.md                                 [rewritten — this file]
+docs/handovers/p0-14-pnpm11-hardening-handover.md [created — archive]
+.work/P0-16.md                                   [created — gitignored]
 ```
 
 ---
 
 ## Sign-off
 
-Toolchain upgrade verified end-to-end (suite green, gate demonstrably refusing fresh versions, prepare intact); P0-16 can start from `main` as soon as this PR merges.
+Hook chain verified end-to-end with live scratch commits (auto-fix, SKIP contract, secret block); tree green; P0-11 has a complete recipe waiting in the archived handover.
 
 — claude-fable-5
