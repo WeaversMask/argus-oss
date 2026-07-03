@@ -6,14 +6,15 @@
 
 When an agent (or human) starts a session:
 
-1. **Read [`IMPLEMENTATION.md`](../../IMPLEMENTATION.md)** → current phase, what's in progress, what's blocked
-2. **Read [`HANDOVER.md`](../../HANDOVER.md)** → context from the previous session
-3. **You already have:** principles ([`00-principles.md`](../00-principles.md)) and this protocol — they're always loaded
-4. **Open the active phase file** identified in `IMPLEMENTATION.md` → load **only** that phase file
-5. **Pick a task** from the phase file that has no unmet dependencies
-6. **Create `.work/<TASK-ID>.md`** using [`templates/TASK.template.md`](../templates/TASK.template.md)
-7. **Update `IMPLEMENTATION.md`** — move task to "In Progress" with your ID
-8. **Branch from `main`:** `git checkout -b <task-id>-<slug>` (e.g. `p3-05-type-contract-checker`). Base on another branch **only** when your task depends on its unmerged output — and say so in the PR description.
+1. **Sync before reading:** `git switch main && git pull --ff-only`, and check whether the previous session's PR merged (`gh pr list --state all --limit 3`). The tracker and handover on a stale branch may be outdated — reading them pre-sync caused a batch of stale-edit failures in the P0-11 session.
+2. **Read [`IMPLEMENTATION.md`](../../IMPLEMENTATION.md)** → current phase, what's in progress, what's blocked
+3. **Read [`HANDOVER.md`](../../HANDOVER.md)** → context from the previous session
+4. **You already have:** principles ([`00-principles.md`](../00-principles.md)) and this protocol — they're always loaded
+5. **Open the active phase file** identified in `IMPLEMENTATION.md` → load **only** that phase file
+6. **Pick a task** from the phase file that has no unmet dependencies
+7. **Create `.work/<TASK-ID>.md`** using [`templates/TASK.template.md`](../templates/TASK.template.md)
+8. **Update `IMPLEMENTATION.md`** — move task to "In Progress" with your ID
+9. **Branch from `main`:** `git checkout -b <task-id>-<slug>` (e.g. `p3-05-type-contract-checker`). Base on another branch **only** when your task depends on its unmerged output — and say so in the PR description.
 
 ## What NOT to Load
 
