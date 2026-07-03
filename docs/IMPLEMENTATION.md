@@ -5,7 +5,7 @@
 **Last updated:** _2026-07-03 by claude-fable-5_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _10 of 16 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _11 of 16 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -27,31 +27,30 @@
 
 > Resequenced 2026-06-12 (maintainer-approved); the supply-chain and process tasks that had to land first (P0-14..P0-16) are ✅. Specs in [phase-00](./plan/phases/phase-00-foundation.md).
 
-1. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
-2. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07; closes the licensing arc)
-3. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
-4. _P0-06 — Docker development environment_
-5. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
-6. _P0-09 — Changesets release workflow_
+1. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07 ✅; closes the licensing arc)
+2. _P0-13 — CI supply-chain hardening_ (after P0-12 — shared `ci.yml` edits, serialize)
+3. _P0-06 — Docker development environment_
+4. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
+5. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                        |
-| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
-| P0 — Foundation        | 🟡 In progress | 10/16     | P0-11 done 2026-07-03 (notices, README/CONTRIBUTING guardrails); licensing arc closes with P0-12 after P0-07 |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                            |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                            |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                            |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                            |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                            |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                            |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                            |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                            |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                            |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                            |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                            |
+| Phase                  | Status         | Completed | Notes                                                                                                      |
+| ---------------------- | -------------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | 🟡 In progress | 11/16     | P0-07 + P0-11 + OPS-01 done 2026-07-03; P0-12 next (closes licensing arc), then P0-13 — serialize `ci.yml` |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                          |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                          |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                          |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                          |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                          |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                          |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                          |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                          |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                          |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                          |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                          |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -61,6 +60,8 @@
 
 | Task ID | Title                                                          | Completed  | PR                                                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------- | -------------------------------------------------------------- | ---------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-07   | Lightweight dependency audit in CI                             | 2026-07-03 | [#16](https://github.com/WeaversMask/argus/pull/16) | Parallel `audit` job: `pnpm audit --audit-level=high` on PR / push-main / Mondays 12:00 UTC (weekly re-audit of pinned versions). Exit-threshold semantics verified empirically on pnpm 11.5.3 (moderate-and-below never block). Stopgap for the public-advisory subset — P11-02 supersedes; not a required check (admin step pending since P0-03)                                                                                                                           |
+| OPS-01  | Node-floor hook guard + onboarding sync step (prevention)      | 2026-07-03 | [#15](https://github.com/WeaversMask/argus/pull/15) | Pre-commit fails fast with `nvm use` instructions when Node < engines floor (was: cryptic pnpm crash under nvm-default Node 20); protocol onboarding step 1 + CLAUDE.md now say sync `main` before reading tracker/handover (stale-read failures in P0-11 session). Negative test documented in PR; `~/.config/husky/init.sh` added machine-side                                                                                                                             |
 | P0-11   | Third-party notices, prerequisites & contributor guardrail     | 2026-07-03 | [#14](https://github.com/WeaversMask/argus/pull/14) | `THIRD-PARTY-NOTICES` (246 pkgs) + dependency-free generator (`pnpm notices`) with MPL named-exception guard; root README "External tools / Prerequisites" (tool licenses re-verified 2026-07-03) + source-only posture; CONTRIBUTING guardrails; licensing principle + per-PR license gate; phase-04/09/11 reconciled with ADR-0002. Detail: PR + handover                                                                                                                  |
 | SEC-01  | Dependabot fix: vite 8.0.16 + js-yaml 4.2.0 (scoped overrides) | 2026-07-03 | [#13](https://github.com/WeaversMask/argus/pull/13) | Dev-only transitives (GHSA-fx2h-pf6j-xcff high + 2 moderate); `pnpm update` can't reach non-direct transitives → range-scoped overrides in `pnpm-workspace.yaml` with removal-condition comment; both patched versions >30 days old, so no release-age exclusion needed                                                                                                                                                                                                      |
 | P0-16   | Hook ergonomics: lint-staged pre-commit                        | 2026-07-02 | [#12](https://github.com/WeaversMask/argus/pull/12) | lint-staged 17.0.8 (first dep under the ADR-0003 gate); staged-scope eslint + prettier --write with SKIP-aware `lint-staged.config.mjs`; gitleaks step unchanged, block re-verified. Detail: PR + handover                                                                                                                                                                                                                                                                   |
@@ -69,8 +70,6 @@
 | P0-10   | Project license & third-party integration policy               | 2026-06-01 | [#7](https://github.com/WeaversMask/argus/pull/7)   | MIT `LICENSE` + aligned `package.json` field; ADR-0002 fixes the open-source posture (copyleft engines subprocess-only, no vendoring, no embedded Semgrep rules, Docker = recipe not published image, SPDX allowlist); audit of the current tree found **no** copyleft-of-concern. Folded into P0 to lock the integration boundary before Phase 4. P0-11/P0-12 follow.                                                                                                       |
 | P0-05   | GitHub Actions CI pipeline                                     | 2026-05-25 | [#5](https://github.com/WeaversMask/argus/pull/5)   | Extended `ci.yml` with `typecheck` / `test` / `build` jobs running in parallel; `actions/cache@v4` per-job `.turbo` cache for warm-run speedup; `TURBO_TOKEN` / `TURBO_TEAM` / `TURBO_REMOTE_CACHE_SIGNATURE_KEY` env vars pre-wired at workflow level so remote cache flips on with a secrets-only change once D-1 lands; aggregated Vitest coverage uploaded as workflow artefact (14-day retention). Branch protection still needs a repo admin to enable required checks |
 | P0-04   | Vitest test infrastructure                                     | 2026-05-25 | [#4](https://github.com/WeaversMask/argus/pull/4)   | Vitest 4.1.7 + @vitest/coverage-v8; first persistent workspace package `@argus/testing` with `defineProjectConfig`, `fakeSecret()`, and `toBeNonEmpty` custom matcher; root `vitest.config.ts` runs all projects in one invocation with aggregated coverage at 85% line / 80% branch thresholds                                                                                                                                                                              |
-| P0-03   | ESLint + Prettier + commitlint + gitleaks                      | 2026-05-24 | [#3](https://github.com/WeaversMask/argus/pull/3)   | ESLint 10 flat config, Prettier 3.8, commitlint 21 (conventional), Husky 9, gitleaks 8.30.1 via repo-local .bin/; CI workflow with lint/format/commitlint/secret-scan jobs                                                                                                                                                                                                                                                                                                   |
-| P0-02   | Base TypeScript configuration                                  | 2026-05-23 | [#2](https://github.com/WeaversMask/argus/pull/2)   | TS 6.0.3 pinned; tsconfig.base.json with strict + verbatimModuleSyntax; "no any in linter" deferred to P0-03 (delivered)                                                                                                                                                                                                                                                                                                                                                     |
 
 ---
 

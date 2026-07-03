@@ -1,102 +1,94 @@
-# Handover — P0-11 → P0-07
+# Handover — P0-07 → P0-12
 
 **From:** claude-fable-5
 **To:** next picker
 **Date:** 2026-07-03
 **Phase:** P0 — Foundation
-**Last task completed:** P0-11 — Third-party notices, prerequisites & contributor guardrail
+**Last task completed:** P0-07 — Lightweight dependency audit in CI (plus OPS-01 prevention micro-task)
 
 ---
 
 ## Context
 
-The licensing arc's notices/docs half is done: `THIRD-PARTY-NOTICES` (generated, 246 packages), root README with the "External tools / Prerequisites" section (all six tool licenses re-verified 2026-07-03 via the GitHub API — every one matches ADR-0002), CONTRIBUTING.md guardrails, a licensing principle + per-PR gate, and the phase-04/09/11 contradictions listed in ADR-0002 §Impact are reconciled. What remains of the arc is the enforcement half: **P0-12's SPDX-allowlist gate**, which is specced to sit beside P0-07's CI audit job — so P0-07 goes first.
+Three PRs landed/opened today: P0-11 (#14, merged — notices/README/CONTRIBUTING/guardrails), OPS-01 (#15 — Node-floor hook guard + onboarding sync step, prevention follow-up the maintainer requested), and P0-07 (#16 — this task: parallel `audit` CI job). **Next: P0-12 — License-compliance guardrail (SPDX allowlist)**, which closes the licensing arc. Its spec says the `license` job sits beside P0-07's `audit` job in `ci.yml` — both P0-12 and P0-13 edit `ci.yml`, so branch only after #15/#16 merge and keep the P0-12 → P0-13 order (serialization note in phase-00).
 
-**Next: P0-07 — Lightweight dependency audit in CI** (XS, ~10 lines of YAML): an `audit` job running `pnpm audit --audit-level=high` on PRs, pushes to `main`, and a weekly cron. Full spec in [phase-00 §P0-07](./plan/phases/phase-00-foundation.md). Then P0-12 closes the arc.
+Locked decisions still binding (P0-10 checkpoint, do not re-litigate): `license-checker` (npm) powers the P0-12 gate; allowlist = MIT, ISC, Apache-2.0, BSD-2/3-Clause, 0BSD, Unlicense, CC0-1.0 **+ BlueOak-1.0.0 + Python-2.0**; MPL-2.0 stays a named, notice-preserved exception (`lightningcss*`) that must trip the gate for anything new. ADR-0002 §G is the spec.
 
 ---
 
 ## What I Did
 
-- [`scripts/generate-third-party-notices.mjs`](../scripts/generate-third-party-notices.mjs) (dependency-free, run as `pnpm notices`): per-license inventory with copyright lines extracted from each package's shipped license/notice files; falls back to the author field and explicitly marks the 9 packages whose published artifact carries no notice at all. **Fails the run if an MPL-2.0 package outside the named `lightningcss*` exception appears** — ADR-0002 §G teeth until P0-12's real gate lands.
-- `README.md` (new): source-only / not-sold / not-hosted posture; external-tools table separating user-installed subprocess engines (TruffleHog, Semgrep, osv-scanner) from linked MIT libraries (jscpd, Prettier, Tree-sitter); dev setup. `CONTRIBUTING.md` (new): six licensing guardrails + ADR-0003 dependency rules + workflow rules.
-- `00-principles.md`: licensing-boundary principle (Architectural section). `quality-gates.md`: per-PR license gate.
-- Phase docs reconciled per ADR-0002 §Impact: P4-03 reworded (no bundled Semgrep rule pack → runtime-fetch / BYO / Opengrep / first-party), phase-04 pinning note now distinguishes linked libraries from subprocess-only engines, Docker-publish steps in phase-09 (goal, P9-04, exit criteria) and phase-11 (exit criteria) flagged `TODO(licensing:)` pending the §D redistribution review.
-- Tracker: 10/16. SEC-01/#13 and the P0-16/#12 link were already recorded by the SEC-01 session; I trimmed Recently Completed to its promised 10 rows (P0-01 dropped — git history keeps it).
-
-PRs this session: [#14](https://github.com/WeaversMask/argus/pull/14) — this task, open, pending human merge.
+- **P0-07** ([#16](https://github.com/WeaversMask/argus/pull/16)): `audit` job in `ci.yml` — `pnpm audit --audit-level=high`, triggers PR + push-main + weekly cron (`0 12 * * 1`), parallel (no critical-path impact), **not** a required check (admin step pending since P0-03, documented in PR). Exit-code semantics verified **empirically** in a scratch probe (lodash 4.17.15: exit 1 at `high`, exit 0 at `critical`) — on pnpm 11 the flag is the exit threshold, so moderate-and-below never block.
+- **Schedule design call:** the cron re-runs the _whole_ workflow, not just audit — deliberate (cheap ~20s jobs, weekly green canary on main, no `if:` churn ahead of P0-13's SHA-pinning). `commitlint` already skips non-PR events.
+- **OPS-01** ([#15](https://github.com/WeaversMask/argus/pull/15)): pre-commit now fails fast with instructions when Node < `engines.node` floor (was: cryptic `ERR_UNKNOWN_BUILTIN_MODULE node:sqlite` from pnpm 11 under nvm-default Node 20); onboarding step 1 in the protocol + CLAUDE.md clause: **sync `main` before reading tracker/handover**. Machine-side: `~/.config/husky/init.sh` sources nvm + `nvm use --silent` before every hook (bare `git commit` verified working end-to-end; negative test under Node 20 documented in the PR).
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-07, P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **Notices drift-check in CI:** nothing verifies `THIRD-PARTY-NOTICES` matches the tree. Recommend folding a freshness check into P0-12's license job — but read Gotcha #3 (platform variance) before wiring it.
-- **Copyright holder string** in `LICENSE` is still the "The Argus Authors" placeholder (maintainer decision, pending since P0-10; `TODO(licensing:)` in ADR-0002).
-- **Maintainer decisions still open:** D-1 (remote cache); `nvm alias default 22` (default is still 20 — bit me again, Gotcha #1).
+- **P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
+- **Notices freshness check:** still recommended for P0-12's license job; mind the platform-variance gotcha in the [archived P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3.
+- **Maintainer decisions still open:** D-1 (remote cache); `LICENSE` copyright placeholder; `nvm alias default 22` — init.sh + the guard now make it low-urgency for hooks, but bare `pnpm` in fresh shells still needs `nvm use`.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **Hooks inherit the invoking shell's Node.** A bare `git commit` from a fresh shell (nvm default = 20) dies in pre-commit: pnpm 11 needs Node ≥22.13 (`ERR_UNKNOWN_BUILTIN_MODULE node:sqlite`). Run `nvm use` in the same shell before committing. Root fix is the still-pending `nvm alias default 22`.
-2. **pnpm 11 auto-syncs `node_modules` before running package scripts.** The first `pnpm notices` run installed the SEC-01 lockfile changes (+13/−7 packages) before executing the script. Harmless — but don't mistake it for the generator performing installs.
-3. **`pnpm licenses list --json` output is platform-dependent.** Shape on pnpm 11 (answers the previous handover's open question): `{ [licenseId]: {name, versions[], paths[], license, author, homepage, description}[] }`. Platform-specific binary packages (`lightningcss-darwin-arm64`) reflect the generating host, so regenerating on Linux CI would diff. Any CI drift check must pin the platform or normalize those entries.
-4. **MPL-2.0's verbatim license text contains no copyright line**, so lightningcss ships nothing to extract; the generator marks such packages `(published package carries no copyright line or author field)` so an audit sees due diligence rather than an extraction bug.
+1. **pnpm 11 `audit`: `--audit-level` is the exit threshold** (verified, not doc-faith): advisories below the level print but exit 0. A clean tree exits 0 at every level. If you need to re-probe, use a scratch dir with a pinned old dep (lodash 4.17.15) and `pnpm install --lockfile-only` — don't touch the repo tree.
+2. **The weekly cron runs every job**, not only audit. If that ever gets noisy, gate non-audit jobs with `if: github.event_name != 'schedule'` — deliberately not done now.
+3. **Two PRs may be open simultaneously (#15, #16) with disjoint file sets;** tracker rows for both live in #16 (single-writer rule). If you arrive and either is unmerged: sync/check per the new onboarding step 1 — that's exactly what it's for.
+4. **P0-11 session gotchas remain live** (platform-dependent `pnpm licenses list`, MPL text has no © line, pnpm auto-sync before scripts): [archived handover](./handovers/p0-11-third-party-notices-handover.md).
 
 ---
 
 ## State of the System
 
-- ✅ Tests: 9 passing (no source changes this task); lint/format/typecheck enforced green by hooks on every commit
-- ✅ Tracker + handover rotated; `.work/P0-11.md` gitignored as intended
-- ⏸ PR #14: open, pending human merge
+- ✅ Tests: 9 passing, 100% line/branch (no source changes); lint/format/typecheck green; hooks enforced per commit
+- ✅ `pnpm audit`: clean at all levels on the current tree (post-SEC-01)
+- ⏸ PRs #15 (OPS-01) and #16 (P0-07): open, pending human merge; CI expected green on both
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-07 — Lightweight dependency audit in CI** (branch from `main` after #14 merges):
+Pick up **P0-12** (branch from `main` **after #15 and #16 merge** — it edits `ci.yml` like P0-07 did):
 
-1. Read [phase-00 §P0-07](./plan/phases/phase-00-foundation.md) — the spec is complete: parallel `audit` job, `pnpm audit --audit-level=high`, triggers = PR + push to `main` + weekly cron (`0 12 * * 1`), **not** added to required checks (admin step pending since P0-03 — document that in the PR).
-2. Mind the serialization note: P0-07 → P0-12 → P0-13 all edit `ci.yml`; land in that order, no parallel lanes.
-3. Verify `pnpm audit` behavior on pnpm 11 before writing the YAML (flags/output changed across pnpm majors; check exit codes for the level threshold).
-4. Tracker + handover rotation, Sonnet review packet, PR.
+1. Sync per onboarding step 1, then read [phase-00 §P0-12](./plan/phases/phase-00-foundation.md) and [ADR-0002 §G](./adr/0002-third-party-integration-and-licensing-policy.md).
+2. Add `license-checker` as devDependency: exact-pin, **verify the package name against npm** (typosquats) and pick a version ≥3 days old (ADR-0003 gate); `allowBuilds` stays `{}` unless it genuinely needs a build (it shouldn't).
+3. `scripts/check-licenses` + `pnpm license-check`; new parallel `license` job beside `audit` in `ci.yml`; not a required check (document, same as P0-07).
+4. Acceptance: current tree passes (allowlist + `lightningcss*` MPL exception); an out-of-allowlist license fails the check (negative test — document it in the PR).
+5. Consider folding the `THIRD-PARTY-NOTICES` freshness check into the same job (platform caveat above).
+6. Tracker + handover rotation, Sonnet review packet, PR.
 
-Estimated effort: **XS**.
+Estimated effort: **S**.
 
 ---
 
 ## Open Questions for the Next Agent
 
-- Where should the `THIRD-PARTY-NOTICES` freshness check live — P0-12's license job (same tool domain, my recommendation) or P0-07's audit job? Account for Gotcha #3 either way.
+- `license-checker` handles SPDX _expressions_ (e.g. `MIT OR Apache-2.0`) differently across forks (`license-checker` vs `license-checker-rseidelsohn`) — the locked decision says "license-checker (npm)"; verify which binary the maintainer meant if the plain one chokes on expressions, and record the call in the PR.
 
 ---
 
 ## Files Touched This Session
 
 ```
-THIRD-PARTY-NOTICES                               [created — generated]
-scripts/generate-third-party-notices.mjs          [created]
-package.json                                      [modified — notices script]
-README.md                                         [created]
-CONTRIBUTING.md                                   [created]
-docs/plan/00-principles.md                        [modified — licensing principle]
-docs/plan/protocols/quality-gates.md              [modified — per-PR license gate]
-docs/plan/phases/phase-04-tool-adapters.md        [modified — P4-03 + pinning note]
-docs/plan/phases/phase-09-ci-integrations.md      [modified — TODO(licensing:) flags]
-docs/plan/phases/phase-11-hardening.md            [modified — TODO(licensing:) flag]
-docs/IMPLEMENTATION.md                            [modified — 10/16, P0-11 row]
-docs/HANDOVER.md                                  [rewritten — this file]
-docs/handovers/p0-16-lint-staged-handover.md      [created — archive]
-.work/P0-11.md                                    [created — gitignored]
+.github/workflows/ci.yml                          [modified — schedule + audit job]  (P0-07, #16)
+.husky/pre-commit                                 [modified — Node floor guard]      (OPS-01, #15)
+docs/plan/protocols/agentic-execution.md          [modified — onboarding step 1]     (OPS-01, #15)
+CLAUDE.md                                         [modified — sync-first clause]     (OPS-01, #15)
+docs/IMPLEMENTATION.md                            [modified — 11/16, P0-07+OPS-01]   (P0-07, #16)
+docs/HANDOVER.md                                  [rewritten — this file]            (P0-07, #16)
+docs/handovers/p0-11-third-party-notices-handover.md [created — archive]             (P0-07, #16)
+.work/P0-07.md, .work/OPS-01.md                   [created — gitignored]
+~/.config/husky/init.sh                           [created — machine config, not committed]
 ```
 
 ---
 
 ## Sign-off
 
-The licensing arc's notices/docs half is complete and verified against ADR-0002; the tree is green; P0-07 is an XS task with a complete spec waiting.
+Audit gate live and empirically verified; both prevention layers tested end-to-end (bare commit passes, Node-20 commit blocked with instructions); tree green; P0-12 has its recipe and both blockers listed.
 
 — claude-fable-5
