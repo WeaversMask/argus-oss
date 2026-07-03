@@ -1,6 +1,6 @@
 # CLAUDE.md — Argus agent onboarding
 
-**Start here every session:** read [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) (current state, Up Next), then [docs/HANDOVER.md](docs/HANDOVER.md) (previous session's context), then the active phase file IMPLEMENTATION.md names. Protocol: [agentic-execution.md](docs/plan/protocols/agentic-execution.md) · Principles: [00-principles.md](docs/plan/00-principles.md). Load nothing else preemptively.
+**Start here every session:** sync first — `git switch main && git pull --ff-only` (a stale branch carries a stale tracker/handover) — then read [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) (current state, Up Next), then [docs/HANDOVER.md](docs/HANDOVER.md) (previous session's context), then the active phase file IMPLEMENTATION.md names. Protocol: [agentic-execution.md](docs/plan/protocols/agentic-execution.md) · Principles: [00-principles.md](docs/plan/00-principles.md). Load nothing else preemptively.
 
 ## Context budget (user-enforced — do not bypass)
 

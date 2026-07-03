@@ -32,6 +32,54 @@ is_skipped() {
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+# --- Node floor guard --------------------------------------------------------
+# Hooks inherit the invoking shell's Node. Below the engines.node floor,
+# pnpm 11 (lint-staged here, commitlint in commit-msg) dies with a cryptic
+# ERR_UNKNOWN_BUILTIN_MODULE (node:sqlite) — fail fast with instructions
+# instead. Floor is read from package.json engines.node (single source of
+# truth), enforced at major.minor granularity; the floor parse falls back
+# to 22.22 if engines is unreadable, and an unparseable `node -v` fails
+# CLOSED (an unevaluable check must block, not slip through — review
+# finding on #15). Deliberately not SKIP-able: skipping wouldn't rescue
+# the commit, pnpm below the floor crashes regardless.
+node_floor="$(node -p "require('./package.json').engines.node.replace(/[^0-9.]/g, '')" 2>/dev/null || true)"
+node_have="$(node -v 2>/dev/null | sed 's/^v//' || true)"
+floor_major="${node_floor%%.*}"
+floor_rest="${node_floor#*.}"
+floor_minor="${floor_rest%%.*}"
+have_major="${node_have%%.*}"
+have_rest="${node_have#*.}"
+have_minor="${have_rest%%.*}"
+
+is_uint() {
+  case "$1" in
+    '' | *[!0-9]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+# Sanitize the floor (defaults, not blocking — a broken engines field is a
+# repo bug, not the committer's environment); validate the committer's
+# version strictly.
+is_uint "$floor_major" || floor_major=22
+is_uint "$floor_minor" || floor_minor=22
+
+node_ok=1
+if ! is_uint "$have_major" || ! is_uint "$have_minor"; then
+  node_ok=0 # missing node, or version output we can't evaluate → fail closed
+elif [ "$have_major" -lt "$floor_major" ]; then
+  node_ok=0
+elif [ "$have_major" -eq "$floor_major" ] && [ "$have_minor" -lt "$floor_minor" ]; then
+  node_ok=0
+fi
+if [ "$node_ok" -eq 0 ]; then
+  echo "❌ pre-commit: Node ${node_have:-<not found>} is below the toolchain floor (>=${floor_major}.${floor_minor}, from package.json engines.node)."
+  echo "   The hooks' pnpm would crash cryptically (ERR_UNKNOWN_BUILTIN_MODULE node:sqlite)."
+  echo "   Fix: run 'nvm use' in this shell and retry — or add 'nvm use --silent' to"
+  echo "   ~/.config/husky/init.sh so every hook picks up .nvmrc automatically."
+  exit 1
+fi
+
 if is_skipped lint; then
   echo "⚠️  pre-commit: SKIP=lint — bypassing eslint on staged files"
 fi
