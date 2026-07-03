@@ -28,7 +28,7 @@ The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked de
 ## What I Did NOT Do (Deferred)
 
 - **P0-11, P0-07, P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **Dependabot alerts open on main:** vite (high + moderate, Windows-specific) and js-yaml (moderate DoS), all dev-only transitives. A prepared fix task exists as a session chip; patched versions are vite 8.0.16 / js-yaml 4.2.0 — check their publish age; use the SECURITY-NOTES §5 override if <3 days.
+- **Dependabot alerts (vite/js-yaml):** fixed after this handover was written — [PR #13](https://github.com/WeaversMask/argus/pull/13) pins vite 8.0.16 / js-yaml 4.2.0 via range-scoped `overrides` in `pnpm-workspace.yaml` (`pnpm update` can't reach non-direct transitives; both patched versions were >30 days old, so no SECURITY-NOTES §5 exclusion was needed). Remove each override once dependents lock past the pinned version.
 - **Maintainer decisions still open:** D-1 (remote cache), copyright/identity + `nvm alias default 22` (Node 22.23.1 installed, default still 20).
 
 ---

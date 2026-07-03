@@ -15,3 +15,16 @@ minimumReleaseAgeExclude: []
 # packages by default; the empty map makes the reviewed posture explicit.
 # Add `pkg-name: true` only after reviewing what that package's script does.
 allowBuilds: {}
+
+# ── Security pins for dev-only transitives (Dependabot, 2026-07-03) ────────
+# pnpm update cannot reach these (not direct deps of any workspace project),
+# so vulnerable resolutions are rewritten via scoped overrides instead.
+# Remove each pin once the dependents' locked versions resolve past it.
+# vite:    GHSA-fx2h-pf6j-xcff (high, server.fs.deny bypass on Windows) and
+#          GHSA-v6wh-96g9-6wx3 (moderate, launch-editor NTLMv2 hash leak);
+#          via vitest/@vitest/mocker (range allows ^8).
+# js-yaml: GHSA-h67p-54hq-rp68 (moderate, quadratic merge-key DoS);
+#          via cosmiconfig ← @commitlint/load (range allows ^4.1.0).
+overrides:
+  "vite@>=8.0.0 <8.0.16": 8.0.16
+  "js-yaml@>=4.0.0 <4.2.0": 4.2.0
