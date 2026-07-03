@@ -11,6 +11,7 @@
 - ✅ No new high/critical security findings (Argus self-scan, from Phase 2 onwards)
 - ✅ Bundle size deltas within budget (web app)
 - ✅ Conventional commit messages (`feat:`, `fix:`, `chore:`, etc.)
+- ✅ License policy respected ([ADR-0002](../../adr/0002-third-party-integration-and-licensing-policy.md)): dependency changes stay on the SPDX allowlist (or are a documented named exception), nothing vendored, `THIRD-PARTY-NOTICES` regenerated (`pnpm notices`) when the tree changes — automated gate from P0-12
 - ✅ Linked task ID in PR description
 - ✅ `IMPLEMENTATION.md` updated
 - ✅ `HANDOVER.md` updated

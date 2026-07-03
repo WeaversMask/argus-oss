@@ -9,6 +9,7 @@
 - **Domain-Driven Design.** Domain language is consistent across code, tests, docs, and UI labels. Ubiquitous terms: `Scan`, `Violation`, `Rule`, `Layer`, `LayerManifest`, `Finding`, `Project`, `Suppression`.
 - **No God objects.** No class or module exceeds 300 lines without explicit justification in the PR description. Files are split by responsibility, not by file-type.
 - **Composition over inheritance.** Strategy and decorator patterns preferred. Inheritance only for true `is-a` relationships.
+- **Licensing boundary is part of the architecture** ([ADR-0002](../adr/0002-third-party-integration-and-licensing-policy.md)). Copyleft engines (TruffleHog, Semgrep) run as arm's-length subprocesses behind `ToolAdapter` — never imported, linked, or vendored; no third-party binaries or rulesets committed. Every dependency's license passes the SPDX allowlist, and `THIRD-PARTY-NOTICES` stays current with the tree.
 
 ## Code Quality Principles
 

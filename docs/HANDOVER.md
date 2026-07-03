@@ -1,93 +1,102 @@
-# Handover — P0-16 → P0-11
+# Handover — P0-11 → P0-07
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-07-02
+**Date:** 2026-07-03
 **Phase:** P0 — Foundation
-**Last task completed:** P0-16 — Hook ergonomics: lint-staged pre-commit
+**Last task completed:** P0-11 — Third-party notices, prerequisites & contributor guardrail
 
 ---
 
 ## Context
 
-The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked dep scripts (P0-14, [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md)), and the pre-commit hook is now staged-scope with Prettier auto-fix (P0-16) — the "Prettier dance" that bit every doc task is dead. lint-staged 17.0.8 was the first dependency added under the new gate (12-day-old version, passed cleanly; a 1-day-old version was refused in P0-14's negative test).
+The licensing arc's notices/docs half is done: `THIRD-PARTY-NOTICES` (generated, 246 packages), root README with the "External tools / Prerequisites" section (all six tool licenses re-verified 2026-07-03 via the GitHub API — every one matches ADR-0002), CONTRIBUTING.md guardrails, a licensing principle + per-PR gate, and the phase-04/09/11 contradictions listed in ADR-0002 §Impact are reconciled. What remains of the arc is the enforcement half: **P0-12's SPDX-allowlist gate**, which is specced to sit beside P0-07's CI audit job — so P0-07 goes first.
 
-**Next: P0-11 — the licensing arc resumes.** Non-negotiable first step: read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) — it carries the arc's full context (locked decisions, MPL-2.0 exception handling, notices requirements). The P0-10 _work_ is done and merged (#7/#10); only its follow-up tasks P0-11/P0-12 remain. ADR-0002 is the governing contract.
+**Next: P0-07 — Lightweight dependency audit in CI** (XS, ~10 lines of YAML): an `audit` job running `pnpm audit --audit-level=high` on PRs, pushes to `main`, and a weekly cron. Full spec in [phase-00 §P0-07](./plan/phases/phase-00-foundation.md). Then P0-12 closes the arc.
 
 ---
 
 ## What I Did
 
-- `lint-staged@17.0.8` exact-pinned (name/repo verified; published 2026-06-20). [`lint-staged.config.mjs`](../lint-staged.config.mjs) is SKIP-aware — `SKIP=lint` / `SKIP=format` drop the matching task inside one lint-staged invocation; JSON config couldn't do that, which is why it's not in package.json (overrides the previous handover's lean, documented).
-- [`.husky/pre-commit`](../.husky/pre-commit) rewritten: lint-staged (ESLint check-only + `prettier --write` with auto-restage) → gitleaks staged scan **last**, so it scans post-Prettier content. `SKIP=` contract and gitleaks block unchanged.
-- Verified acceptance matrix with scratch commits (all removed): drift auto-formats (5→3 lines committed); `SKIP=format` preserves drift; `SKIP=lint` bypasses a staged lint error that otherwise blocks; a high-entropy fake AWS key is blocked (`leaks found: 1`).
-- Protocol amendment (maintainer-approved 2026-07-02): review passes run on a **cost-efficient model** by default (Sonnet-class); escalate only for high-risk diffs. In `agentic-execution.md` §Task Completion Checklist.
+- [`scripts/generate-third-party-notices.mjs`](../scripts/generate-third-party-notices.mjs) (dependency-free, run as `pnpm notices`): per-license inventory with copyright lines extracted from each package's shipped license/notice files; falls back to the author field and explicitly marks the 9 packages whose published artifact carries no notice at all. **Fails the run if an MPL-2.0 package outside the named `lightningcss*` exception appears** — ADR-0002 §G teeth until P0-12's real gate lands.
+- `README.md` (new): source-only / not-sold / not-hosted posture; external-tools table separating user-installed subprocess engines (TruffleHog, Semgrep, osv-scanner) from linked MIT libraries (jscpd, Prettier, Tree-sitter); dev setup. `CONTRIBUTING.md` (new): six licensing guardrails + ADR-0003 dependency rules + workflow rules.
+- `00-principles.md`: licensing-boundary principle (Architectural section). `quality-gates.md`: per-PR license gate.
+- Phase docs reconciled per ADR-0002 §Impact: P4-03 reworded (no bundled Semgrep rule pack → runtime-fetch / BYO / Opengrep / first-party), phase-04 pinning note now distinguishes linked libraries from subprocess-only engines, Docker-publish steps in phase-09 (goal, P9-04, exit criteria) and phase-11 (exit criteria) flagged `TODO(licensing:)` pending the §D redistribution review.
+- Tracker: 10/16. SEC-01/#13 and the P0-16/#12 link were already recorded by the SEC-01 session; I trimmed Recently Completed to its promised 10 rows (P0-01 dropped — git history keeps it).
+
+PRs this session: [#14](https://github.com/WeaversMask/argus/pull/14) — this task, open, pending human merge.
 
 ---
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-11, P0-07, P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **Dependabot alerts (vite/js-yaml):** fixed after this handover was written — [PR #13](https://github.com/WeaversMask/argus/pull/13) pins vite 8.0.16 / js-yaml 4.2.0 via range-scoped `overrides` in `pnpm-workspace.yaml` (`pnpm update` can't reach non-direct transitives; both patched versions were >30 days old, so no SECURITY-NOTES §5 exclusion was needed). Remove each override once dependents lock past the pinned version.
-- **Maintainer decisions still open:** D-1 (remote cache), copyright/identity + `nvm alias default 22` (Node 22.23.1 installed, default still 20).
+- **P0-07, P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
+- **Notices drift-check in CI:** nothing verifies `THIRD-PARTY-NOTICES` matches the tree. Recommend folding a freshness check into P0-12's license job — but read Gotcha #3 (platform variance) before wiring it.
+- **Copyright holder string** in `LICENSE` is still the "The Argus Authors" placeholder (maintainer decision, pending since P0-10; `TODO(licensing:)` in ADR-0002).
+- **Maintainer decisions still open:** D-1 (remote cache); `nvm alias default 22` (default is still 20 — bit me again, Gotcha #1).
 
 ---
 
 ## Gotchas & Surprises
 
-1. **gitleaks quietly ignores "fake-looking" secrets** — two layers: AWS's documented example key (`AKIAIOSFODNN7EXAMPLE`) is allowlisted by default, and the AWS rule has an **entropy threshold**, so low-entropy strings like `AKIAZZZ...` pass. When testing secret detection, use a random-looking key. (Cost me two failed test rounds.)
-2. **Scratch-test commits: commit the real work FIRST, then test, then `git reset --soft HEAD~1` + scoped `git restore --staged`.** I used `reset --hard` with uncommitted work in the tree and wiped my own changes once — don't repeat that.
-3. **ESLint on staged files is check-only by design** (`--max-warnings=0`, no `--fix`) — auto-fixing lint findings mutates logic-adjacent code silently; Prettier auto-fix is safe.
-4. Everything from the P0-14 handover still applies: Node 22 (`nvm use`), `pnpm add` needs `-w` at root, dep additions need a ≥3-day-old version.
+1. **Hooks inherit the invoking shell's Node.** A bare `git commit` from a fresh shell (nvm default = 20) dies in pre-commit: pnpm 11 needs Node ≥22.13 (`ERR_UNKNOWN_BUILTIN_MODULE node:sqlite`). Run `nvm use` in the same shell before committing. Root fix is the still-pending `nvm alias default 22`.
+2. **pnpm 11 auto-syncs `node_modules` before running package scripts.** The first `pnpm notices` run installed the SEC-01 lockfile changes (+13/−7 packages) before executing the script. Harmless — but don't mistake it for the generator performing installs.
+3. **`pnpm licenses list --json` output is platform-dependent.** Shape on pnpm 11 (answers the previous handover's open question): `{ [licenseId]: {name, versions[], paths[], license, author, homepage, description}[] }`. Platform-specific binary packages (`lightningcss-darwin-arm64`) reflect the generating host, so regenerating on Linux CI would diff. Any CI drift check must pin the platform or normalize those entries.
+4. **MPL-2.0's verbatim license text contains no copyright line**, so lightningcss ships nothing to extract; the generator marks such packages `(published package carries no copyright line or author field)` so an audit sees due diligence rather than an extraction bug.
 
 ---
 
 ## State of the System
 
-- ✅ Tests: 9 passing, 100% line/branch; lint/format/typecheck/build green (Node 22 + pnpm 11.5.3)
-- ✅ Hooks: new pre-commit verified end-to-end incl. gitleaks block; commit-msg unchanged
-- ⏸ This task's PR: open, pending human merge
+- ✅ Tests: 9 passing (no source changes this task); lint/format/typecheck enforced green by hooks on every commit
+- ✅ Tracker + handover rotated; `.work/P0-11.md` gitignored as intended
+- ⏸ PR #14: open, pending human merge
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ---
 
 ## Recommended Next Steps
 
-Pick up **P0-11 — Third-party notices, prerequisites & contributor guardrail** (branch from `main` after this PR merges):
+Pick up **P0-07 — Lightweight dependency audit in CI** (branch from `main` after #14 merges):
 
-1. Read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) §Recommended Next Steps — it contains the complete P0-11 recipe (notices via `pnpm licenses list --json`, README prerequisites with re-verified tool licenses, CONTRIBUTING guardrail, phase-04/09/11 doc-consistency edits). Follow it; the locked decisions there are still binding.
-2. Also read [ADR-0002](./adr/0002-third-party-integration-and-licensing-policy.md) end to end — it is the spec.
-3. Note what has changed since that handover was written: gh auth **works** (push + `gh pr create` fine; merge is human-only), branch protection is live, Prettier auto-fixes at commit time now, and any tooling the notices generation needs must respect the release-age gate.
-4. Tracker + handover rotation, PR with a **Sonnet review packet** (per the new protocol line).
+1. Read [phase-00 §P0-07](./plan/phases/phase-00-foundation.md) — the spec is complete: parallel `audit` job, `pnpm audit --audit-level=high`, triggers = PR + push to `main` + weekly cron (`0 12 * * 1`), **not** added to required checks (admin step pending since P0-03 — document that in the PR).
+2. Mind the serialization note: P0-07 → P0-12 → P0-13 all edit `ci.yml`; land in that order, no parallel lanes.
+3. Verify `pnpm audit` behavior on pnpm 11 before writing the YAML (flags/output changed across pnpm majors; check exit codes for the level threshold).
+4. Tracker + handover rotation, Sonnet review packet, PR.
 
-Estimated effort: **S** (doc-spread; the Prettier pain it warned about is now gone).
+Estimated effort: **XS**.
 
 ---
 
 ## Open Questions for the Next Agent
 
-- `THIRD-PARTY-NOTICES` generation: `pnpm licenses list --json` output changed shape between pnpm 9 and 11 — verify the fields before scripting against it.
+- Where should the `THIRD-PARTY-NOTICES` freshness check live — P0-12's license job (same tool domain, my recommendation) or P0-07's audit job? Account for Gotcha #3 either way.
 
 ---
 
 ## Files Touched This Session
 
 ```
-package.json                                     [modified — lint-staged 17.0.8]
-pnpm-lock.yaml                                   [modified — lint-staged + transitives]
-lint-staged.config.mjs                           [created — SKIP-aware config]
-.husky/pre-commit                                [rewritten — staged-scope + gitleaks last]
-docs/plan/protocols/agentic-execution.md         [modified — reviewer model-tier line]
-docs/IMPLEMENTATION.md                           [modified — 9/16, PR links]
-docs/HANDOVER.md                                 [rewritten — this file]
-docs/handovers/p0-14-pnpm11-hardening-handover.md [created — archive]
-.work/P0-16.md                                   [created — gitignored]
+THIRD-PARTY-NOTICES                               [created — generated]
+scripts/generate-third-party-notices.mjs          [created]
+package.json                                      [modified — notices script]
+README.md                                         [created]
+CONTRIBUTING.md                                   [created]
+docs/plan/00-principles.md                        [modified — licensing principle]
+docs/plan/protocols/quality-gates.md              [modified — per-PR license gate]
+docs/plan/phases/phase-04-tool-adapters.md        [modified — P4-03 + pinning note]
+docs/plan/phases/phase-09-ci-integrations.md      [modified — TODO(licensing:) flags]
+docs/plan/phases/phase-11-hardening.md            [modified — TODO(licensing:) flag]
+docs/IMPLEMENTATION.md                            [modified — 10/16, P0-11 row]
+docs/HANDOVER.md                                  [rewritten — this file]
+docs/handovers/p0-16-lint-staged-handover.md      [created — archive]
+.work/P0-11.md                                    [created — gitignored]
 ```
 
 ---
 
 ## Sign-off
 
-Hook chain verified end-to-end with live scratch commits (auto-fix, SKIP contract, secret block); tree green; P0-11 has a complete recipe waiting in the archived handover.
+The licensing arc's notices/docs half is complete and verified against ADR-0002; the tree is green; P0-07 is an XS task with a complete spec waiting.
 
 — claude-fable-5

@@ -5,7 +5,7 @@
 **Last updated:** _2026-07-03 by claude-fable-5_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _9 of 16 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _10 of 16 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -25,34 +25,33 @@
 
 ### Up Next (top of backlog within current phase)
 
-> Resequenced 2026-06-12 (maintainer-approved): supply-chain controls (P0-14) land **before** any dependency-adding task; process tasks P0-15/P0-16 precede the licensing arc's resumption. New specs P0-13..P0-16 in [phase-00](./plan/phases/phase-00-foundation.md).
+> Resequenced 2026-06-12 (maintainer-approved); the supply-chain and process tasks that had to land first (P0-14..P0-16) are ✅. Specs in [phase-00](./plan/phases/phase-00-foundation.md).
 
-1. _P0-11 — Third-party notices, prerequisites & contributor guardrail_ (licensing arc resumes; see [archived handover](./handovers/p0-10-license-policy-handover.md); dep P0-10 ✅)
-2. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
-3. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07)
-4. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
-5. _P0-06 — Docker development environment_
-6. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
-7. _P0-09 — Changesets release workflow_
+1. _P0-07 — Lightweight dependency audit in CI_ (stopgap pending P11-02 — see [phase-00 task spec](./plan/phases/phase-00-foundation.md))
+2. _P0-12 — License-compliance guardrail (SPDX allowlist) in CI + local script_ (deps P0-10 ✅, P0-07; closes the licensing arc)
+3. _P0-13 — CI supply-chain hardening_ (after P0-07/P0-12 — shared `ci.yml` edits)
+4. _P0-06 — Docker development environment_
+5. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
+6. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                     |
-| ---------------------- | -------------- | --------- | --------------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | 🟡 In progress | 9/16      | P0-14 + P0-16 done 2026-07-02 (supply-chain gate live; lint-staged hooks); licensing arc resumes at P0-11 |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                         |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                         |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                         |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                         |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                         |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                         |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                         |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                         |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                         |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                         |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                         |
+| Phase                  | Status         | Completed | Notes                                                                                                        |
+| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
+| P0 — Foundation        | 🟡 In progress | 10/16     | P0-11 done 2026-07-03 (notices, README/CONTRIBUTING guardrails); licensing arc closes with P0-12 after P0-07 |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                            |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                            |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                            |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                            |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                            |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                            |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                            |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                            |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                            |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                            |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                            |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -62,6 +61,7 @@
 
 | Task ID | Title                                                          | Completed  | PR                                                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------- | -------------------------------------------------------------- | ---------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-11   | Third-party notices, prerequisites & contributor guardrail     | 2026-07-03 | [#14](https://github.com/WeaversMask/argus/pull/14) | `THIRD-PARTY-NOTICES` (246 pkgs) + dependency-free generator (`pnpm notices`) with MPL named-exception guard; root README "External tools / Prerequisites" (tool licenses re-verified 2026-07-03) + source-only posture; CONTRIBUTING guardrails; licensing principle + per-PR license gate; phase-04/09/11 reconciled with ADR-0002. Detail: PR + handover                                                                                                                  |
 | SEC-01  | Dependabot fix: vite 8.0.16 + js-yaml 4.2.0 (scoped overrides) | 2026-07-03 | [#13](https://github.com/WeaversMask/argus/pull/13) | Dev-only transitives (GHSA-fx2h-pf6j-xcff high + 2 moderate); `pnpm update` can't reach non-direct transitives → range-scoped overrides in `pnpm-workspace.yaml` with removal-condition comment; both patched versions >30 days old, so no release-age exclusion needed                                                                                                                                                                                                      |
 | P0-16   | Hook ergonomics: lint-staged pre-commit                        | 2026-07-02 | [#12](https://github.com/WeaversMask/argus/pull/12) | lint-staged 17.0.8 (first dep under the ADR-0003 gate); staged-scope eslint + prettier --write with SKIP-aware `lint-staged.config.mjs`; gitleaks step unchanged, block re-verified. Detail: PR + handover                                                                                                                                                                                                                                                                   |
 | P0-14   | pnpm 11 upgrade, minimum release age & install-script blocking | 2026-07-02 | [#11](https://github.com/WeaversMask/argus/pull/11) | pnpm 11.5.3 exact-pinned; `minimumReleaseAge: 4320` verified refusing a 1-day-old version; `allowBuilds: {}`; Node ≥22.13 (+`.nvmrc`); ADR-0003. Detail: PR + handover                                                                                                                                                                                                                                                                                                       |
@@ -71,7 +71,6 @@
 | P0-04   | Vitest test infrastructure                                     | 2026-05-25 | [#4](https://github.com/WeaversMask/argus/pull/4)   | Vitest 4.1.7 + @vitest/coverage-v8; first persistent workspace package `@argus/testing` with `defineProjectConfig`, `fakeSecret()`, and `toBeNonEmpty` custom matcher; root `vitest.config.ts` runs all projects in one invocation with aggregated coverage at 85% line / 80% branch thresholds                                                                                                                                                                              |
 | P0-03   | ESLint + Prettier + commitlint + gitleaks                      | 2026-05-24 | [#3](https://github.com/WeaversMask/argus/pull/3)   | ESLint 10 flat config, Prettier 3.8, commitlint 21 (conventional), Husky 9, gitleaks 8.30.1 via repo-local .bin/; CI workflow with lint/format/commitlint/secret-scan jobs                                                                                                                                                                                                                                                                                                   |
 | P0-02   | Base TypeScript configuration                                  | 2026-05-23 | [#2](https://github.com/WeaversMask/argus/pull/2)   | TS 6.0.3 pinned; tsconfig.base.json with strict + verbatimModuleSyntax; "no any in linter" deferred to P0-03 (delivered)                                                                                                                                                                                                                                                                                                                                                     |
-| P0-01   | Initialise monorepo with pnpm workspaces + Turborepo           | 2026-05-23 | [#1](https://github.com/WeaversMask/argus/pull/1)   | pnpm 9.15.9 pinned; turbo 2.x; workspace:\* smoke-tested                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ---
 
