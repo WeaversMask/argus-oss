@@ -69,7 +69,8 @@ function copyrightLines(pkgDir) {
 function formatPackage(pkg) {
   const versions = [...pkg.versions].sort().join(", ");
   const block = [`${pkg.name} ${versions}`];
-  const notices = pkg.paths?.length ? copyrightLines(pkg.paths[0]) : [];
+  // Merge across all resolved versions — notice text can differ between them.
+  const notices = [...new Set((pkg.paths ?? []).flatMap((dir) => copyrightLines(dir)))];
   if (notices.length > 0) {
     for (const notice of notices) block.push(`  ${notice}`);
   } else if (typeof pkg.author === "string" && pkg.author.length > 0) {
@@ -90,7 +91,11 @@ for (const [licenseId, pkgs] of Object.entries(groups)) {
   if (groups[licenseId].length === 0) delete groups[licenseId];
 }
 
-const mplPackages = groups["MPL-2.0"] ?? [];
+// Match compound license expressions too ("MIT OR MPL-2.0") — the interim
+// guard stays fail-closed until P0-12's SPDX-aware gate takes over.
+const mplPackages = Object.entries(groups)
+  .filter(([licenseId]) => /\bMPL-2\.0\b/i.test(licenseId))
+  .flatMap(([, pkgs]) => pkgs);
 const unexpectedMpl = mplPackages.filter((pkg) => !MPL_EXCEPTION.test(pkg.name));
 if (unexpectedMpl.length > 0) {
   console.error(

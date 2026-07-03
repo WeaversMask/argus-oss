@@ -535,6 +535,7 @@ acorn-jsx 5.3.2
 
 ajv 6.15.0, 8.20.0
   Copyright (c) 2015-2017 Evgeny Poberezkin
+  Copyright (c) 2015-2021 Evgeny Poberezkin
   https://ajv.js.org
 
 ansi-escapes 7.3.0
@@ -543,10 +544,12 @@ ansi-escapes 7.3.0
 
 ansi-regex 5.0.1, 6.2.2
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/chalk/ansi-regex#readme
 
 ansi-styles 4.3.0, 6.2.3
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/chalk/ansi-styles#readme
 
 array-ify 1.0.0
@@ -759,6 +762,7 @@ is-extglob 2.1.1
 
 is-fullwidth-code-point 3.0.0, 5.1.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/is-fullwidth-code-point#readme
 
 is-glob 4.0.3
@@ -779,6 +783,7 @@ jiti 2.6.1
 
 js-tokens 10.0.0, 4.0.0
   Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell
+  Copyright (c) 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025 Simon Lydell
   https://github.com/lydell/js-tokens#readme
 
 js-yaml 4.2.0
@@ -971,10 +976,12 @@ string-argv 0.3.2
 
 string-width 4.2.3, 7.2.0, 8.2.1
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/string-width#readme
 
 strip-ansi 6.0.1, 7.2.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/chalk/strip-ansi#readme
 
 supports-color 7.2.0
