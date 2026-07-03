@@ -32,6 +32,36 @@ is_skipped() {
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+# --- Node floor guard --------------------------------------------------------
+# Hooks inherit the invoking shell's Node. Below the engines.node floor,
+# pnpm 11 (lint-staged here, commitlint in commit-msg) dies with a cryptic
+# ERR_UNKNOWN_BUILTIN_MODULE (node:sqlite) — fail fast with instructions
+# instead. Floor is read from package.json engines.node (single source of
+# truth); falls back to 22.x if parsing fails.
+node_floor="$(node -p "require('./package.json').engines.node.replace(/[^0-9.]/g, '')" 2>/dev/null || true)"
+node_have="$(node -v 2>/dev/null | tr -d v || true)"
+floor_major="${node_floor%%.*}"
+floor_rest="${node_floor#*.}"
+floor_minor="${floor_rest%%.*}"
+have_major="${node_have%%.*}"
+have_rest="${node_have#*.}"
+have_minor="${have_rest%%.*}"
+node_ok=1
+if [ -z "$node_have" ]; then
+  node_ok=0
+elif [ "${have_major:-0}" -lt "${floor_major:-22}" ]; then
+  node_ok=0
+elif [ "${have_major:-0}" -eq "${floor_major:-22}" ] && [ "${have_minor:-0}" -lt "${floor_minor:-0}" ]; then
+  node_ok=0
+fi
+if [ "$node_ok" -eq 0 ]; then
+  echo "❌ pre-commit: Node ${node_have:-<not found>} is below the toolchain floor (engines.node >=${node_floor:-22.22.1})."
+  echo "   The hooks' pnpm would crash cryptically (ERR_UNKNOWN_BUILTIN_MODULE node:sqlite)."
+  echo "   Fix: run 'nvm use' in this shell and retry — or add 'nvm use --silent' to"
+  echo "   ~/.config/husky/init.sh so every hook picks up .nvmrc automatically."
+  exit 1
+fi
+
 if is_skipped lint; then
   echo "⚠️  pre-commit: SKIP=lint — bypassing eslint on staged files"
 fi
