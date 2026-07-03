@@ -9,6 +9,12 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Weekly re-audit (P0-07): advisories disclosed between PRs still surface,
+  # since pinned versions never re-resolve on their own. The schedule re-runs
+  # the whole workflow — deliberate: it doubles as a weekly green canary on
+  # main, and the commitlint job already skips non-PR events.
+  schedule:
+    - cron: "0 12 * * 1"
 
 permissions:
   contents: read
@@ -157,6 +163,37 @@ jobs:
 
       - name: Build (turbo)
         run: pnpm build
+
+  # Stopgap public-advisory audit (P0-07). Catches the registry-indexed CVE
+  # subset of supply-chain risk; explicitly NOT the comprehensive P11-02 audit
+  # (typosquats, install-script/behavioural analysis, licensing) — replace or
+  # fold into that when it ships, not before. Not a branch-protection required
+  # check (same pending admin step as the other jobs, since P0-03).
+  audit:
+    name: Dependency audit (pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # --audit-level is the exit threshold on pnpm 11 (verified 2026-07-03:
+      # high advisories → exit 1 at "high", exit 0 at "critical"): fails on
+      # high/critical only, moderate-and-below surface in the log without
+      # blocking (transitive dev-dep churn would otherwise be pure noise).
+      - name: pnpm audit (fail on high/critical)
+        run: pnpm audit --audit-level=high
 
   commitlint:
     name: Commit message validation
