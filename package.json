@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",
+    "notices": "node scripts/generate-third-party-notices.mjs",
     "dev": "turbo run dev --parallel",
     "clean": "turbo run clean && rimraf node_modules .turbo coverage",
     "prepare": "husky && ./scripts/install-gitleaks.sh"
