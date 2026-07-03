@@ -79,7 +79,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 
 ## Phase 11 Exit Criteria
 
-- [ ] v1.0 published to npm, Docker Hub, GHCR, VS Code Marketplace, GitHub Marketplace, GitLab
+- [ ] v1.0 published to npm, Docker Hub, GHCR (`TODO(licensing:)` — prebuilt images that bake in the copyleft engines need the ADR-0002 §D redistribution review first), VS Code Marketplace, GitHub Marketplace, GitLab
 - [ ] Documentation site live
 - [ ] Beta partners promoted to GA customers
 - [ ] Marketing site live

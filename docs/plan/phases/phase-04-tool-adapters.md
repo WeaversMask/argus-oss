@@ -47,7 +47,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 - **Deps:** P4-01
 - **Outputs:** `packages/adapters/semgrep/`
 - **Acceptance:**
-  - Bundles default rule pack (OWASP Top 10)
+  - Default security coverage (OWASP Top 10 class) via rules resolved at runtime — registry rules fetched on the user's machine, user-supplied (BYO) config, the permissive Opengrep fork, and/or first-party in-repo rules. Registry rule packs are **never embedded or committed** (ADR-0002 §C)
   - Custom rule extension via config
   - Findings mapped to `Violation` with correct severity translation
 - **Effort:** M
@@ -92,7 +92,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 
 ## Phase-Specific Notes
 
-- **Pin tool versions aggressively.** Semgrep and TruffleHog change output formats between minor versions. Pin in `package.json` (for npm wrappers) or `docker-compose.yml` (for binaries).
+- **Pin tool versions aggressively.** Semgrep and TruffleHog change output formats between minor versions. Pin linked permissive libraries in `package.json`; the copyleft engines (Semgrep, TruffleHog) are user-installed binaries reached **only as arm's-length subprocesses** (ADR-0002 §A — never npm-imported, linked, or vendored), so their versions are pinned where the prerequisite is declared (`docker-compose.yml` dev recipe, documented prerequisite versions).
 - **Subprocess timeouts are mandatory.** Every adapter wraps its tool in a timeout (default 5 minutes). A hung subprocess shouldn't hang the whole scan.
 - **Secret redaction is non-negotiable.** TruffleHog can return the actual secret value. NEVER log it, NEVER include it in JSON output. Replace with `<REDACTED:length=N>`.
 - **OSV database queries can be rate-limited.** Cache results aggressively (24-hour TTL is reasonable). Don't hammer the API on every scan.

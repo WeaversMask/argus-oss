@@ -10,7 +10,7 @@
 
 ## Goal
 
-Native PR decoration on GitHub, GitLab, Bitbucket. Public Docker image. Marketplace listings.
+Native PR decoration on GitHub, GitLab, Bitbucket. Public Docker image (`TODO(licensing:)` — see [P9-04]). Marketplace listings.
 
 ---
 
@@ -48,6 +48,7 @@ Native PR decoration on GitHub, GitLab, Bitbucket. Public Docker image. Marketpl
 - **Outputs:** Multi-arch image (amd64 + arm64), published to GHCR and Docker Hub
 - **Acceptance:** <300MB compressed; signed with cosign; SBOM attached
 - **Effort:** M
+- **`TODO(licensing:)`** — publishing a prebuilt image with the copyleft engines baked in (TruffleHog AGPL-3.0, Semgrep LGPL-2.1) is redistribution and requires its own license review **before this task starts** (ADR-0002 §D). Options at review time: engine-less image (tools mounted/installed by the user), install-on-first-run, or a completed redistribution review.
 
 ### [P9-05] PR decoration via Octokit / gitbeaker
 
@@ -62,7 +63,7 @@ Native PR decoration on GitHub, GitLab, Bitbucket. Public Docker image. Marketpl
 
 - [ ] Public Marketplace listings live (GitHub and GitLab)
 - [ ] End-to-end PR review on a real OSS project
-- [ ] Docker image signed and published
+- [ ] Docker image signed and published (`TODO(licensing:)` — gated on the ADR-0002 §D redistribution review, see [P9-04])
 - [ ] Phase handover documents release process and integration testing strategy
 
 ---
