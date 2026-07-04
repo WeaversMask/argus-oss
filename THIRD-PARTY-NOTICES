@@ -19,7 +19,7 @@ osv-scanner) are not npm dependencies and are never distributed with
 Argus — users install them separately. See README "External tools /
 Prerequisites" and ADR-0002 §A/§B.
 
-Snapshot: 2026-07-04 · pnpm 11.5.3 · darwin-arm64 · 291 packages, 11 licenses
+Snapshot: 2026-07-04 · pnpm 11.5.3 · darwin-arm64 · 288 packages, 11 licenses
 Platform-specific binary packages (e.g. lightningcss-<platform>) vary with
 the host that generated this file.
 
@@ -66,7 +66,7 @@ Apache-2.0 — 16 packages
   Author: Nicholas C. Zakas
   https://github.com/eslint/rewrite/tree/main/packages/object-schema#readme
 
-@eslint/plugin-kit 0.7.1
+@eslint/plugin-kit 0.7.2
   Author: Nicholas C. Zakas
   https://github.com/eslint/rewrite/tree/main/packages/plugin-kit#readme
 
@@ -98,7 +98,7 @@ eslint-visitor-keys 3.4.3, 5.0.1
   Author: Toru Nagashima
   https://github.com/eslint/js/blob/main/packages/eslint-visitor-keys/README.md
 
-expect-type 1.3.0
+expect-type 1.4.0
   Copyright 2024 Misha Kaletsky
   https://github.com/mmkal/expect-type#readme
 
@@ -178,7 +178,7 @@ esquery 1.7.0
   Copyright (c) 2013, Joel Feenstra
   https://github.com/estools/esquery/
 
-fast-uri 3.1.2
+fast-uri 3.1.3
   Copyright (c) 2011-2021, Gary Court until https://github.com/garycourt/uri-js/commit/a1acf730b4bba3f1097c9f52e7d9d3aba8cdcaae
   Copyright (c) 2021-present The Fastify team <https://github.com/fastify/fastify#team>
   https://github.com/fastify/fast-uri
@@ -235,11 +235,11 @@ cliui 9.0.1
   Copyright (c) 2015, Contributors
   https://github.com/yargs/cliui#readme
 
-conventional-changelog-angular 8.3.1
+conventional-changelog-angular 9.2.0
   Copyright © [conventional-changelog team](https://github.com/conventional-changelog)
   https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular#readme
 
-conventional-changelog-conventionalcommits 9.3.1
+conventional-changelog-conventionalcommits 10.2.0
   Copyright © [conventional-changelog team](https://github.com/conventional-changelog)
   https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-conventionalcommits#readme
 
@@ -341,7 +341,7 @@ rimraf 5.0.10
   Copyright (c) 2011-2023 Isaac Z. Schlueter and Contributors
   https://github.com/isaacs/rimraf#readme
 
-semver 5.7.2, 7.8.1
+semver 5.7.2, 7.8.5
   Copyright (c) Isaac Z. Schlueter and Contributors
   https://github.com/npm/node-semver#readme
 
@@ -378,26 +378,26 @@ yargs-parser 22.0.0
   https://github.com/yargs/yargs-parser#readme
 
 ================================================================================
-MIT — 212 packages
+MIT — 209 packages
 ================================================================================
 
-@babel/code-frame 7.29.0
+@babel/code-frame 7.29.7
   Copyright (c) 2014-present Sebastian McKenzie and other contributors
   https://babel.dev/docs/en/next/babel-code-frame
 
-@babel/helper-string-parser 7.27.1
+@babel/helper-string-parser 7.29.7
   Copyright (c) 2014-present Sebastian McKenzie and other contributors
   https://babel.dev/docs/en/next/babel-helper-string-parser
 
-@babel/helper-validator-identifier 7.28.5
+@babel/helper-validator-identifier 7.29.7
   Copyright (c) 2014-present Sebastian McKenzie and other contributors
   https://github.com/babel/babel#readme
 
-@babel/parser 7.29.3
+@babel/parser 7.29.7
   Copyright (C) 2012-2014 by various contributors (see AUTHORS)
   https://babel.dev/docs/en/next/babel-parser
 
-@babel/types 7.29.0
+@babel/types 7.29.7
   Copyright (c) 2014-present Sebastian McKenzie and other contributors
   https://babel.dev/docs/en/next/babel-types
 
@@ -406,19 +406,19 @@ MIT — 212 packages
   Copyright (c) 2017, Contributors
   https://github.com/bcoe/v8-coverage#readme
 
-@commitlint/cli 21.0.1
+@commitlint/cli 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/config-conventional 21.0.1
+@commitlint/config-conventional 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/config-validator 21.0.1
+@commitlint/config-validator 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/ensure 21.0.1
+@commitlint/ensure 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
@@ -426,39 +426,39 @@ MIT — 212 packages
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/format 21.0.1
+@commitlint/format 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/is-ignored 21.0.1
+@commitlint/is-ignored 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/lint 21.0.1
+@commitlint/lint 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/load 21.0.1
+@commitlint/load 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/message 21.0.1
+@commitlint/message 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/parse 21.0.1
+@commitlint/parse 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/read 21.0.1
+@commitlint/read 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/resolve-extends 21.0.1
+@commitlint/resolve-extends 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/rules 21.0.1
+@commitlint/rules 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
@@ -466,17 +466,21 @@ MIT — 212 packages
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/top-level 21.0.1
+@commitlint/top-level 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
-@commitlint/types 21.0.1
+@commitlint/types 21.2.0
   Copyright (c) 2016 - present Mario Nebl
   https://commitlint.js.org/
 
 @conventional-changelog/git-client 2.7.0
   Copyright © [conventional-changelog team](https://github.com/conventional-changelog)
   https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/git-client#readme
+
+@conventional-changelog/template 1.2.0
+  Copyright © [conventional-changelog team](https://github.com/conventional-changelog)
+  https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/template#readme
 
 @eslint-community/eslint-utils 4.9.1
   Copyright (c) 2018 Toru Nagashima
@@ -523,7 +527,7 @@ MIT — 212 packages
   Copyright (c) 2016 - present, TrigenSoftware
   https://github.com/TrigenSoftware/simple-libs/tree/main/packages/child-process-utils#readme
 
-@simple-libs/stream-utils 1.2.0
+@simple-libs/stream-utils 1.2.0, 2.0.0
   Copyright (c) 2016 - present, TrigenSoftware
   https://github.com/TrigenSoftware/simple-libs/tree/main/packages/stream-utils#readme
 
@@ -531,7 +535,7 @@ MIT — 212 packages
   Copyright (c) 2024 Colin McDonnell
   https://standardschema.dev
 
-@turbo/darwin-arm64 2.9.14
+@turbo/darwin-arm64 2.10.2
   Copyright (c) 2026 Vercel, Inc
   https://turborepo.dev
 
@@ -559,79 +563,79 @@ MIT — 212 packages
   Copyright (c) Microsoft Corporation.
   https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 
-@typescript-eslint/eslint-plugin 8.59.4
+@typescript-eslint/eslint-plugin 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/eslint-plugin
 
-@typescript-eslint/parser 8.59.4
+@typescript-eslint/parser 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/parser
 
-@typescript-eslint/project-service 8.59.4
+@typescript-eslint/project-service 8.62.1
   Copyright (c) 2025 typescript-eslint and other contributors
   https://typescript-eslint.io
 
-@typescript-eslint/scope-manager 8.59.4
+@typescript-eslint/scope-manager 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/scope-manager
 
-@typescript-eslint/tsconfig-utils 8.59.4
+@typescript-eslint/tsconfig-utils 8.62.1
   Copyright (c) 2025 typescript-eslint and other contributors
   https://typescript-eslint.io
 
-@typescript-eslint/type-utils 8.59.4
+@typescript-eslint/type-utils 8.62.1
   Copyright (c) 2021 typescript-eslint and other contributors
   https://typescript-eslint.io
 
-@typescript-eslint/types 8.59.4
+@typescript-eslint/types 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io
 
-@typescript-eslint/typescript-estree 8.59.4
+@typescript-eslint/typescript-estree 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/typescript-estree
 
-@typescript-eslint/utils 8.59.4
+@typescript-eslint/utils 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/utils
 
-@typescript-eslint/visitor-keys 8.59.4
+@typescript-eslint/visitor-keys 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io
 
-@vitest/coverage-v8 4.1.7
+@vitest/coverage-v8 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://vitest.dev/guide/coverage
 
-@vitest/expect 4.1.7
+@vitest/expect 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://vitest.dev/api/expect
 
-@vitest/mocker 4.1.7
+@vitest/mocker 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://github.com/vitest-dev/vitest/tree/main/packages/mocker
 
-@vitest/pretty-format 4.1.7
+@vitest/pretty-format 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://github.com/vitest-dev/vitest/tree/main/packages/pretty-format
 
-@vitest/runner 4.1.7
+@vitest/runner 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://vitest.dev/api/advanced/runner
 
-@vitest/snapshot 4.1.7
+@vitest/snapshot 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://vitest.dev/guide/snapshot
 
-@vitest/spy 4.1.7
+@vitest/spy 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://vitest.dev/api/mock
 
-@vitest/utils 4.1.7
+@vitest/utils 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   https://github.com/vitest-dev/vitest/tree/main/packages/utils
 
-acorn 8.16.0
+acorn 8.17.0
   Copyright (C) 2012-2022 by various contributors (see AUTHORS)
   https://github.com/acornjs/acorn
 
@@ -662,10 +666,6 @@ array-find-index 1.0.2
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
   https://github.com/sindresorhus/array-find-index#readme
 
-array-ify 1.0.0
-  Author: Steve Mao
-  https://github.com/stevemao/array-ify
-
 asap 2.0.6
   Copyright 2009–2014 Contributors. All rights reserved.
   https://github.com/kriskowal/asap#readme
@@ -674,7 +674,7 @@ assertion-error 2.0.1
   Copyright (c) 2013 Jake Luer jake@qualiancy.com (http://qualiancy.com)
   https://github.com/chaijs/assertion-error#readme
 
-ast-v8-to-istanbul 1.0.0
+ast-v8-to-istanbul 1.0.4
   Copyright (c) 2026 Ari Perkkiö
   https://github.com/AriPerkkio/ast-v8-to-istanbul
 
@@ -682,7 +682,7 @@ balanced-match 1.0.2, 4.0.4
   Copyright (c) 2013 Julian Gruber &lt;julian@juliangruber.com&gt;
   https://github.com/juliangruber/balanced-match#readme
 
-brace-expansion 1.1.15, 2.1.0, 5.0.6
+brace-expansion 1.1.15, 2.1.1, 5.0.7
   Copyright (c) 2013 Julian Gruber <julian@juliangruber.com>
   https://github.com/juliangruber/brace-expansion#readme
 
@@ -714,15 +714,11 @@ color-name 1.1.3, 1.1.4
   Copyright (c) 2015 Dmitry Ivanov
   https://github.com/colorjs/color-name
 
-compare-func 2.0.0
-  Copyright (c) 2015 Steve Mao
-  https://github.com/stevemao/compare-func
-
 concat-map 0.0.1
   Author: James Halliday
   https://github.com/substack/node-concat-map#readme
 
-conventional-commits-parser 6.4.0
+conventional-commits-parser 6.4.0, 7.0.0
   Copyright © [conventional-changelog team](https://github.com/conventional-changelog)
   https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-commits-parser#readme
 
@@ -730,7 +726,7 @@ convert-source-map 2.0.0
   Copyright 2013 Thorsten Lorenz.
   https://github.com/thlorenz/convert-source-map
 
-cosmiconfig 9.0.1
+cosmiconfig 9.0.2
   Copyright (c) 2015 David Clark
   https://github.com/cosmiconfig/cosmiconfig#readme
 
@@ -758,10 +754,6 @@ deep-is 0.1.4
   Copyright (c) 2009 Thomas Robinson <280north.com>
   https://github.com/thlorenz/deep-is#readme
 
-dot-prop 5.3.0
-  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  https://github.com/sindresorhus/dot-prop#readme
-
 emoji-regex 10.6.0, 8.0.0
   Author: Mathias Bynens
   https://mths.be/emoji-regex
@@ -782,12 +774,12 @@ es-errors 1.3.0
   Copyright (c) 2024 Jordan Harband
   https://github.com/ljharb/es-errors#readme
 
-es-module-lexer 2.1.0
+es-module-lexer 2.2.0
   Copyright (C) 2018-2022 Guy Bedford
   https://github.com/guybedford/es-module-lexer#readme
 
-es-toolkit 1.46.1
-  Copyright (c) 2024 Viva Republica, Inc
+es-toolkit 1.49.0
+  Copyright (c) 2024 Viva Republica, Inc.
   https://es-toolkit.dev
 
 escalade 3.2.0
@@ -799,7 +791,7 @@ escape-string-regexp 1.0.5, 4.0.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/escape-string-regexp#readme
 
-eslint 10.4.0
+eslint 10.6.0
   Author: Nicholas C. Zakas
   https://eslint.org
 
@@ -913,10 +905,6 @@ is-glob 4.0.3
   Copyright (c) 2014-2017, Jon Schlinkert.
   https://github.com/micromatch/is-glob
 
-is-obj 2.0.0
-  Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  https://github.com/sindresorhus/is-obj#readme
-
 is-plain-obj 4.1.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/is-plain-obj#readme
@@ -990,7 +978,7 @@ make-dir 4.0.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/make-dir#readme
 
-meow 13.2.0
+meow 13.2.0, 14.1.0
   Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
   https://github.com/sindresorhus/meow#readme
 
@@ -1010,7 +998,7 @@ ms 2.1.3
   Copyright (c) 2020 Vercel, Inc.
   https://github.com/vercel/ms#readme
 
-nanoid 3.3.12
+nanoid 3.3.15
   Copyright 2017 Andrey Sitnik <andrey@sitnik.ru>
   https://github.com/ai/nanoid#readme
 
@@ -1018,7 +1006,7 @@ natural-compare 1.4.0
   Author: Lauri Rooden
   https://github.com/litejs/natural-compare-lite#readme
 
-obug 2.1.1
+obug 2.1.3
   Copyright © 2025-PRESENT Kevin Deng (https://github.com/sxzz)
   Copyright (c) 2014-2017 TJ Holowaychuk <tj@vision-media.ca>
   Copyright (c) 2018-2021 Josh Junon
@@ -1081,7 +1069,7 @@ picomatch 4.0.4
   Copyright (c) 2017-present, Jon Schlinkert.
   https://github.com/micromatch/picomatch
 
-postcss 8.5.15
+postcss 8.5.16
   Copyright 2013 Andrey Sitnik <andrey@sitnik.es>
   https://postcss.org/
 
@@ -1089,7 +1077,7 @@ prelude-ls 1.2.1
   Copyright (c) George Zahariev
   http://preludels.com
 
-prettier 3.8.3
+prettier 3.9.4
   Copyright © James Long and contributors
   https://prettier.io
 
@@ -1180,11 +1168,11 @@ tinybench 2.9.0
   Copyright (c) 2022 Tinylibs
   https://github.com/tinylibs/tinybench#readme
 
-tinyexec 1.1.2, 1.2.4
+tinyexec 1.2.4
   Copyright (c) 2024 Tinylibs
   https://github.com/tinylibs/tinyexec#readme
 
-tinyglobby 0.2.16, 0.2.17
+tinyglobby 0.2.17
   Copyright (c) 2024 Madeline Gurriarán
   https://superchupu.dev/tinyglobby
 
@@ -1200,7 +1188,7 @@ ts-api-utils 2.5.0
   Author: JoshuaKGoldberg
   https://github.com/JoshuaKGoldberg/ts-api-utils#readme
 
-turbo 2.9.14
+turbo 2.10.2
   Copyright (c) 2026 Vercel, Inc
   https://turborepo.dev
 
@@ -1208,7 +1196,7 @@ type-check 0.4.0
   Copyright (c) George Zahariev
   https://github.com/gkz/type-check
 
-typescript-eslint 8.59.4
+typescript-eslint 8.62.1
   Copyright (c) 2019 typescript-eslint and other contributors
   https://typescript-eslint.io/packages/typescript-eslint
 
@@ -1227,7 +1215,7 @@ vite 8.0.16
   Copyright (c) 2019 RollupJS Plugin Contributors (https://github.com/rollup/plugins/graphs/contributors)
   https://vite.dev
 
-vitest 4.1.7
+vitest 4.1.9
   Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
   Copyright (c) 2021 Anthony Fu <https://github.com/antfu>
   Copyright 2019 Justin Ridgewell <jridgewell@google.com>
