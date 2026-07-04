@@ -1,76 +1,74 @@
-# Handover — P0-13 → P0-06
+# Handover — P0-06 → P0-08
 
 **From:** claude-fable-5
 **To:** next picker
 **Date:** 2026-07-04
 **Phase:** P0 — Foundation
-**Last task completed:** P0-13 — CI supply-chain hardening (plus OPS-02 review-tiering protocol change)
+**Last task completed:** P0-06 — Docker development environment
 
 ---
 
 ## Context
 
-Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](https://github.com/WeaversMask/argus/pull/18) — risk-tiered review passes, maintainer-requested token-cost reduction) and **P0-13** ([#19](https://github.com/WeaversMask/argus/pull/19) — this task). The P0-07 → P0-12 → P0-13 `ci.yml` serialization is complete; nothing in Up Next touches `ci.yml` next, so no branch-ordering constraint beyond waiting for #18/#19 to merge before rebasing doc edits. **Next: P0-06 — Docker development environment** (spec in [phase-00 §P0-06](./plan/phases/phase-00-foundation.md)); remember ADR-0002 §D — Docker is a **recipe**, never a published/redistributed image.
+P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](./plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
 
 ## What I Did
 
-- **P0-13 (#19):** every `uses:` in `ci.yml` SHA-pinned with version comment (SHAs resolved from upstream repos via `gh api`, concrete tags matched: checkout v4.3.1, pnpm/action-setup v4.3.0, setup-node v4.4.0, cache v4.3.0, upload-artifact v4.6.2, gitleaks-action v2.3.9); new `.github/dependabot.yml` (github-actions + npm, grouped minor/patch, **cooldown 3 days = pnpm `minimumReleaseAge`**); CI Node pinned via workflow env `NODE_VERSION: "22.23.1"` replacing `node-version-file: package.json` in all 7 jobs; `scripts/install-gitleaks.sh` now verifies the tarball SHA-256 against embedded per-platform values from the release's checksums file (mismatch = hard exit 1; download failure stays soft-skip — deliberate availability/integrity split); `turbo.json` `remoteCache.signature: true` (inert until D-1).
-- **OPS-02 (#18):** protocol's review bullet rewritten — light tier (bugs-only, no packet) for docs/config-only diffs; full packet only for executable-logic/security-relevant diffs; standing reviewer brief: diff-scoped, don't re-run author-documented verification, budget on untested paths. P0-13's review ran under the new brief.
-- Tracker 13/16 (rows for both tasks live in #19 — single-writer rule).
+- **`Dockerfile.dev`** — node:22.23.1-bookworm-slim **digest-pinned** (tag = CI's `NODE_VERSION`, bump together + refresh digest); git via apt; pnpm via corepack (`ARG PNPM_VERSION` synced to `packageManager`); **non-root `node` user**; no COPY — the repo bind-mounts at `/app` (recipe, ADR-0002 §D).
+- **`docker-compose.yml`** — app (init, vitest `--watch` explicit — without a TTY vitest would single-run and exit; `HUSKY=0` + `ARGUS_SKIP_GITLEAKS_INSTALL=1` so the container never touches host hooks or installs a wrong-platform binary); redis 8.8.0-alpine + postgres 18.4-alpine (digest-pinned, healthchecks, **loopback-only ports**); named volumes shadow `/app/node_modules` + `/app/packages/testing/node_modules`. `.dockerignore`, README §Docker note.
+- **Fixed live:** first `up` died with `EACCES mkdir /app/node_modules/.pnpm` — fresh named volumes mount root-owned unless the image pre-creates the mountpoints with `node` ownership (volume init copies content **and ownership** from the image). Fix in Dockerfile; re-verified from scratch (`down -v` first).
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **`.nvmrc` left floating at `22`** (dev ergonomics; hooks have the floor guard). The concrete pin is CI-only. If the maintainer wants dev pinned too, that's a one-line change + note.
-- **Dependabot config validates server-side only** — after #19 merges, check Insights → Dependency graph → Dependabot for config errors, and that the first update PRs respect the 3-day cooldown (acceptance item verifiable only post-merge).
-- **Notices freshness check** — still deferred (recipe in [P0-12 handover](./handovers/p0-12-license-gate-handover.md)).
-- **Maintainer decisions open:** D-1 (remote cache — `signature: true` + secrets are ready when decided); `LICENSE` copyright placeholder; `nvm alias default 22`.
+- **P0-08, P0-09** — unstarted, in Up Next order.
+- **No CI docker build check** — nothing exercises `Dockerfile.dev` in CI (docker build job = cost + would tempt image publishing; recipe verified manually instead). Revisit only if drift becomes real.
+- **Maintainer decisions open:** D-1 (remote cache); `LICENSE` copyright placeholder; `nvm alias default 22`; post-#19 Dependabot config check (Insights → Dependabot) if not yet done.
 
 ## Gotchas & Surprises
 
-1. **Action majors have moved on upstream** (checkout v7, setup-node v6, gitleaks-action v3…). The pins deliberately stay on the majors the workflow already used; Dependabot will now propose major bumps as individual PRs — review those against upstream breaking-change notes, don't auto-take.
-2. **`NODE_VERSION` and `engines.node` are now two places** — bump together (comment in `ci.yml` says so). setup-node reads the env via `${{ env.NODE_VERSION }}`.
-3. **gitleaks bump procedure changed:** changing `GITLEAKS_VERSION` now also requires refreshing the four embedded SHA-256 values from the new release's `gitleaks_<ver>_checksums.txt` (URL pattern in the script comment). The script will hard-fail if you forget — that's the point.
-4. **pnpm 11 under nvm:** bare `pnpm` in fresh shells needs `source ~/.nvm/nvm.sh && nvm use --silent` first (nvm default is still Node 20).
-5. **P0-12 gotchas remain live** (license-checker sees only direct deps under pnpm; exceptions are license-string-pinned): [archived handover](./handovers/p0-12-license-gate-handover.md).
+1. **Named volumes over `node_modules` initialize root-owned** unless the image pre-creates those dirs `node`-owned — the EACCES above. **New workspace packages need BOTH a volume line in compose AND a `mkdir` in the Dockerfile mountpoint RUN.** Comments in both files say so.
+2. **`vitest` without `--watch` exits in non-TTY containers** (single run) → compose `up` would show the app "exited". The explicit flag is load-bearing, not style.
+3. **postgres:18+ images moved PGDATA** under `/var/lib/postgresql/<major>/…` — the volume mounts the **parent** `/var/lib/postgresql` (mounting the old `…/data` path would silently keep data outside the volume).
+4. **Commit from the host, never the container** — `.bin/gitleaks` is a host-platform binary; pre-commit inside the container would exec-format-fail on macs.
+5. **Docker Desktop may be stopped** on this machine (`open -a Docker`, wait ~30s for the daemon).
+6. **P0-12/P0-13 gotchas remain live** (license-checker pnpm traversal; NODE_VERSION/engines dual pin; gitleaks-bump = refresh 4 hashes): archived handovers in `docs/handovers/`.
 
 ## State of the System
 
-- ✅ Tests 9 passing (100% line/branch), lint/format/typecheck green, `pnpm license-check` OK, `pnpm audit` clean
-- ✅ install-gitleaks: positive (real download verified + installed in scratch) and negative (tampered hash → exit 1) both exercised locally
-- ⏸ PRs #18 (OPS-02) and #19 (P0-13) open, pending human merge; CI expected green on #19 (docs-only #18 too)
+- ✅ Tests 9 passing (100% line/branch), lint/format green, license-check + audit clean; docker stack verified live then torn down (`down -v` — machine clean)
+- ⏸ PR #28 open, pending human merge; CI green expected (no workflow changes)
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Recommended Next Steps
 
-Pick up **P0-06 — Docker development environment** (branch from `main` after #18/#19 merge — #19 owns the tracker rows):
+Pick up **P0-08** (branch from `main` after #28 merges; no file overlap with anything in flight):
 
-1. Read [phase-00 §P0-06](./plan/phases/phase-00-foundation.md) + ADR-0002 §D (recipe, not redistribution — no published image, no bundled engines).
-2. Respect the supply-chain posture: pin base images by digest (matches the P0-13 SHA-pinning spirit), no curl-pipe-sh installs.
-3. Tracker + handover rotation, review pass per the new OPS-02 tiering, PR.
+1. Read [phase-00 §P0-08](./plan/phases/phase-00-foundation.md) fully (this handover only summarizes). ADR-0001 is retroactive — keep it short, date it honestly, reference P0-01/P0-02 PRs.
+2. `SECURITY.md`: resolve the dangling `SECURITY-NOTES.md` §Reporting reference; solo-maintainer disclosure process (GitHub private vulnerability reporting), no SLA promises the maintainer can't keep.
+3. PR-template acceptance is a byte-match against `templates/PR.template.md` — copy, don't paraphrase.
+4. Tracker + handover rotation, light-tier review (docs-only diff → OPS-02 light), PR.
 
 ## Open Questions for the Next Agent
 
-- None new. Post-merge Dependabot config check (above) is the only follow-through from this session.
+- None new.
 
 ---
 
 ## Files Touched This Session
 
 ```
-.github/workflows/ci.yml                 [modified — SHA pins, NODE_VERSION]   (P0-13, #19)
-.github/dependabot.yml                   [created]                             (P0-13, #19)
-scripts/install-gitleaks.sh              [modified — SHA-256 verification]     (P0-13, #19)
-turbo.json                               [modified — remoteCache.signature]    (P0-13, #19)
-docs/plan/protocols/agentic-execution.md [modified — review tiering]           (OPS-02, #18)
-docs/IMPLEMENTATION.md                   [modified — 13/16, P0-13+OPS-02 rows] (P0-13, #19)
-docs/HANDOVER.md                         [rewritten — this file]               (P0-13, #19)
-docs/handovers/p0-12-license-gate-handover.md [created — archive]              (P0-13, #19)
-.work/P0-13.md, .work/OPS-02.md          [created — gitignored]
+Dockerfile.dev                    [created]                       (P0-06, #28)
+docker-compose.yml                [created]                       (P0-06, #28)
+.dockerignore                     [created]                       (P0-06, #28)
+README.md                         [modified — Docker dev section] (P0-06, #28)
+docs/IMPLEMENTATION.md            [modified — 14/16, P0-06 row]   (P0-06, #28)
+docs/HANDOVER.md                  [rewritten — this file]         (P0-06, #28)
+docs/handovers/p0-13-supply-chain-handover.md [created — archive] (P0-06, #28)
+.work/P0-06.md                    [created — gitignored]
 ```
 
 ## Sign-off
 
-Supply-chain hardening is in place and negatively tested (tampered checksum blocks, mutable tags gone); review passes are cheaper by protocol from now on; tree green. P0-06 is next with a clean runway.
+Dev environment is real, not theoretical: built, booted, tested from inside, edit-propagation proven, torn down clean. Two tasks left in Phase 0.
 
 — claude-fable-5
