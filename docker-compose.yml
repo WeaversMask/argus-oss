@@ -1,0 +1,88 @@
+# Argus local dev environment (P0-06). Recipe only — never published as an
+# image (ADR-0002 §D). Bring up with:  docker compose up --build
+#
+# The app container runs vitest in watch mode: edit a file on the host and
+# the run re-triggers inside the container (the volume acceptance check from
+# phase-00 §P0-06). For anything else:  docker compose exec app bash
+#
+# Commit from the HOST, not the container: .bin/gitleaks is a host-platform
+# binary (darwin on macs) and the pre-commit hook would fail on it in here.
+#
+# Image digests are pinned per the P0-13 supply-chain posture; refresh the
+# tag and digest together from Docker Hub.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    init: true
+    working_dir: /app
+    # Nothing app-shaped runs yet in Phase 0; installing then watching tests
+    # keeps the container alive and genuinely useful. --watch is explicit:
+    # without a TTY vitest would otherwise fall back to a single run & exit.
+    command: bash -lc "pnpm install && exec pnpm exec vitest --watch"
+    environment:
+      # Hooks live on the host; don't let the container's prepare step touch
+      # bind-mounted .git config, and skip the host-platform gitleaks binary.
+      HUSKY: "0"
+      ARGUS_SKIP_GITLEAKS_INSTALL: "1"
+      # File-change events don't always cross the macOS/Windows VM boundary;
+      # polling keeps watch mode reliable on bind mounts.
+      CHOKIDAR_USEPOLLING: "1"
+      # Pre-wired for later phases (BullMQ / persistence); unused today.
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://argus:${ARGUS_DEV_PG_PASSWORD:-argus_dev_only}@postgres:5432/argus
+    volumes:
+      - .:/app
+      # Shadow every node_modules with a named volume: the host tree holds
+      # host-platform binaries (e.g. lightningcss-darwin-*), the container
+      # needs linux ones. New workspace packages need their own line here.
+      - app_node_modules:/app/node_modules
+      - testing_node_modules:/app/packages/testing/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  # For BullMQ queues in later phases (phase-00 §P0-06); unused by code today.
+  redis:
+    image: redis:8.8.0-alpine@sha256:9d317178eceac8454a2284a9e6df2466b93c745529947f0cd42a0fa9609d7005
+    ports:
+      # Dev-only exposure, loopback only.
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # For persistence in later phases; unused by code today.
+  postgres:
+    image: postgres:18.4-alpine@sha256:1b1689b20d16a014a3d195653381cf2caa75a41a92d93b255a9d6ea29fd353aa
+    environment:
+      POSTGRES_USER: argus
+      POSTGRES_DB: argus
+      # Dev-only default; override via ARGUS_DEV_PG_PASSWORD in your shell or
+      # an .env file. Never a production credential.
+      POSTGRES_PASSWORD: ${ARGUS_DEV_PG_PASSWORD:-argus_dev_only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # postgres:18+ images keep PGDATA under /var/lib/postgresql/<major>/…;
+      # mounting the parent keeps data in the volume across image bumps.
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U argus -d argus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  app_node_modules:
+  testing_node_modules:
+  redis_data:
+  postgres_data:

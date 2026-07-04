@@ -1,0 +1,32 @@
+# Argus dev container (P0-06). ADR-0002 §D: this is a RECIPE — no CI or
+# release step may build and publish an image from it (a published image
+# needs its own license review first).
+#
+# The repo is bind-mounted at /app by docker-compose.yml; nothing is COPY'd.
+# Base image is digest-pinned (P0-13 supply-chain posture). The tag tracks
+# CI's NODE_VERSION in .github/workflows/ci.yml — bump the two together and
+# refresh the digest from Docker Hub when you do.
+FROM node:22.23.1-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4
+
+# git: not in -slim, needed by husky's prepare step and tools that shell out
+# to git. Single layer, apt lists removed.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git \
+  && rm -rf /var/lib/apt/lists/*
+
+# pnpm via corepack (ships with Node — no npm -g installs). Keep the version
+# in sync with "packageManager" in package.json: corepack still consults that
+# field at run time; pre-warming here only avoids a first-run network fetch.
+ARG PNPM_VERSION=11.5.3
+RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+# Volume mountpoints must exist in the image owned by `node`: named volumes
+# copy content AND ownership from the image on first use. Without this they
+# mount root-owned and pnpm's mkdir fails (EACCES) under USER node.
+RUN mkdir -p /app/node_modules /app/packages/testing/node_modules \
+  && chown -R node:node /app
+
+USER node
+WORKDIR /app
+
+CMD ["bash"]

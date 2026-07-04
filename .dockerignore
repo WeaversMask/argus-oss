@@ -1,0 +1,9 @@
+# Dockerfile.dev COPYs nothing (the repo is bind-mounted at run time), so
+# this only keeps the build context tiny.
+.git
+node_modules
+**/node_modules
+.turbo
+coverage
+.bin
+.work

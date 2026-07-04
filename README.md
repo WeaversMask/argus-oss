@@ -32,6 +32,10 @@ Copyleft engines are never imported, linked, or vendored — subprocess only, be
 - `pnpm install` — also installs the git hooks (husky + repo-local gitleaks).
 - Everyday commands: `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build`.
 
+### Docker dev environment (optional)
+
+`docker compose up --build` starts a Node dev container (runs the test suite in watch mode against your bind-mounted checkout) plus Redis and Postgres for later phases — see the comments in [docker-compose.yml](docker-compose.yml). Ports bind to localhost only; commit from the host, not the container. Per [ADR-0002 §D](docs/adr/0002-third-party-integration-and-licensing-policy.md) this is a recipe — no prebuilt image is published.
+
 ## License
 
 [MIT](LICENSE). Third-party attributions: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) (regenerate with `pnpm notices`). Contribution rules, including the licensing guardrails: [CONTRIBUTING.md](CONTRIBUTING.md).
