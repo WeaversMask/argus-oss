@@ -20,6 +20,7 @@ const outputPath = join(repoRoot, "THIRD-PARTY-NOTICES");
 // Packages covered by the ADR-0002 §G named MPL-2.0 exception (dev-only
 // transitives, reviewed by the maintainer). Any other MPL-2.0 package must
 // trip review — this generator refuses to bless it silently.
+// Keep in sync with NAMED_EXCEPTIONS in check-licenses.mjs (the P0-12 gate).
 const MPL_EXCEPTION = /^lightningcss(-.+)?$/;
 
 const LICENSE_FILE = /^(licen[cs]e|copying|notice)([-.].*)?$/i;

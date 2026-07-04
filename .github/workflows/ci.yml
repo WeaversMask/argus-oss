@@ -195,6 +195,35 @@ jobs:
       - name: pnpm audit (fail on high/critical)
         run: pnpm audit --audit-level=high
 
+  # License-compliance gate (P0-12, ADR-0002 §G): SPDX allowlist over the full
+  # third-party tree via scripts/check-licenses.mjs. Dev-tooling self-audit —
+  # distinct from the planned P4-06 license-checker product adapter; P11-02's
+  # comprehensive audit may later supersede it. Runs on the same trigger set as
+  # audit (incl. the weekly cron — advisory-style license changes arrive with
+  # version bumps, so re-checking pinned trees weekly is cheap insurance).
+  # Not a branch-protection required check (same pending admin step, P0-03).
+  license:
+    name: License compliance (SPDX allowlist)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check dependency licenses (ADR-0002 §G allowlist)
+        run: pnpm license-check
+
   commitlint:
     name: Commit message validation
     runs-on: ubuntu-latest
