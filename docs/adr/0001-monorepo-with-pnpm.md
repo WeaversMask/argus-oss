@@ -1,8 +1,8 @@
 # ADR-0001 — Monorepo with pnpm Workspaces and Turborepo
 
 **Status:** Accepted
-**Date:** YYYY-MM-DD (set on Phase 0 completion)
-**Decision makers:** Architecture team
+**Date:** 2026-05-23 (drafted with the initial scaffolding) · reconciled and dated 2026-07-04 (P0-08)
+**Decision makers:** Maintainer (solo; in effect since P0-01, ratified by fourteen tasks built on it)
 
 ---
 
@@ -81,12 +81,16 @@ Rationale:
 
 ## Pinned Versions
 
-- `pnpm@9.x` (set in root `package.json` → `packageManager` field)
-- `turbo@2.x`
+> Reconciled 2026-07-04 (P0-08): the draft predated the supply-chain baseline.
+
+- `pnpm` — **exact-pinned** in root `package.json` → `packageManager` (11.5.3 at reconciliation; the pinning _policy_ — exact version, 3-day minimum release age, install scripts blocked — is [ADR-0003](./0003-supply-chain-hardening-baseline.md))
+- `turbo@2.x` (root devDependency)
+- CI Node is concretely pinned via `NODE_VERSION` in `ci.yml` (P0-13); local floor is `engines.node`
 
 ## Related ADRs
 
 - [ADR-0002 — Third-Party Integration & Open-Source Licensing Policy](./0002-third-party-integration-and-licensing-policy.md)
+- [ADR-0003 — Supply-Chain Hardening Baseline](./0003-supply-chain-hardening-baseline.md) — supersedes this file's original `pnpm@9.x` note
 
 ## References
 

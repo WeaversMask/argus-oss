@@ -152,4 +152,4 @@ The application validates required env vars at startup via Zod and refuses to st
 
 ## Reporting a Vulnerability
 
-If you find a security issue in Argus itself (not a secret committed by accident), follow the process in `SECURITY.md` at the repo root rather than opening a public issue.
+If you find a security issue in Argus itself (not a secret committed by accident), follow the process in [`SECURITY.md`](../SECURITY.md) at the repo root rather than opening a public issue.
