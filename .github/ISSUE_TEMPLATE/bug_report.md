@@ -23,4 +23,7 @@ Smallest possible repro — commands, config, or a linked repo.
 ## Notes
 
 Logs, stack traces, screenshots — redact anything sensitive. Security
-vulnerabilities do **not** go here: see [SECURITY.md](../../SECURITY.md).
+vulnerabilities do **not** go here: see
+[SECURITY.md](https://github.com/WeaversMask/argus/blob/main/SECURITY.md)
+(absolute URL on purpose — relative links don't resolve in rendered issue
+bodies).
