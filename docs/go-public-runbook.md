@@ -2,51 +2,54 @@
 
 > **Policy (maintainer directive, 2026-07-04):** going public is a voluntary,
 > unscheduled, manual step performed by the maintainer alone — **never by an
-> agent**. Agents never change repo visibility, never create public repos,
-> and never push to the artifact repo below.
+> agent**. Agents never change repo visibility and never create public repos.
 
-## Why two repos
+## The two repos
 
-On 2026-07-04 the history of this repo was rewritten to remove the
-maintainer's personal email from all author/committer fields (name kept —
-maintainer's call; email is the hard constraint). GitHub keeps pre-rewrite
-commits reachable via `refs/pull/*` on **this** repo, so **this repo must
-never be made public**. The clean-history artifact is:
+On 2026-07-04 the git history was rewritten to remove the maintainer's
+personal email from all author/committer fields (name kept — maintainer's
+call; the email is the hard constraint). Same day, all work moved to the
+clean-history repo:
 
-- **`WeaversMask/argus-oss`** (private until the maintainer flips it) —
-  scrubbed `main`, API-verified 0 personal-email hits at creation. Placeholder
-  name; rename freely any time before going public.
+- **`WeaversMask/argus-oss` — THIS repo, the live working repo.** Clean
+  history from birth (API-verified 0 personal-email hits at migration);
+  every commit after 2026-07-04 is clean by construction (repo-local git
+  identity is the noreply address). Going public = flipping **this** repo's
+  visibility. The name is a placeholder — rename freely before publishing.
+- **`WeaversMask/argus` — the retired pre-scrub repo. Must NEVER go
+  public:** its `refs/pull/*` keep pre-rewrite commits (with the personal
+  email) fetchable. It holds the old PR/issue archaeology (#1–#31).
+  Recommended: GitHub **Settings → Archive this repository** (read-only).
+  Agents never push there.
 
-Every commit made after 2026-07-04 is clean by construction (repo-local git
-identity is the noreply address), so syncing the artifact is always a plain
-fast-forward push.
+## Steps when going public (maintainer, ~10 min, any time)
 
-## Steps (maintainer, ~15 min, any time)
-
-1. **Verify this repo's `main` is still clean** (paranoia check, must print 0):
+1. **Paranoia check** (must print 0):
    `git log --format='%ae %ce' origin/main | grep -ci icloud`
-2. **Sync the artifact:** `git push git@github.com:WeaversMask/argus-oss.git main:main`
-3. **Optional renames:** `argus` → e.g. `argus-private-archive`, then
-   `argus-oss` → `argus`. Reusing the name breaks links to this repo's old
-   PRs (#1–#30) — the archaeology stays browsable in the renamed archive.
-4. **Repo settings on the artifact — nothing migrates automatically:**
-   - Branch protection on `main` (mirror this repo's rule: required checks,
-     required PR reviews, no force pushes, no bypass)
+2. **LICENSE:** resolve the "The Argus Authors" placeholder → **WeaversMask**
+   (pseudonymous copyright holder; pending since P0-10).
+3. **Optional renames:** archive/rename the retired repo (e.g.
+   `argus-private-archive`), then rename this one to `argus`. Reusing the
+   name breaks links to the retired repo's PRs — the archaeology stays
+   browsable under its new name.
+4. **Public-only settings on this repo** (cannot be pre-set while private):
    - Private vulnerability reporting toggle (SECURITY.md §Reporting relies on it)
-   - Dependabot (config file travels; alerts/updates enablement is a setting)
-   - Actions secrets when D-1 lands (`TURBO_*`)
-5. **LICENSE:** resolve the "The Argus Authors" placeholder → **WeaversMask**
-   before flipping (pseudonymous copyright holder, maintainer decision
-   pending since P0-10).
-6. **Flip visibility → Public** on the artifact repo.
-7. Optional: GitHub profile display name currently shows the real name and is
-   stamped on web-UI merge commits — email stays safe either way; renaming
-   the profile to WeaversMask is cosmetic and entirely optional.
+   - Review the Actions/fork-PR permission defaults GitHub applies on flip
+5. **Flip visibility → Public.**
+6. Optional, cosmetic: the GitHub profile display name (real name) is stamped
+   on web-UI merge commits — the email stays safe either way.
 
-## Post-rewrite footnotes
+## Already replicated on this repo (2026-07-04 migration)
+
+Branch protection on `main` (6 required checks, strict, required PRs, no
+force pushes, no admin bypass), Dependabot version updates + alerts +
+automated security fixes. Secrets (`TURBO_*`) still pending Open Decision
+D-1 — set them here, not on the retired repo.
+
+## Footnotes
 
 - Old GitHub-created merge commits show **"unverified" signatures** in the
   rewritten history (hashes changed) — cosmetic, expected.
 - Pre-scrub backup: `~/argus-pre-scrub-backup.bundle` on the maintainer's
-  machine — contains the old emails by design; never push it anywhere;
-  delete it once satisfied.
+  machine — contains the old emails by design; never push it; delete when
+  satisfied.
