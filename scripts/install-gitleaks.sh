@@ -52,6 +52,19 @@ esac
 asset="gitleaks_${GITLEAKS_VERSION}_${os}_${arch}.tar.gz"
 url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${asset}"
 
+# Expected SHA-256 per platform tarball, taken from the release's published
+# checksums file (P0-13, ADR-0003):
+#   https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt
+# Bumping GITLEAKS_VERSION means refreshing all four values from the new
+# release's checksums file. Every os/arch combination that reaches this point
+# is one of these four — anything else exited above.
+case "${os}_${arch}" in
+  darwin_arm64) expected_sha256="b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5" ;;
+  darwin_x64) expected_sha256="dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709" ;;
+  linux_arm64) expected_sha256="e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080" ;;
+  linux_x64) expected_sha256="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb" ;;
+esac
+
 mkdir -p "$BIN_DIR"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -62,6 +75,25 @@ if ! curl -fsSL "$url" -o "$tmpdir/gitleaks.tar.gz"; then
   echo "    URL: $url"
   echo "    Workaround: install via brew/apt or run the script again with network access."
   exit 0
+fi
+
+# Verify before extracting. A failed download soft-skips above (availability
+# tradeoff — pre-commit scanning degrades, nothing is installed), but a
+# checksum MISMATCH is a hard failure: never extract or install a tarball
+# that isn't byte-for-byte the audited release asset.
+if command -v sha256sum >/dev/null 2>&1; then
+  actual_sha256="$(sha256sum "$tmpdir/gitleaks.tar.gz" | awk '{print $1}')"
+else
+  actual_sha256="$(shasum -a 256 "$tmpdir/gitleaks.tar.gz" | awk '{print $1}')"
+fi
+if [ "$actual_sha256" != "$expected_sha256" ]; then
+  echo "❌ install-gitleaks: SHA-256 mismatch for $asset" >&2
+  echo "   expected: $expected_sha256" >&2
+  echo "   actual:   $actual_sha256" >&2
+  echo "   Refusing to install. Verify your network path, or fetch the release" >&2
+  echo "   manually and compare against the published checksums file:" >&2
+  echo "   https://github.com/gitleaks/gitleaks/releases/tag/v${GITLEAKS_VERSION}" >&2
+  exit 1
 fi
 
 tar -xzf "$tmpdir/gitleaks.tar.gz" -C "$tmpdir" gitleaks
