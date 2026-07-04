@@ -11,13 +11,15 @@
 // past direct dependencies (verified empirically: 16 of 333 packages from the
 // repo root), so this script enumerates every physical package directory in
 // node_modules/.pnpm and runs license-checker per directory, unioning the
-// per-package records. Policy evaluation happens here, fail-closed: unknown
+// per-package records (including bundledDependencies nested inside a package
+// — those never get .pnpm entries of their own). Policy evaluation happens
+// here, fail-closed: unknown
 // ids, UNLICENSED/UNKNOWN, custom license text, and SPDX `WITH` clauses all
 // trip the gate for manual review.
 
 import { createRequire } from "node:module";
 import { existsSync, lstatSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import process from "node:process";
 import console from "node:console";
 
@@ -45,6 +47,7 @@ const NAMED_EXCEPTIONS = [
   {
     // ADR-0002 §G: dev-only transitives, weak file-level copyleft, unmodified,
     // not redistributed; notices preserved in THIRD-PARTY-NOTICES.
+    // Keep in sync with MPL_EXCEPTION in generate-third-party-notices.mjs.
     name: /^lightningcss(-.+)?$/,
     license: "MPL-2.0",
     reason: "ADR-0002 §G named MPL-2.0 exception (lightningcss*)",
@@ -149,15 +152,28 @@ const checkerInit = (opts) =>
 // license-checker appends "*" when it guessed the license from shipped files
 // instead of the package.json field. Evaluate the underlying id (a guessed
 // GPL still fails) but surface every guess so reviews see the uncertainty.
-async function licenseRecord(dir) {
+//
+// Besides the start package itself, keep records for anything license-checker
+// found in node_modules nested *inside* the start dir: bundledDependencies
+// ship that way and never get .pnpm entries of their own, so dropping those
+// records would silently exempt bundled packages from the gate. Symlinked
+// sibling deps resolve outside the start dir and are skipped here — each is
+// scanned as its own physical dir.
+async function licenseRecords(dir) {
   const pkgs = await checkerInit({ start: dir });
+  const records = [];
+  let sawStartDir = false;
   for (const [id, info] of Object.entries(pkgs)) {
-    if (info.path !== dir) continue;
+    if (info.path === dir) sawStartDir = true;
+    else if (!info.path.startsWith(dir + sep)) continue;
     const raw = Array.isArray(info.licenses) ? info.licenses.join(" OR ") : String(info.licenses);
     const guessed = raw.endsWith("*");
-    return { id, name: id.slice(0, id.lastIndexOf("@")), raw, guessed };
+    records.push({ id, name: id.slice(0, id.lastIndexOf("@")), raw, guessed });
   }
-  throw new Error(`license-checker returned no record for its start dir ${dir}`);
+  if (!sawStartDir) {
+    throw new Error(`license-checker returned no record for its start dir ${dir}`);
+  }
+  return records;
 }
 
 const installRoot =
@@ -167,8 +183,18 @@ const installRoot =
 
 const records = new Map(); // id -> record (dedupes peer-variant store entries)
 for (const dir of physicalPackageDirs(installRoot)) {
-  const record = await licenseRecord(dir);
-  if (!records.has(record.id)) records.set(record.id, record);
+  let dirRecords;
+  try {
+    dirRecords = await licenseRecords(dir);
+  } catch (err) {
+    // Fail closed with the script's own format instead of a raw stack trace.
+    console.error(`license-check ERROR — could not determine licenses under ${dir}:`);
+    console.error(`  ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+  for (const record of dirRecords) {
+    if (!records.has(record.id)) records.set(record.id, record);
+  }
 }
 
 const violations = [];
