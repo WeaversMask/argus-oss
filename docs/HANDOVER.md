@@ -10,7 +10,7 @@
 
 ## Context
 
-P0-06 shipped as [#20](https://github.com/WeaversMask/argus/pull/20): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](./plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
+P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](./plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
 
 ## What I Did
 
@@ -36,12 +36,12 @@ P0-06 shipped as [#20](https://github.com/WeaversMask/argus/pull/20): `Dockerfil
 ## State of the System
 
 - ✅ Tests 9 passing (100% line/branch), lint/format green, license-check + audit clean; docker stack verified live then torn down (`down -v` — machine clean)
-- ⏸ PR #20 open, pending human merge; CI green expected (no workflow changes)
+- ⏸ PR #28 open, pending human merge; CI green expected (no workflow changes)
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Recommended Next Steps
 
-Pick up **P0-08** (branch from `main` after #20 merges; no file overlap with anything in flight):
+Pick up **P0-08** (branch from `main` after #28 merges; no file overlap with anything in flight):
 
 1. Read [phase-00 §P0-08](./plan/phases/phase-00-foundation.md) fully (this handover only summarizes). ADR-0001 is retroactive — keep it short, date it honestly, reference P0-01/P0-02 PRs.
 2. `SECURITY.md`: resolve the dangling `SECURITY-NOTES.md` §Reporting reference; solo-maintainer disclosure process (GitHub private vulnerability reporting), no SLA promises the maintainer can't keep.
@@ -57,13 +57,13 @@ Pick up **P0-08** (branch from `main` after #20 merges; no file overlap with any
 ## Files Touched This Session
 
 ```
-Dockerfile.dev                    [created]                       (P0-06, #20)
-docker-compose.yml                [created]                       (P0-06, #20)
-.dockerignore                     [created]                       (P0-06, #20)
-README.md                         [modified — Docker dev section] (P0-06, #20)
-docs/IMPLEMENTATION.md            [modified — 14/16, P0-06 row]   (P0-06, #20)
-docs/HANDOVER.md                  [rewritten — this file]         (P0-06, #20)
-docs/handovers/p0-13-supply-chain-handover.md [created — archive] (P0-06, #20)
+Dockerfile.dev                    [created]                       (P0-06, #28)
+docker-compose.yml                [created]                       (P0-06, #28)
+.dockerignore                     [created]                       (P0-06, #28)
+README.md                         [modified — Docker dev section] (P0-06, #28)
+docs/IMPLEMENTATION.md            [modified — 14/16, P0-06 row]   (P0-06, #28)
+docs/HANDOVER.md                  [rewritten — this file]         (P0-06, #28)
+docs/handovers/p0-13-supply-chain-handover.md [created — archive] (P0-06, #28)
 .work/P0-06.md                    [created — gitignored]
 ```
 
