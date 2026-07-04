@@ -34,7 +34,7 @@ Copyleft engines are never imported, linked, or vendored — subprocess only, be
 
 ### Docker dev environment (optional)
 
-`docker compose up --build` starts a Node dev container (runs the test suite in watch mode against your bind-mounted checkout) plus Redis and Postgres for later phases — see the comments in [docker-compose.yml](docker-compose.yml). Ports bind to localhost only; commit from the host, not the container. Per [ADR-0002 §D](docs/adr/0002-third-party-integration-and-licensing-policy.md) this is a recipe — no prebuilt image is published.
+`docker compose up --build` starts a Node dev container (runs the test suite in watch mode against your bind-mounted checkout) plus Redis and Postgres for later phases — see the comments in [docker-compose.yml](docker-compose.yml). Ports bind to localhost only; commit from the host, not the container. On Linux hosts, files the container writes into the bind mount appear owned by uid 1000. Per [ADR-0002 §D](docs/adr/0002-third-party-integration-and-licensing-policy.md) this is a recipe — no prebuilt image is published.
 
 ## License
 
