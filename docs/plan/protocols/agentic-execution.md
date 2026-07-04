@@ -79,7 +79,10 @@ Before marking a task complete:
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
 - [ ] If user-facing: documentation updated
 - [ ] If architectural: ADR written or updated
-- [ ] **Independent review pass done:** a fresh-context agent reviewed the full diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md) and produced a **review packet** — risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min" — attached to the PR. Review passes run on a cost-efficient model by default (e.g. Sonnet-class); escalate to a stronger model only for high-risk diffs (domain core, adapter boundary, releases)
+- [ ] **Independent review pass done:** a fresh-context agent reviewed the diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md). Depth is tiered by diff risk (maintainer-approved 2026-07-04 — P0-12's review spent most of its budget re-verifying results the author had already documented):
+  - **Light** — docs-only or config-only diffs with no executable logic: bugs-only findings + verdict, summarized in the PR description; no packet boilerplate.
+  - **Full packet** — any diff with executable logic or security-relevant behavior: risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min", attached to the PR.
+  - **Reviewer brief, both tiers:** review the diff, not the repo; do **not** re-run verification the author documented (spot-check at most one); spend the budget on paths the author did **not** exercise (P0-12's one novel finding — the bundledDependencies blind spot — came from exactly there). Sonnet-class by default; escalate models only for high-risk diffs (domain core, adapter boundary, releases)
 - [ ] PR opened using [`templates/PR.template.md`](../templates/PR.template.md)
 - [ ] `IMPLEMENTATION.md` updated: task moved to Recently Completed
 - [ ] `HANDOVER.md` rewritten for the next picker (use [`templates/HANDOVER.template.md`](../templates/HANDOVER.template.md))
