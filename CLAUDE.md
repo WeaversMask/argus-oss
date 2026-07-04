@@ -25,3 +25,5 @@ Full policy with examples: [agentic-execution.md §Permission-Prompt Description
 - Conventional commits only: `feat|fix|chore|refactor|docs|test`.
 - One task = one branch = one PR. Branch from `main`; plan/doc changes other tasks depend on land first as their own small PR.
 - Agents may push branches and open PRs. **Agents never merge — the maintainer does.**
+- **Going public is maintainer-only, voluntary, unscheduled — never agentic.** Agents never change repo visibility or create public repos. The retired `WeaversMask/argus` repo is a frozen pre-scrub archive — never push there, never make it public. Procedure: [go-public-runbook](docs/go-public-runbook.md).
+- Public identity is `WeaversMask <131781531+WeaversMask@users.noreply.github.com>` — enforced via repo-local git config. Never commit here with the global (personal) email; history was scrubbed of it on 2026-07-04.
