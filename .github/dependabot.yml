@@ -1,0 +1,27 @@
+# Dependabot update PRs (P0-13, ADR-0003). The 3-day cooldown mirrors pnpm's
+# minimumReleaseAge (4320 min) in pnpm-workspace.yaml, so Dependabot never
+# proposes a version pnpm would still refuse to resolve. Minor/patch bumps are
+# grouped into one PR per ecosystem; majors arrive individually for review.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 3
+    groups:
+      actions-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 3
+    groups:
+      npm-minor-and-patch:
+        update-types: ["minor", "patch"]
