@@ -1,74 +1,76 @@
-# Handover — P0-06 → P0-08
+# Handover — P0-08 → P0-09
 
 **From:** claude-fable-5
 **To:** next picker
 **Date:** 2026-07-04
 **Phase:** P0 — Foundation
-**Last task completed:** P0-06 — Docker development environment
+**Last task completed:** P0-08 — Documentation scaffolding
 
 ---
 
 ## Context
 
-P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](./plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
+P0-08 shipped as [#30](https://github.com/WeaversMask/argus/pull/30) (docs-only, light-tier review per OPS-02). **Next: P0-09 — Changesets release workflow — the LAST P0 task.** Its spec is two lines in [phase-00 §P0-09](./plan/phases/phase-00-foundation.md); on completion the **phase-transition protocol applies** (exit-criteria check against the phase file, phase-completion handover, tracker phase flip to P1). Also open: sibling maintenance PR [#29](https://github.com/WeaversMask/argus/pull/29) (notices regen after #25) — trivial, merge anytime.
 
 ## What I Did
 
-- **`Dockerfile.dev`** — node:22.23.1-bookworm-slim **digest-pinned** (tag = CI's `NODE_VERSION`, bump together + refresh digest); git via apt; pnpm via corepack (`ARG PNPM_VERSION` synced to `packageManager`); **non-root `node` user**; no COPY — the repo bind-mounts at `/app` (recipe, ADR-0002 §D).
-- **`docker-compose.yml`** — app (init, vitest `--watch` explicit — without a TTY vitest would single-run and exit; `HUSKY=0` + `ARGUS_SKIP_GITLEAKS_INSTALL=1` so the container never touches host hooks or installs a wrong-platform binary); redis 8.8.0-alpine + postgres 18.4-alpine (digest-pinned, healthchecks, **loopback-only ports**); named volumes shadow `/app/node_modules` + `/app/packages/testing/node_modules`. `.dockerignore`, README §Docker note.
-- **Fixed live:** first `up` died with `EACCES mkdir /app/node_modules/.pnpm` — fresh named volumes mount root-owned unless the image pre-creates the mountpoints with `node` ownership (volume init copies content **and ownership** from the image). Fix in Dockerfile; re-verified from scratch (`down -v` first).
+- **Root `SECURITY.md`** — GitHub private vulnerability reporting as the only channel, 7-day best-effort ack, no bounty, coordinated disclosure; routes committed-secret incidents to SECURITY-NOTES §"If You Accidentally Commit a Secret" and supply-chain questions to ADR-0003. **New admin step flagged: enable Private vulnerability reporting in repo settings** (same pending bucket as P0-03 branch protection). SECURITY-NOTES §Reporting now links to the file (was a dangling reference).
+- **`.github/PULL_REQUEST_TEMPLATE.md`** — byte-copy of `templates/PR.template.md` (`diff -q` verified; acceptance is a byte-match, keep it that way).
+- **Issue templates** — bug_report.md, feature_request.md, config.yml with a security contact-link to private advisories.
+- **ADR-0001 reconciled, not rewritten** — it existed since 2026-05-23 with placeholders: real dates set, decision-makers now honest (solo maintainer), stale `pnpm@9.x` pinned-versions note superseded with an ADR-0003 pointer. Tracker's Recent-ADRs line updated from "(pending Phase 0)".
+- Fixed a leftover from the Dependabot renumbering: tracker's P0-06 link label said #20 while pointing at pull/28.
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-08, P0-09** — unstarted, in Up Next order.
-- **No CI docker build check** — nothing exercises `Dockerfile.dev` in CI (docker build job = cost + would tempt image publishing; recipe verified manually instead). Revisit only if drift becomes real.
-- **Maintainer decisions open:** D-1 (remote cache); `LICENSE` copyright placeholder; `nvm alias default 22`; post-#19 Dependabot config check (Insights → Dependabot) if not yet done.
+- **P0-09** — unstarted (see below).
+- **Dependabot PRs parked by the maintainer:** #20–24 (action majors — need release-notes review), #26 (@types/node 26 — recommend closing + an `ignore` rule keeping it aligned with `engines.node`), #27 (rimraf 6). All CI-green, all still open.
+- **Admin steps outstanding:** branch-protection required checks (P0-03), Private vulnerability reporting toggle (new, P0-08), D-1 remote cache, `LICENSE` copyright placeholder, `nvm alias default 22`.
 
 ## Gotchas & Surprises
 
-1. **Named volumes over `node_modules` initialize root-owned** unless the image pre-creates those dirs `node`-owned — the EACCES above. **New workspace packages need BOTH a volume line in compose AND a `mkdir` in the Dockerfile mountpoint RUN.** Comments in both files say so.
-2. **`vitest` without `--watch` exits in non-TTY containers** (single run) → compose `up` would show the app "exited". The explicit flag is load-bearing, not style.
-3. **postgres:18+ images moved PGDATA** under `/var/lib/postgresql/<major>/…` — the volume mounts the **parent** `/var/lib/postgresql` (mounting the old `…/data` path would silently keep data outside the volume).
-4. **Commit from the host, never the container** — `.bin/gitleaks` is a host-platform binary; pre-commit inside the container would exec-format-fail on macs.
-5. **Docker Desktop may be stopped** on this machine (`open -a Docker`, wait ~30s for the daemon).
-6. **P0-12/P0-13 gotchas remain live** (license-checker pnpm traversal; NODE_VERSION/engines dual pin; gitleaks-bump = refresh 4 hashes): archived handovers in `docs/handovers/`.
+1. **P0-09 adds a dependency and a workflow** — both hardened paths apply: `@changesets/cli` goes through the ADR-0003 gate (exact pin, ≥3-day age, verify name on npm, `allowBuilds` stays `{}` unless proven needed) and the release workflow's actions must be **SHA-pinned** like ci.yml (P0-13 posture). Publishing needs an `NPM_TOKEN` secret — that's another admin step; the acceptance ("merging a release PR publishes") may only be verifiable up to the publish boundary until the maintainer wires the token. Document honestly, don't fake it.
+2. **Changesets on a currently-private-package workspace:** root is `private: true` and `@argus/testing` may be too — decide what `pnpm changeset` should version today; config `ignore`/`privatePackages` choices matter. Record the call in the PR.
+3. **PR-template byte-match**: if `templates/PR.template.md` ever changes, `.github/PULL_REQUEST_TEMPLATE.md` must be re-copied — there is no sync check.
+4. **P0-06/P0-12/P0-13 gotchas remain live** — archived handovers in `docs/handovers/`.
 
 ## State of the System
 
-- ✅ Tests 9 passing (100% line/branch), lint/format green, license-check + audit clean; docker stack verified live then torn down (`down -v` — machine clean)
-- ⏸ PR #28 open, pending human merge; CI green expected (no workflow changes)
+- ✅ Tests 9 passing (100% line/branch), lint/format green, license-check + audit clean (post-#25 tree)
+- ⏸ PRs open: #29 (notices regen, trivial), #30 (this task, light review in PR body); Dependabot #20–24/#26/#27 parked
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Recommended Next Steps
 
-Pick up **P0-08** (branch from `main` after #28 merges; no file overlap with anything in flight):
+Pick up **P0-09** (branch from `main` after #30 — and ideally #29 — merge):
 
-1. Read [phase-00 §P0-08](./plan/phases/phase-00-foundation.md) fully (this handover only summarizes). ADR-0001 is retroactive — keep it short, date it honestly, reference P0-01/P0-02 PRs.
-2. `SECURITY.md`: resolve the dangling `SECURITY-NOTES.md` §Reporting reference; solo-maintainer disclosure process (GitHub private vulnerability reporting), no SLA promises the maintainer can't keep.
-3. PR-template acceptance is a byte-match against `templates/PR.template.md` — copy, don't paraphrase.
-4. Tracker + handover rotation, light-tier review (docs-only diff → OPS-02 light), PR.
+1. Read [phase-00 §P0-09](./plan/phases/phase-00-foundation.md) and the phase exit criteria at the bottom of the phase file — P0-09's PR should leave the tree ready for the phase flip.
+2. `@changesets/cli` through the ADR-0003 dance; `.changeset/config.json`; release workflow SHA-pinned; `pnpm changeset` interactive-prompt acceptance verified locally.
+3. On completion: **phase-transition protocol** — exit-criteria verification, phase-completion handover (more comprehensive than a task handover), tracker Current-phase flip to P1, archive phase notes.
+4. Full-tier review (workflow + dependency = security-relevant), PR.
 
 ## Open Questions for the Next Agent
 
-- None new.
+- Where should releases publish (npm public vs GitHub Packages)? Spec says "npm (or internal registry)" — needs the maintainer's call before the workflow can be finished; raise as an Open Decision if not answered by merge time.
 
 ---
 
 ## Files Touched This Session
 
 ```
-Dockerfile.dev                    [created]                       (P0-06, #28)
-docker-compose.yml                [created]                       (P0-06, #28)
-.dockerignore                     [created]                       (P0-06, #28)
-README.md                         [modified — Docker dev section] (P0-06, #28)
-docs/IMPLEMENTATION.md            [modified — 14/16, P0-06 row]   (P0-06, #28)
-docs/HANDOVER.md                  [rewritten — this file]         (P0-06, #28)
-docs/handovers/p0-13-supply-chain-handover.md [created — archive] (P0-06, #28)
-.work/P0-06.md                    [created — gitignored]
+SECURITY.md                          [created]                        (P0-08, #30)
+.github/PULL_REQUEST_TEMPLATE.md     [created — byte-copy]            (P0-08, #30)
+.github/ISSUE_TEMPLATE/{bug_report.md,feature_request.md,config.yml} [created] (P0-08, #30)
+docs/adr/0001-monorepo-with-pnpm.md  [reconciled — dates/versions]    (P0-08, #30)
+docs/SECURITY-NOTES.md               [modified — §Reporting link]     (P0-08, #30)
+docs/IMPLEMENTATION.md               [modified — 15/16, P0-08 row]    (P0-08, #30)
+docs/HANDOVER.md                     [rewritten — this file]          (P0-08, #30)
+docs/handovers/p0-06-docker-dev-env-handover.md [created — archive]   (P0-08, #30)
+THIRD-PARTY-NOTICES                  [regenerated]                    (maintenance, #29)
+.work/P0-08.md                       [created — gitignored]
 ```
 
 ## Sign-off
 
-Dev environment is real, not theoretical: built, booted, tested from inside, edit-propagation proven, torn down clean. Two tasks left in Phase 0.
+Docs scaffolding complete and acceptance-verified (byte-match diffed, dangling reference resolved, ADR-0001 honest). One task left in Phase 0 — the next session closes the phase.
 
 — claude-fable-5
