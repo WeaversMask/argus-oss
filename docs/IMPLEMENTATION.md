@@ -5,7 +5,7 @@
 **Last updated:** _2026-07-04 by claude-fable-5_
 **Current phase:** _Phase 0 — Foundation_
 **Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _13 of 16 P0 tasks complete (0 of 12 phases complete)_
+**Overall progress:** _14 of 16 P0 tasks complete (0 of 12 phases complete)_
 
 ---
 
@@ -27,28 +27,27 @@
 
 > Resequenced 2026-06-12 (maintainer-approved); the supply-chain and process tasks that had to land first (P0-14..P0-16) are ✅. Specs in [phase-00](./plan/phases/phase-00-foundation.md).
 
-1. _P0-06 — Docker development environment_
-2. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
-3. _P0-09 — Changesets release workflow_
+1. _P0-08 — Documentation scaffolding + ADR-0001 + SECURITY.md_
+2. _P0-09 — Changesets release workflow_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                         |
-| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | 🟡 In progress | 13/16     | P0-12 + P0-13 + OPS-02 done 2026-07-04 — licensing arc closed, `ci.yml` serialization done. P0-06 Docker next |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                                             |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                             |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                             |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                             |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                             |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                             |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                             |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                             |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                             |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                             |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                             |
+| Phase                  | Status         | Completed | Notes                                                                                       |
+| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | 🟡 In progress | 14/16     | P0-06 done 2026-07-04 (dev stack verified live). P0-08 + P0-09 remain — phase exit in sight |
+| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                                           |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                           |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                           |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                           |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                           |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                           |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                           |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                           |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                           |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                           |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                           |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -58,6 +57,7 @@
 
 | Task ID | Title                                                              | Completed  | PR                                                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------- | ------------------------------------------------------------------ | ---------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-06   | Docker development environment                                     | 2026-07-04 | [#20](https://github.com/WeaversMask/argus/pull/20) | `Dockerfile.dev` (node 22.23.1-bookworm-slim **digest-pinned** = CI `NODE_VERSION`, bump together; corepack pnpm; non-root) + `docker-compose.yml`: app w/ bind mount + named-volume `node_modules` shadowing (host/container platform binaries differ), redis 8.8.0-alpine + postgres 18.4-alpine (digest-pinned, healthchecked, loopback-only ports). Verified live: stack healthy, 9 tests pass in-container, host edit → vitest RERUN; EACCES fix = image pre-creates `node`-owned volume mountpoints. Recipe only, never a published image (ADR-0002 §D)                               |
 | P0-13   | CI supply-chain hardening (config-only)                            | 2026-07-04 | [#19](https://github.com/WeaversMask/argus/pull/19) | Every `uses:` SHA-pinned w/ version comment (resolved from upstream repos, not marketplace); `dependabot.yml` (github-actions + npm, grouped minor/patch, cooldown 3d = `minimumReleaseAge`); CI Node pinned via `NODE_VERSION: "22.23.1"` env (was floating `>=` range via node-version-file); gitleaks tarball SHA-256-verified against release checksums (embedded per-platform; tampered hash → hard exit 1, negative test in PR); `remoteCache.signature: true` (inert until D-1). Closes R-013                                                                                        |
 | OPS-02  | Risk-tiered review passes (token-cost reduction)                   | 2026-07-04 | [#18](https://github.com/WeaversMask/argus/pull/18) | Maintainer-requested after P0-12's ~99k-token review: light tier (bugs-only) for docs/config-only diffs; full packet only for executable-logic/security diffs; standing reviewer brief — diff-scoped, no re-running author-documented verification, budget on untested paths                                                                                                                                                                                                                                                                                                                |
 | P0-12   | License-compliance guardrail (SPDX allowlist) in CI + local script | 2026-07-04 | [#17](https://github.com/WeaversMask/argus/pull/17) | `pnpm license-check` + parallel `license` CI job: license-checker 25.0.1 unioned over every physical `.pnpm` package dir (its read-installed sees only 16/333 packages from the root under pnpm — verified). Fail-closed policy incl. OR/AND expression handling; named exceptions: `lightningcss*` (ADR-0002 §G) + `spdx-exceptions`/`spdx-ranges` (the gate tool's own CC-BY-3.0 SPDX data files — **maintainer sign-off = merging #17**). Notices regenerated (291 pkgs). Negative tests (GPL, new-MPL, OR-expr) documented in PR. Not a required check (admin step pending since P0-03) |
@@ -67,7 +67,6 @@
 | SEC-01  | Dependabot fix: vite 8.0.16 + js-yaml 4.2.0 (scoped overrides)     | 2026-07-03 | [#13](https://github.com/WeaversMask/argus/pull/13) | Dev-only transitives (GHSA-fx2h-pf6j-xcff high + 2 moderate); `pnpm update` can't reach non-direct transitives → range-scoped overrides in `pnpm-workspace.yaml` with removal-condition comment; both patched versions >30 days old, so no release-age exclusion needed                                                                                                                                                                                                                                                                                                                     |
 | P0-16   | Hook ergonomics: lint-staged pre-commit                            | 2026-07-02 | [#12](https://github.com/WeaversMask/argus/pull/12) | lint-staged 17.0.8 (first dep under the ADR-0003 gate); staged-scope eslint + prettier --write with SKIP-aware `lint-staged.config.mjs`; gitleaks step unchanged, block re-verified. Detail: PR + handover                                                                                                                                                                                                                                                                                                                                                                                  |
 | P0-14   | pnpm 11 upgrade, minimum release age & install-script blocking     | 2026-07-02 | [#11](https://github.com/WeaversMask/argus/pull/11) | pnpm 11.5.3 exact-pinned; `minimumReleaseAge: 4320` verified refusing a 1-day-old version; `allowBuilds: {}`; Node ≥22.13 (+`.nvmrc`); ADR-0003. Detail: PR + handover                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| P0-15   | Agent workflow codification (CLAUDE.md + protocols)                | 2026-06-12 | [#9](https://github.com/WeaversMask/argus/pull/9)   | Root `CLAUDE.md` (context budget, permission-prompt policy); protocol gains plan-lands-first, reviewer step, parallel lanes, handover budget; Open-Decisions gate. Detail: PR + handover                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ---
 
