@@ -26,6 +26,7 @@
     "prepare": "husky && ./scripts/install-gitleaks.sh"
   },
   "devDependencies": {
+    "@changesets/cli": "2.31.0",
     "@commitlint/cli": "21.2.0",
     "@commitlint/config-conventional": "21.2.0",
     "@eslint/js": "10.0.1",
