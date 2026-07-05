@@ -1,0 +1,32 @@
+{
+  "name": "@argus/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Argus domain core — entities, value objects, ports, and domain services. Zero infrastructure dependencies.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf coverage .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "neverthrow": "8.2.0"
+  },
+  "devDependencies": {
+    "@argus/testing": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.9",
+    "rimraf": "^5.0.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}
