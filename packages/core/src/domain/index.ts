@@ -46,6 +46,7 @@ export {
   type QueuedScan,
   type RunningScan,
   type Scan,
+  type ScanBase,
   type ScanMode,
   type ScanResult,
   type ScanStatus,

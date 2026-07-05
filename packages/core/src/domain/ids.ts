@@ -8,15 +8,20 @@ export type ScanId = Brand<string, "ScanId">;
 export type ViolationId = Brand<string, "ViolationId">;
 export type SuppressionId = Brand<string, "SuppressionId">;
 
-/** Opaque ids: any non-empty, whitespace-free string (UUID, ULID, slug, …). */
-const OPAQUE_ID = /^\S+$/;
+/** Opaque ids: any non-empty string free of whitespace and control characters (UUID, ULID, slug, …). */
+const OPAQUE_ID = /^[^\s\p{Cc}]+$/u;
 
 function opaqueIdFactory<Id extends string>(
   kind: string,
 ): (value: string) => Result<Id, ValidationError> {
   return (value) => {
     const validator = new Validator(kind);
-    validator.matches("value", value, OPAQUE_ID, "must be a non-empty string without whitespace");
+    validator.matches(
+      "value",
+      value,
+      OPAQUE_ID,
+      "must be a non-empty string without whitespace or control characters",
+    );
     return validator.toResult(() => value as Id);
   };
 }

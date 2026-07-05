@@ -11,6 +11,10 @@ export interface ValidationIssue {
  * Invalid input to an entity or value-object factory. Carries every issue
  * found in the input, not just the first, so callers can report them all
  * at once.
+ *
+ * Final: instances freeze themselves in the constructor, so a subclass
+ * with field initializers would throw at construction. Wrap or compose
+ * (e.g. carry a `ValidationError` as a field) instead of extending.
  */
 export class ValidationError extends DomainError {
   override readonly name = "ValidationError";

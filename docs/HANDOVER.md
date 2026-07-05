@@ -10,7 +10,9 @@
 
 ## Context
 
-`@argus/core` exists and holds the full Phase-1 domain model (107 tests, 100% coverage everywhere). **Next: P1-02 — Core port interfaces** (recommended: it unblocks P1-03/P1-04, the phase's long pole; P1-05/P1-06 are also unblocked). Branch from `main` after #10 merges — #10 owns this tracker/handover state. Independent review packet is on the PR.
+`@argus/core` exists and holds the full Phase-1 domain model (108 tests, 100% coverage everywhere). **Next: P1-02 — Core port interfaces** (recommended: it unblocks P1-03/P1-04, the phase's long pole; P1-05/P1-06 are also unblocked). Branch from `main` after #10 merges — #10 owns this tracker/handover state. Independent review packet is on the PR (approve-with-nits; nits fixed in-PR).
+
+**Open Decisions D-2/D-3/D-4 (from the review) gate parts of P1-02/P1-03:** D-2 composite-factory re-validation must land before P1-03; D-3 Position end-semantics before the model freezes; D-4 Suppression↔Project before P1-02 port signatures. The per-PR gate means the maintainer answers them at #10's merge — read the answers from the Open Decisions table before designing ports.
 
 ## Domain conventions established in P1-01 (follow these, don't reinvent)
 
@@ -41,7 +43,7 @@
 
 ## State of the System
 
-- ✅ All green: 116 tests (100% aggregate coverage), lint/typecheck/build, license gate (479 pkgs), notices current
+- ✅ All green: 117 tests (100% aggregate coverage), lint/typecheck/build, license gate (479 pkgs), notices current (359 pkgs)
 - ⏸ [argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10) open (P1-01 + this tracker state), pending human merge
 - ⏸ Dogfood scan: N/A until Phase 2
 

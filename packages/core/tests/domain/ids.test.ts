@@ -26,6 +26,7 @@ describe("opaque ids", () => {
     ["empty", ""],
     ["inner whitespace", "a b"],
     ["surrounding whitespace", " a "],
+    ["control characters", "a\u0000b"],
   ])("rejects %s", (_label, value) => {
     const error = projectId(value)._unsafeUnwrapErr();
     expect(error).toBeInstanceOf(ValidationError);

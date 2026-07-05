@@ -46,7 +46,7 @@ export function scanResult(input: {
  * member type, not `Scan`. Runtime checks cover only what types cannot:
  * timestamp ordering.
  */
-interface ScanBase {
+export interface ScanBase {
   readonly id: ScanId;
   readonly projectId: ProjectId;
   readonly mode: ScanMode;

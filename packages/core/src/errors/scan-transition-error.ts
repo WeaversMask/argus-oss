@@ -6,6 +6,9 @@ import { DomainError } from "./domain-error.js";
  * scan finishing before it started). Wrong-*status* transitions are ruled
  * out at compile time by the `Scan` discriminated union; this error covers
  * what the type system cannot.
+ *
+ * Final: instances freeze themselves in the constructor — compose rather
+ * than extend (see `ValidationError`).
  */
 export class ScanTransitionError extends DomainError {
   override readonly name = "ScanTransitionError";
