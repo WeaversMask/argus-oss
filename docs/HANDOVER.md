@@ -1,60 +1,52 @@
-# Handover — Phase 0 → Phase 1 (phase-completion)
+# Handover — P1-01 complete
 
 **From:** claude-fable-5
 **To:** next picker
 **Date:** 2026-07-05
-**Phase:** P0 — Foundation ✅ **COMPLETE** (16/16 + SEC-01/02, OPS-01/02) → P1 — Domain Core
-**Last task completed:** P0-09 — Changesets release workflow ([argus-oss#9](https://github.com/WeaversMask/argus-oss/pull/9), pending merge)
+**Phase:** P1 — Domain Core (1/6 tasks done)
+**Last task completed:** P1-01 — Core domain entities ([argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10), pending merge)
 
 ---
 
 ## Context
 
-Phase 0 is done. Exit criteria verified live this session: fresh `pnpm install` green, `pnpm test`/`lint`/`typecheck`/`build` all green, PR flow with 8 CI checks works (proven by ~30 PRs), and P1 needs no further setup. **Next: load [phase-01-domain-core.md](./plan/phases/phase-01-domain-core.md)** (deliberately not summarized here — load-on-pickup rule) and take its first unblocked task. Branch from `main` after #9 merges — #9 owns the tracker phase-flip.
+`@argus/core` exists and holds the full Phase-1 domain model (107 tests, 100% coverage everywhere). **Next: P1-02 — Core port interfaces** (recommended: it unblocks P1-03/P1-04, the phase's long pole; P1-05/P1-06 are also unblocked). Branch from `main` after #10 merges — #10 owns this tracker/handover state. Independent review packet is on the PR.
 
-## What the foundation gives you (inventory, one line each)
+## Domain conventions established in P1-01 (follow these, don't reinvent)
 
-- **Toolchain:** pnpm 11.5.3 exact-pinned (corepack), Node floor ≥22.22.1 (`.nvmrc` 22, CI pinned 22.23.1 via `NODE_VERSION`), Turborepo, strict TS 6.
-- **Tests:** Vitest 4 + `@argus/testing` (own matchers/fixtures; 9 tests, 100%); aggregated root coverage, thresholds 85/80.
-- **CI (`ci.yml`):** 8 parallel jobs — lint/format, typecheck, test+coverage, build, audit, license gate, commitlint, gitleaks — all actions SHA-pinned; weekly Monday cron; 6 jobs are branch-protection-required.
-- **Release (`release.yml`, new):** Changesets — `pnpm changeset` per change; Version-PR-or-publish on main; **npm public** target (maintainer decision 2026-07-05); publish is a no-op until a package drops `private:true` **and** `NPM_TOKEN` exists. Changeset files: only needed for versioned packages — while everything is private this is low-ceremony; establish the per-PR convention when the first public package appears.
-- **Supply chain:** `minimumReleaseAge` 4320 + `allowBuilds {}`; Dependabot grouped w/ 3-day cooldown (PRs #1–#7 parked by maintainer); gitleaks binary checksum-verified; new-dep procedure = verify name/age/team on npm before `pnpm add` (see P0-12/P0-14 rows).
-- **Licensing:** MIT + ADR-0002 boundary (copyleft engines subprocess-only, Phase-4-critical); `pnpm license-check` gate (478 pkgs, 3 named exceptions) + `pnpm notices` (358 pkgs) — **regenerate notices whenever the tree changes**.
-- **Hooks:** husky + lint-staged + gitleaks + commitlint + Node-floor guard; never `--no-verify`.
-- **Dev env:** `docker compose up --build` (digest-pinned node/redis/postgres; redis/postgres unused until P1+/P5).
-- **Docs:** SECURITY.md, PR/issue templates, ADR-0001..0003, go-public runbook.
+- **Branding:** `Brand<T, B>` from `packages/core/src/domain/brand.ts` (unique-symbol, hand-rolled — decided against type-fest). Branded values only exist via their validating factories.
+- **Factories:** return `Result<T, ValidationError>` (neverthrow) and collect **all** issues via the shared `Validator` in `src/domain/validation.ts` (internal, not exported from the barrel). Outputs are deeply `Object.freeze`d.
+- **Optional keys** are constructed conditionally (`...(x !== undefined ? { x } : {})`) — `exactOptionalPropertyTypes` is on; tests assert absent keys with `"key" in obj`.
+- **Time:** branded epoch-ms `Timestamp`, always injected — no `Date.now()` in core, ever.
+- **Scan is a discriminated union** (`QueuedScan | RunningScan | CompletedScan | FailedScan`); transitions take the narrow member type so wrong-status moves don't compile. Extend this pattern rather than adding nullable fields.
+- Errors live in `src/errors/` (`DomainError` base with `code`; `ValidationError`, `ScanTransitionError`).
 
-## Identity & repo topology (read before anything public-facing)
+## Gotchas for P1-02 (the ones that will actually bite)
 
-Work lives in **`WeaversMask/argus-oss`** (may be renamed). The retired `WeaversMask/argus` is a frozen pre-scrub archive — **never push there, never make it public**; going public = maintainer flips THIS repo, **never agentic** ([runbook](./go-public-runbook.md) + CLAUDE.md). Repo-local git identity = WeaversMask noreply; never commit with the global email.
+1. **Workspace dep cycle ahead:** P1-02 puts in-memory fakes in `packages/testing/src/mocks/`, so `@argus/testing` must depend on `@argus/core` types — but `@argus/core` already devDepends on `@argus/testing` (vitest config). pnpm tolerates dev-only cycles, but decide deliberately: type-only imports in the fakes, or fakes as a separate export path. Flag it in the PR either way.
+2. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` (hooks run node) — `nvm alias default 22` still pending (admin item). Bare `pnpm` in a fresh shell dies on Node 20.
+3. **New-package checklist** (if P1-02 creates none, skip): compose named volume + Dockerfile mountpoint line, root `vitest.config.ts` projects entry, `pnpm notices` when the dep tree changes.
+4. `.work/` is **gitignored** — task files are local-only; put the durable content in the PR.
+5. Ports are interface-only files → v8 coverage sees no runtime; the `quality-gates.md` coverage-exception list applies (document exclusions in the package `vitest.config.ts` with justification).
+6. Session hygiene: sync main first; context budget 50→70%; permission-prompt description policy; review tier full-packet for anything in core.
 
-## Maintainer admin items (consolidated, pending)
+## Maintainer admin items (carried over, still pending)
 
-1. Archive the retired `argus` repo (Settings → Archive) — **still not done as of 2026-07-05**.
-2. D-1: Turbo remote cache decision (+`TURBO_*` secrets; `remoteCache.signature` already true).
-3. `NPM_TOKEN` secret — only when the first package goes public.
-4. `LICENSE` copyright placeholder → "WeaversMask" (before go-public; runbook step).
-5. Private-vulnerability-reporting toggle (public-only setting; runbook step).
-6. Dependabot PRs #1–#7 (5 action majors + @types/node 26 [recommend close] + rimraf 6).
-7. `nvm alias default 22` on the dev machine (bare `pnpm` in fresh shells still needs `nvm use`).
-8. Delete `~/argus-pre-scrub-backup.bundle` when satisfied.
-
-## Gotchas for P1 (the ones that will actually bite)
-
-1. **P1 writes the first real source code.** Principles bind hard now: strict TS flags, `Result` types (neverthrow — **new dep → ADR-0003 verification dance**), branded types, no God files, coverage ≥85/80 enforced on changed files, TDD for rule logic.
-2. **Imports flow inward** (apps → orchestration → domain ← adapters); core never imports apps/adapters/persistence — this is the product's own law, dogfooded from Phase 3.
-3. **New workspace packages** need: named volume + Dockerfile mountpoint line (compose comments), vitest project registration, and license/notices stay automatic.
-4. Session hygiene: sync main first; context budget 50→70%; permission-prompt description policy; review tiers per OPS-02 (light for docs/config, full-lean for logic).
-5. Archived handovers in `docs/handovers/` hold per-task depth if a P0 decision needs archaeology.
+1. Archive the retired `argus` repo (Settings → Archive).
+2. D-1: Turbo remote cache decision.
+3. Dependabot PRs #1–#7.
+4. `nvm alias default 22` on the dev machine.
+5. Delete `~/argus-pre-scrub-backup.bundle` when satisfied.
+6. `NPM_TOKEN` / `LICENSE` placeholder / private-vuln-reporting — go-public bucket, unchanged.
 
 ## State of the System
 
-- ✅ Everything green: 9 tests (100%), lint/format/typecheck/build, license gate, audit, `pnpm changeset` prompt verified under pty
-- ⏸ [argus-oss#9](https://github.com/WeaversMask/argus-oss/pull/9) open (this task + phase flip), pending human merge
+- ✅ All green: 116 tests (100% aggregate coverage), lint/typecheck/build, license gate (479 pkgs), notices current
+- ⏸ [argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10) open (P1-01 + this tracker state), pending human merge
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Sign-off
 
-Sixteen planned tasks, four unplanned ops/security tasks, one history scrub, one repo migration — and a foundation where every gate is empirically verified rather than assumed. Phase 1 starts with a clean tree, a clean history, and no setup debt.
+The domain speaks its own language now — branded, frozen, and total. P1-02 gives it ports; after that the engine.
 
 — claude-fable-5
