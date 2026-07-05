@@ -2,10 +2,10 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-07-04 by claude-fable-5_
-**Current phase:** _Phase 0 — Foundation_
-**Active phase doc:** [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md)
-**Overall progress:** _15 of 16 P0 tasks complete (0 of 12 phases complete)_
+**Last updated:** _2026-07-05 by claude-fable-5_
+**Current phase:** _Phase 1 — Domain Core_
+**Active phase doc:** [`plan/phases/phase-01-domain-core.md`](./plan/phases/phase-01-domain-core.md)
+**Overall progress:** _Phase 0 complete — 16/16 P0 tasks (1 of 12 phases complete)_
 
 ---
 
@@ -25,28 +25,28 @@
 
 ### Up Next (top of backlog within current phase)
 
-> Resequenced 2026-06-12 (maintainer-approved); the supply-chain and process tasks that had to land first (P0-14..P0-16) are ✅. Specs in [phase-00](./plan/phases/phase-00-foundation.md).
+> Phase 1 begins. Specs in [phase-01](./plan/phases/phase-01-domain-core.md) — load only when picking up work.
 
-1. _P0-09 — Changesets release workflow_ (last P0 task — phase-transition protocol applies on completion)
+1. _Phase 1 backlog — next picker loads [phase-01-domain-core.md](./plan/phases/phase-01-domain-core.md) and takes the first unblocked task_
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                        |
-| ---------------------- | -------------- | --------- | ---------------------------------------------------------------------------- |
-| P0 — Foundation        | 🟡 In progress | 15/16     | P0-08 done 2026-07-04. P0-09 (changesets) is the last task — phase exit next |
-| P1 — Domain Core       | ⏸ Not started  | —         | —                                                                            |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                            |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                            |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                            |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                            |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                            |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                            |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                            |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                            |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                            |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                            |
+| Phase                  | Status        | Completed | Notes                                                                                                               |
+| ---------------------- | ------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | ✅ Complete   | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified |
+| P1 — Domain Core       | ⏸ Not started | —         | Current phase — next picker starts here                                                                             |
+| P2 — MVP               | ⏸ Not started | —         | —                                                                                                                   |
+| P3 — Layer Enforcement | ⏸ Not started | —         | —                                                                                                                   |
+| P4 — Tool Adapters     | ⏸ Not started | —         | —                                                                                                                   |
+| P5 — Persistence       | ⏸ Not started | —         | —                                                                                                                   |
+| P6 — API Server        | ⏸ Not started | —         | —                                                                                                                   |
+| P7 — Web UI            | ⏸ Not started | —         | —                                                                                                                   |
+| P8 — Reporting         | ⏸ Not started | —         | —                                                                                                                   |
+| P9 — CI Integrations   | ⏸ Not started | —         | —                                                                                                                   |
+| P10 — LSP + IDE        | ⏸ Not started | —         | —                                                                                                                   |
+| P11 — Hardening & GA   | ⏸ Not started | —         | —                                                                                                                   |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -56,6 +56,7 @@
 
 | Task ID | Title                                                              | Completed  | PR                                                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------- | ------------------------------------------------------------------ | ---------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-09   | Changesets release workflow — Phase 0 complete                     | 2026-07-05 | [argus-oss#9](https://github.com/WeaversMask/argus-oss/pull/9) | `@changesets/cli` 2.31.0 exact-pinned (age gate cleared, team verified); `.changeset/config.json` with **access=public** (maintainer registry decision 2026-07-05: npm public); `release.yml` — SHA-pinned actions incl. `changesets/action` v1.9.0 (tag↔SHA verified), Version-PR-or-publish flow, publish = structural **no-op while all packages are private:true**; `NPM_TOKEN` = admin step at first real publish. Interactive-prompt acceptance verified under a pty (🦋 bump-type prompt). License gate green over +145 transitives — first live exercise of the guessed-license path (`spawndamnit` MIT\*); notices → 358 pkgs. **Phase transition executed** (exit criteria verified, phase handover written)                                                                                           |
 | SEC-02  | PII scrub (history rewrite) + migration to argus-oss               | 2026-07-04 | [argus-oss#8](https://github.com/WeaversMask/argus-oss/pull/8) | Maintainer-directed: author/committer personal email rewritten to the noreply address across all 68 commits (filter-branch email map; HEAD tree verified byte-identical; API-verified **0 hits** post-force-push). Work **migrated to argus-oss** (this repo — clean history from birth; branch protection + Dependabot replicated at migration); retired `argus` repo stays private/frozen forever (`refs/pull/*` keep pre-scrub SHAs) — go-public = flip **this** repo per [go-public-runbook](./go-public-runbook.md), **voluntary, unscheduled, never agentic** (CLAUDE.md rule). Old repo's 7 Dependabot PRs auto-closed at force-push, re-opened clean here (#1–#7); repo-local git identity = noreply. Backup: `~/argus-pre-scrub-backup.bundle`. Old merge commits show unverified signatures (cosmetic) |
 | P0-08   | Documentation scaffolding                                          | 2026-07-04 | [#30](https://github.com/WeaversMask/argus/pull/30)            | Root `SECURITY.md` (private vulnerability reporting only, 7-day best-effort ack, no bounty — solo-honest; SECURITY-NOTES §Reporting now links to it); `.github/PULL_REQUEST_TEMPLATE.md` **byte-copied** from templates (diff-verified); issue templates w/ security contact-link to private advisories; ADR-0001 reconciled (real date 2026-05-23, solo decision-maker, stale `pnpm@9.x` note superseded → ADR-0003). **New admin step: enable Private vulnerability reporting** (same bucket as P0-03). Sibling maintenance PR: [#29](https://github.com/WeaversMask/argus/pull/29) notices regen after #25                                                                                                                                                                                                    |
 | P0-06   | Docker development environment                                     | 2026-07-04 | [#28](https://github.com/WeaversMask/argus/pull/28)            | `Dockerfile.dev` (node 22.23.1-bookworm-slim **digest-pinned** = CI `NODE_VERSION`, bump together; corepack pnpm; non-root) + `docker-compose.yml`: app w/ bind mount + named-volume `node_modules` shadowing (host/container platform binaries differ), redis 8.8.0-alpine + postgres 18.4-alpine (digest-pinned, healthchecked, loopback-only ports). Verified live: stack healthy, 9 tests pass in-container, host edit → vitest RERUN; EACCES fix = image pre-creates `node`-owned volume mountpoints. Recipe only, never a published image (ADR-0002 §D)                                                                                                                                                                                                                                                    |
@@ -65,7 +66,6 @@
 | P0-07   | Lightweight dependency audit in CI                                 | 2026-07-03 | [#16](https://github.com/WeaversMask/argus/pull/16)            | Parallel `audit` job: `pnpm audit --audit-level=high` on PR / push-main / Mondays 12:00 UTC (weekly re-audit of pinned versions). Exit-threshold semantics verified empirically on pnpm 11.5.3 (moderate-and-below never block). Stopgap for the public-advisory subset — P11-02 supersedes; not a required check (admin step pending since P0-03)                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | OPS-01  | Node-floor hook guard + onboarding sync step (prevention)          | 2026-07-03 | [#15](https://github.com/WeaversMask/argus/pull/15)            | Pre-commit fails fast with `nvm use` instructions when Node < engines floor (was: cryptic pnpm crash under nvm-default Node 20); protocol onboarding step 1 + CLAUDE.md now say sync `main` before reading tracker/handover (stale-read failures in P0-11 session). Negative test documented in PR; `~/.config/husky/init.sh` added machine-side                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | P0-11   | Third-party notices, prerequisites & contributor guardrail         | 2026-07-03 | [#14](https://github.com/WeaversMask/argus/pull/14)            | `THIRD-PARTY-NOTICES` (246 pkgs) + dependency-free generator (`pnpm notices`) with MPL named-exception guard; root README "External tools / Prerequisites" (tool licenses re-verified 2026-07-03) + source-only posture; CONTRIBUTING guardrails; licensing principle + per-PR license gate; phase-04/09/11 reconciled with ADR-0002. Detail: PR + handover                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| SEC-01  | Dependabot fix: vite 8.0.16 + js-yaml 4.2.0 (scoped overrides)     | 2026-07-03 | [#13](https://github.com/WeaversMask/argus/pull/13)            | Dev-only transitives (GHSA-fx2h-pf6j-xcff high + 2 moderate); `pnpm update` can't reach non-direct transitives → range-scoped overrides in `pnpm-workspace.yaml` with removal-condition comment; both patched versions >30 days old, so no release-age exclusion needed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -92,6 +92,8 @@
 ## Metrics Snapshot
 
 - **Test coverage:** 100% lines / 100% branches on `@argus/testing` (9 tests, only package with sources today)
+- **License gate:** 478 third-party packages, 3 named exceptions (as of P0-09)
+- **CI wall time:** ~25s per job, 8 jobs parallel (cold cache)
 - **Self-scan results:** _—_
 - **CI build time (cold / cached):** _—_
 
