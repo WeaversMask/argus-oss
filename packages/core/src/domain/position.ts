@@ -4,14 +4,18 @@ import type { FilePath } from "./file-path.js";
 import { Validator } from "./validation.js";
 
 /**
- * A source range within one file. Lines and columns are 1-based and
- * inclusive; a zero-width range (start == end) marks a point.
+ * A source range within one file. Lines and columns are 1-based; the range
+ * is end-exclusive (D-3a): it spans from the start point up to but not
+ * including the end point, as in LSP, SARIF, and tree-sitter. Consequently
+ * `start == end` is a zero-width point and a same-line range has width
+ * `endColumn - startColumn`.
  */
 export interface Position {
   readonly file: FilePath;
   readonly startLine: number;
   readonly startColumn: number;
   readonly endLine: number;
+  /** Column just past the last character of the range (exclusive). */
   readonly endColumn: number;
 }
 
