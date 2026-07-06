@@ -2,7 +2,7 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-07-05 by claude-fable-5_
+**Last updated:** _2026-07-06 by claude-fable-5_
 **Current phase:** _Phase 1 — Domain Core_
 **Active phase doc:** [`plan/phases/phase-01-domain-core.md`](./plan/phases/phase-01-domain-core.md)
 **Overall progress:** _Phase 0 complete — 16/16 P0 tasks (1 of 12 phases complete)_
@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title                | Assignee       | Started    | ETA          |
+| ------- | -------------------- | -------------- | ---------- | ------------ |
+| P1-02   | Core port interfaces | claude-fable-5 | 2026-07-06 | this session |
 
 ### Blocked
 
@@ -27,28 +27,27 @@
 
 > Specs in [phase-01](./plan/phases/phase-01-domain-core.md) — load only when picking up work.
 
-1. **P1-02 — Core port interfaces** (deps: P1-01 ✅) — recommended next: it unblocks P1-03/P1-04, the phase's long pole
-2. P1-05 — Config system (deps: P1-01 ✅) — parallel-eligible once P1-01 merges
-3. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible once P1-01 merges
+1. P1-05 — Config system (deps: P1-01 ✅) — parallel-eligible
+2. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                               |
-| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | ✅ Complete    | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified |
-| P1 — Domain Core       | 🟡 In progress | 1/6       | P1-01 in review ([argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10))                                  |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                   |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                   |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                   |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                   |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                   |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                   |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                   |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                   |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                   |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                   |
+| Phase                  | Status         | Completed | Notes                                                                                                                              |
+| ---------------------- | -------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | ✅ Complete    | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified                |
+| P1 — Domain Core       | 🟡 In progress | 1/6       | P1-01 merged; P1-01a (D-2/3/4 rulings) in review ([argus-oss#11](https://github.com/WeaversMask/argus-oss/pull/11)); P1-02 started |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                                  |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                                  |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                                  |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                                  |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                                  |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                                  |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                                  |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                                  |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                                  |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                                  |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
@@ -58,6 +57,7 @@
 
 | Task ID | Title                                                              | Completed  | PR                                                               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------- | ------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-01a  | Ruled decisions D-2a/D-3a/D-4a implemented + ADR-0004              | 2026-07-06 | [argus-oss#11](https://github.com/WeaversMask/argus-oss/pull/11) | Maintainer ruled (a) on all three (2026-07-06, in session; recorded in [ADR-0004](./adr/0004-domain-model-boundary-semantics.md)). D-2a: composite factories (`violation`, `finding`, `scanResult`, `layerManifest`) re-validate embedded components via new `Validator.embed` — path-prefixed issues, frozen copies embedded; extended to `completeScan` (rebuilds its `ScanResult`, re-derives counts; error union now `ScanTransitionError \| ValidationError`). D-3a: `Position` ruled 1-based **end-exclusive** (LSP/SARIF/tree-sitter aligned) — TSDoc-only. D-4a: `Suppression` stays project-agnostic; `SuppressionRepositoryPort` takes a `ProjectId` query param (binds P1-02). Residual risk for P1-03: in-range off-by-ones pass validation — adapter needs `+1` conversion contract tests. 116 tests, 100% coverage       |
 | P1-01   | Core domain entities (`@argus/core`)                               | 2026-07-05 | [argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10) | First real source package. Full domain model — Scan (discriminated union: queued/running/completed/failed; transitions take narrow member types → wrong-status moves are compile errors), Violation/Severity/Position, Rule/RuleId/RuleProfile, Layer/LayerManifest/LayerBoundary, Finding, Project, Suppression, Metrics. Hand-rolled `Brand<T,B>`; factories → `Result<T, ValidationError>` (neverthrow 8.2.0, ADR-0003 dance done: MIT, 16 months old, author verified); all outputs `Object.freeze`d; time injected as branded epoch-ms `Timestamp`. 107 tests, 100% stmt/branch/func/line. Compose/Dockerfile volume lines added per P0-06 pattern; notices → 359 pkgs (license gate 479). Full-packet review done (fresh-context, escalated model): approve-with-nits; nits fixed in-PR, contract questions filed as D-2/D-3/D-4 |
 | P0-09   | Changesets release workflow — Phase 0 complete                     | 2026-07-05 | [argus-oss#9](https://github.com/WeaversMask/argus-oss/pull/9)   | `@changesets/cli` 2.31.0 exact-pinned (age gate cleared, team verified); `.changeset/config.json` with **access=public** (maintainer registry decision 2026-07-05: npm public); `release.yml` — SHA-pinned actions incl. `changesets/action` v1.9.0 (tag↔SHA verified), Version-PR-or-publish flow, publish = structural **no-op while all packages are private:true**; `NPM_TOKEN` = admin step at first real publish. Interactive-prompt acceptance verified under a pty (🦋 bump-type prompt). License gate green over +145 transitives — first live exercise of the guessed-license path (`spawndamnit` MIT\*); notices → 358 pkgs. **Phase transition executed** (exit criteria verified, phase handover written)                                                                                                                 |
 | SEC-02  | PII scrub (history rewrite) + migration to argus-oss               | 2026-07-04 | [argus-oss#8](https://github.com/WeaversMask/argus-oss/pull/8)   | Maintainer-directed: author/committer personal email rewritten to the noreply address across all 68 commits (filter-branch email map; HEAD tree verified byte-identical; API-verified **0 hits** post-force-push). Work **migrated to argus-oss** (this repo — clean history from birth; branch protection + Dependabot replicated at migration); retired `argus` repo stays private/frozen forever (`refs/pull/*` keep pre-scrub SHAs) — go-public = flip **this** repo per [go-public-runbook](./go-public-runbook.md), **voluntary, unscheduled, never agentic** (CLAUDE.md rule). Old repo's 7 Dependabot PRs auto-closed at force-push, re-opened clean here (#1–#7); repo-local git identity = noreply. Backup: `~/argus-pre-scrub-backup.bundle`. Old merge commits show unverified signatures (cosmetic)                       |
@@ -75,12 +75,11 @@
 
 > Decisions awaiting a human architect. Agents pick another task while waiting.
 
-| ID  | Question                                                                                                                                                                                                                                                                                             | Raised by       | Raised on  | Options                                                                                                                                                                                                                                                 | Recommendation                                                                                                                                                                                                                          |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D-1 | Turbo remote cache: Vercel Remote Cache (hosted) or self-hosted (e.g. `turborepo-remote-cache` OSS)?                                                                                                                                                                                                 | claude-opus-4-7 | 2026-05-25 | (a) Vercel Remote Cache — set `TURBO_TOKEN` + `TURBO_TEAM` secrets and we're done; (b) self-hosted Docker image, more control, no vendor lock-in                                                                                                        | (a) Vercel for speed-to-ship; revisit if free-tier limits bite. P0-05 wires the env vars so flipping the secrets on is the only follow-up.                                                                                              |
-| D-2 | Composite factories (`violation`, `finding`, `layerManifest`, `scanResult`) trust embedded components structurally — an unvalidated inline `Position` literal compiles and passes (P1-01 review finding 1, major). Re-validate components inside composite factories, or brand validated composites? | claude-fable-5  | 2026-07-05 | (a) composite factories re-run component validation + deep-freeze — simple, keeps inputs ergonomic, small runtime cost; (b) brand composite types (`Position` etc.) so only their factories can produce them — zero runtime cost, stricter, heavier API | (a) re-validate + deep-freeze: entity construction isn't the hot path (rule dispatch is), and structural inputs keep adapters simple. Must land before P1-03 (tree-sitter is 0-based — exactly the literal-bypass risk).                |
-| D-3 | `Position` end-semantics contradict themselves: TSDoc says columns are inclusive AND start==end is "zero-width" (review finding 2). Inclusive or exclusive `endColumn`?                                                                                                                              | claude-fable-5  | 2026-07-05 | (a) 1-based, end-exclusive columns — SARIF-compatible, zero-width representable, `end-start` = length; (b) fully inclusive — matches some linters, but empty ranges unrepresentable                                                                     | (a) end-exclusive; TSDoc-only change today (runtime check already allows start==end), but every adapter (P1-03 tree-sitter, P10 LSP — both end-exclusive) converts against this sentence, so it must be ruled before the model freezes. |
-| D-4 | `Suppression` has no project association (review finding 4). Add `projectId` to the entity, or keep suppressions config-file-scoped and let the repository port scope queries?                                                                                                                       | claude-fable-5  | 2026-07-05 | (a) keep entity as-is; `SuppressionRepositoryPort` (P1-02) takes a `ProjectId` query parameter; (b) add `projectId` field to `Suppression` now                                                                                                          | (a) — suppressions live in repo config (`reviewtool.yaml`, P1-05), so the project link is contextual, not intrinsic. Decide before P1-02 externalizes port signatures.                                                                  |
+| ID  | Question                                                                                             | Raised by       | Raised on  | Options                                                                                                                                          | Recommendation                                                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------------- | --------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| D-1 | Turbo remote cache: Vercel Remote Cache (hosted) or self-hosted (e.g. `turborepo-remote-cache` OSS)? | claude-opus-4-7 | 2026-05-25 | (a) Vercel Remote Cache — set `TURBO_TOKEN` + `TURBO_TEAM` secrets and we're done; (b) self-hosted Docker image, more control, no vendor lock-in | (a) Vercel for speed-to-ship; revisit if free-tier limits bite. P0-05 wires the env vars so flipping the secrets on is the only follow-up. |
+
+> Resolved 2026-07-06: D-2/D-3/D-4 all ruled (a) by the maintainer — recorded in [ADR-0004](./adr/0004-domain-model-boundary-semantics.md), implemented in P1-01a ([argus-oss#11](https://github.com/WeaversMask/argus-oss/pull/11)).
 
 ---
 
@@ -96,7 +95,7 @@
 
 ## Metrics Snapshot
 
-- **Test coverage:** 100% lines / 100% branches aggregate — `@argus/core` (107 tests) + `@argus/testing` (9 tests)
+- **Test coverage:** 100% lines / 100% branches aggregate — `@argus/core` (116 tests) + `@argus/testing` (9 tests)
 - **License gate:** 479 third-party packages, 3 named exceptions (as of P1-01; +neverthrow)
 - **CI wall time:** ~25s per job, 8 jobs parallel (cold cache)
 - **Self-scan results:** _—_
@@ -111,6 +110,7 @@ See [`adr/`](./adr/) for full list.
 - [ADR-0001 — Monorepo with pnpm workspaces + Turborepo](./adr/0001-monorepo-with-pnpm.md) — Accepted; dated & reconciled 2026-07-04 (P0-08)
 - [ADR-0002 — Third-party integration & open-source licensing policy](./adr/0002-third-party-integration-and-licensing-policy.md) — Accepted 2026-06-01
 - [ADR-0003 — Supply-chain hardening baseline](./adr/0003-supply-chain-hardening-baseline.md) — Accepted 2026-07-02
+- [ADR-0004 — Domain model boundary semantics (D-2/D-3/D-4)](./adr/0004-domain-model-boundary-semantics.md) — Accepted 2026-07-06
 
 ---
 

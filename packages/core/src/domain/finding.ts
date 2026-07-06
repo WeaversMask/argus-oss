@@ -1,6 +1,6 @@
 import type { Result } from "neverthrow";
 import type { ValidationError } from "../errors/validation-error.js";
-import type { Position } from "./position.js";
+import { position, type Position } from "./position.js";
 import type { Severity } from "./severity.js";
 import { Validator } from "./validation.js";
 
@@ -36,12 +36,13 @@ export function finding(input: FindingInput): Result<Finding, ValidationError> {
   validator.nonBlankString("tool", input.tool);
   validator.nonBlankString("externalRuleId", input.externalRuleId);
   validator.nonBlankString("message", input.message);
+  const validatedPosition = validator.embed("position", position(input.position), input.position);
   return validator.toResult(() =>
     Object.freeze({
       tool: input.tool,
       externalRuleId: input.externalRuleId,
       message: input.message,
-      position: input.position,
+      position: validatedPosition,
       ...(input.severity !== undefined ? { severity: input.severity } : {}),
       metadata: Object.freeze({ ...input.metadata }),
     }),

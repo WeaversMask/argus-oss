@@ -1,54 +1,58 @@
-# Handover — P1-01 complete
+# Handover — D-2/3/4 ruled + implemented (P1-01a); P1-02 started
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-07-05
-**Phase:** P1 — Domain Core (1/6 tasks done)
-**Last task completed:** P1-01 — Core domain entities ([argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10), pending merge)
+**Date:** 2026-07-06
+**Phase:** P1 — Domain Core (1/6 tasks done; P1-01a follow-up in review)
+**Last task completed:** P1-01a — ruled decisions implemented ([argus-oss#11](https://github.com/WeaversMask/argus-oss/pull/11), pending merge)
 
 ---
 
 ## Context
 
-`@argus/core` exists and holds the full Phase-1 domain model (108 tests, 100% coverage everywhere). **Next: P1-02 — Core port interfaces** (recommended: it unblocks P1-03/P1-04, the phase's long pole; P1-05/P1-06 are also unblocked). Branch from `main` after #10 merges — #10 owns this tracker/handover state. Independent review packet is on the PR (approve-with-nits; nits fixed in-PR).
+The maintainer ruled **option (a) on all of D-2/D-3/D-4** in session (2026-07-06) — recorded in [ADR-0004](./adr/0004-domain-model-boundary-semantics.md), implemented and tracker-flipped in [#11](https://github.com/WeaversMask/argus-oss/pull/11):
 
-**Open Decisions D-2/D-3/D-4 (from the review) gate parts of P1-02/P1-03:** D-2 composite-factory re-validation must land before P1-03; D-3 Position end-semantics before the model freezes; D-4 Suppression↔Project before P1-02 port signatures. The per-PR gate means the maintainer answers them at #10's merge — read the answers from the Open Decisions table before designing ports.
+- **D-2a:** composite factories (`violation`, `finding`, `scanResult`, `layerManifest`) re-validate embedded components via the new internal `Validator.embed` (path-prefixed issues, factory's frozen copy embedded). Extended to `completeScan`, which rebuilds its `ScanResult` (re-derives `countsBySeverity`); its error union is now `ScanTransitionError | ValidationError`.
+- **D-3a:** `Position` is **1-based, end-exclusive** (LSP/SARIF/tree-sitter aligned). TSDoc-only change. Every adapter converts against this — P1-03 must ship `+1` conversion contract tests (in-range off-by-ones pass validation; that residual risk is in ADR-0004).
+- **D-4a:** `Suppression` stays project-agnostic; **`SuppressionRepositoryPort` takes a `ProjectId` query parameter** — this binds P1-02's port design.
 
-## Domain conventions established in P1-01 (follow these, don't reinvent)
+## P1-02 — Core port interfaces (IN PROGRESS, no code yet)
 
-- **Branding:** `Brand<T, B>` from `packages/core/src/domain/brand.ts` (unique-symbol, hand-rolled — decided against type-fest). Branded values only exist via their validating factories.
-- **Factories:** return `Result<T, ValidationError>` (neverthrow) and collect **all** issues via the shared `Validator` in `src/domain/validation.ts` (internal, not exported from the barrel). Outputs are deeply `Object.freeze`d.
-- **Optional keys** are constructed conditionally (`...(x !== undefined ? { x } : {})`) — `exactOptionalPropertyTypes` is on; tests assert absent keys with `"key" in obj`.
-- **Time:** branded epoch-ms `Timestamp`, always injected — no `Date.now()` in core, ever.
-- **Scan is a discriminated union** (`QueuedScan | RunningScan | CompletedScan | FailedScan`); transitions take the narrow member type so wrong-status moves don't compile. Extend this pattern rather than adding nullable fields.
-- Errors live in `src/errors/` (`DomainError` base with `code`; `ValidationError`, `ScanTransitionError`).
+- Branch **`p1-02-core-ports`** exists, cut from main **without** #11 — **rebase onto main once #11 merges** before completing.
+- Full design plan, settled decisions (async convention, core-owned AST contract, port errors, dep-cycle defusal, coverage exception), declared file set, and work order are in **`.work/P1-02.md`** (gitignored, local to this machine). Read it before writing any port.
+- Tracker already shows P1-02 in progress (#11's tracker commit). Complete the tracker flip in the P1-02 PR itself.
 
-## Gotchas for P1-02 (the ones that will actually bite)
+## Domain conventions (unchanged from P1-01 — follow, don't reinvent)
 
-1. **Workspace dep cycle ahead:** P1-02 puts in-memory fakes in `packages/testing/src/mocks/`, so `@argus/testing` must depend on `@argus/core` types — but `@argus/core` already devDepends on `@argus/testing` (vitest config). pnpm tolerates dev-only cycles, but decide deliberately: type-only imports in the fakes, or fakes as a separate export path. Flag it in the PR either way.
-2. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` (hooks run node) — `nvm alias default 22` still pending (admin item). Bare `pnpm` in a fresh shell dies on Node 20.
-3. **New-package checklist** (if P1-02 creates none, skip): compose named volume + Dockerfile mountpoint line, root `vitest.config.ts` projects entry, `pnpm notices` when the dep tree changes.
-4. `.work/` is **gitignored** — task files are local-only; put the durable content in the PR.
-5. Ports are interface-only files → v8 coverage sees no runtime; the `quality-gates.md` coverage-exception list applies (document exclusions in the package `vitest.config.ts` with justification).
-6. Session hygiene: sync main first; context budget 50→70%; permission-prompt description policy; review tier full-packet for anything in core.
+Branded primitives via `Brand<T,B>`; factories return `Result<T, ValidationError>` collecting **all** issues; outputs deep-frozen; optional keys constructed conditionally (`exactOptionalPropertyTypes`); time injected as branded epoch-ms `Timestamp`; `Scan` is a discriminated union with narrow-typed transitions. Composites now also re-validate embedded components (D-2a) — extend that pattern to any new composite.
 
-## Maintainer admin items (carried over, still pending)
+## Gotchas (will actually bite)
 
-1. Archive the retired `argus` repo (Settings → Archive).
-2. D-1: Turbo remote cache decision.
-3. Dependabot PRs #1–#7.
-4. `nvm alias default 22` on the dev machine.
-5. Delete `~/argus-pre-scrub-backup.bundle` when satisfied.
-6. `NPM_TOKEN` / `LICENSE` placeholder / private-vuln-reporting — go-public bucket, unchanged.
+1. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` — `nvm alias default 22` still pending (admin item).
+2. **Workspace dep cycle** for P1-02 fakes: `@argus/testing` needs `@argus/core` types while core devDepends on testing — planned defusal is type-only imports (details in `.work/P1-02.md`); flag it in the PR.
+3. Ports are interface-only → no runtime for v8 coverage; document the exclusion in the package `vitest.config.ts` per quality-gates.md.
+4. Prettier reflows Markdown tables — run it before staging.
+5. Session hygiene: sync main first; context budget 50→70%; full-packet review tier for anything in core.
+
+## Maintainer admin items (carried over + new)
+
+1. **Merge [#11](https://github.com/WeaversMask/argus-oss/pull/11)** — unblocks P1-02 completion (rebase) and P1-03.
+2. Archive the retired `argus` repo (Settings → Archive).
+3. D-1: Turbo remote cache decision (only decision still open).
+4. Dependabot PRs #1–#7.
+5. `nvm alias default 22` on the dev machine.
+6. Delete `~/argus-pre-scrub-backup.bundle` when satisfied.
+7. `NPM_TOKEN` / `LICENSE` placeholder / private-vuln-reporting — go-public bucket, unchanged.
 
 ## State of the System
 
-- ✅ All green: 117 tests (100% aggregate coverage), lint/typecheck/build, license gate (479 pkgs), notices current (359 pkgs)
-- ⏸ [argus-oss#10](https://github.com/WeaversMask/argus-oss/pull/10) open (P1-01 + this tracker state), pending human merge
+- ✅ main green: 117 tests aggregate, lint/typecheck/build, license gate (479 pkgs)
+- ⏸ [#11](https://github.com/WeaversMask/argus-oss/pull/11) open: D-2a/D-3a code (116 core tests, 100% coverage), ADR-0004, tracker flip, this handover — pending human merge
+- ⏸ `p1-02-core-ports` branch: created, empty of code, plan in `.work/P1-02.md`
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Sign-off
 
-The domain speaks its own language now — branded, frozen, and total. P1-02 gives it ports; after that the engine.
+The model's ambiguities are ruled and closed; nothing structural is left to guess. Ports next — the design is written down, so P1-02 is execution, not invention.
 
 — claude-fable-5

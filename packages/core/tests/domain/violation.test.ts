@@ -3,7 +3,7 @@ import { violationId } from "../../src/domain/ids.js";
 import { layerName } from "../../src/domain/layer.js";
 import { ruleId } from "../../src/domain/rule.js";
 import { violation, type Violation } from "../../src/domain/violation.js";
-import { somePosition } from "../fixtures.js";
+import { someFilePath, somePosition } from "../fixtures.js";
 
 const base: Violation = {
   id: violationId("v-42")._unsafeUnwrap(),
@@ -29,5 +29,35 @@ describe("violation", () => {
   it("rejects a blank message", () => {
     const error = violation({ ...base, message: "  " })._unsafeUnwrapErr();
     expect(error.issues.map((issue) => issue.path)).toEqual(["message"]);
+  });
+
+  it("re-validates an embedded position literal, reporting issues under position.*", () => {
+    const zeroBased = {
+      file: someFilePath(),
+      startLine: 0,
+      startColumn: 0,
+      endLine: 0,
+      endColumn: 0,
+    };
+    const error = violation({ ...base, position: zeroBased })._unsafeUnwrapErr();
+    expect(error.issues.map((issue) => issue.path)).toEqual([
+      "position.startLine",
+      "position.startColumn",
+      "position.endLine",
+      "position.endColumn",
+    ]);
+  });
+
+  it("replaces an embedded position literal with the factory's frozen copy", () => {
+    const literal = {
+      file: someFilePath(),
+      startLine: 1,
+      startColumn: 1,
+      endLine: 1,
+      endColumn: 1,
+    };
+    const result = violation({ ...base, position: literal })._unsafeUnwrap();
+    expect(Object.isFrozen(result.position)).toBe(true);
+    expect(result.position).not.toBe(literal);
   });
 });
