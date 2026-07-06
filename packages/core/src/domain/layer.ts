@@ -65,6 +65,9 @@ export function layerManifest(input: LayerManifest): Result<LayerManifest, Valid
   if (input.layers.length === 0) {
     validator.add("layers", "must declare at least one layer");
   }
+  const validatedLayers = input.layers.map((entry, i) =>
+    validator.embed(`layers[${i}]`, layer(entry), entry),
+  );
   const names = new Set<string>();
   input.layers.forEach((entry, i) => {
     if (names.has(entry.name)) {
@@ -94,7 +97,7 @@ export function layerManifest(input: LayerManifest): Result<LayerManifest, Valid
   });
   return validator.toResult(() =>
     Object.freeze({
-      layers: Object.freeze([...input.layers]),
+      layers: Object.freeze(validatedLayers),
       boundaries: Object.freeze(
         input.boundaries.map((boundary) =>
           Object.freeze({

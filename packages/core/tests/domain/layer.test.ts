@@ -72,6 +72,16 @@ describe("layerManifest", () => {
     expect(error.issues.map((issue) => issue.path)).toEqual(["layers"]);
   });
 
+  it("re-validates embedded layers, reporting issues under layers[i].*", () => {
+    const error = layerManifest({
+      layers: [domainLayer, { ...adaptersLayer, patterns: [] }],
+      boundaries: [],
+    })._unsafeUnwrapErr();
+    expect(error.issues).toEqual([
+      { path: "layers[1].patterns", message: "must contain at least one glob pattern" },
+    ]);
+  });
+
   it("rejects duplicate layer names", () => {
     const error = layerManifest({
       layers: [domainLayer, { ...adaptersLayer, name: domainName }],

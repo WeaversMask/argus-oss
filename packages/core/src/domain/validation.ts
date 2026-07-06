@@ -40,6 +40,22 @@ export class Validator {
     }
   }
 
+  /**
+   * Re-validates an embedded component through its own factory (D-2a):
+   * merges the component's issues under `path` and returns the factory's
+   * frozen copy. On failure returns `fallback` — a placeholder that is
+   * never built into an entity, because `toResult` will yield `err`.
+   */
+  embed<T>(path: string, result: Result<T, ValidationError>, fallback: T): T {
+    if (result.isErr()) {
+      for (const issue of result.error.issues) {
+        this.add(`${path}.${issue.path}`, issue.message);
+      }
+      return fallback;
+    }
+    return result.value;
+  }
+
   /** `err(ValidationError)` if any issue was recorded, otherwise `ok(build())`. */
   toResult<T>(build: () => T): Result<T, ValidationError> {
     return this.issues.length > 0

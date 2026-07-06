@@ -5,7 +5,7 @@ import type { ProjectId, ScanId } from "./ids.js";
 import type { Severity } from "./severity.js";
 import type { Timestamp } from "./timestamp.js";
 import { Validator } from "./validation.js";
-import type { Violation } from "./violation.js";
+import { violation, type Violation } from "./violation.js";
 
 export const SCAN_MODES = Object.freeze(["full", "incremental"] as const);
 
@@ -25,13 +25,16 @@ export function scanResult(input: {
 }): Result<ScanResult, ValidationError> {
   const validator = new Validator("ScanResult");
   validator.integerAtLeast("filesScanned", input.filesScanned, 0);
+  const validatedViolations = input.violations.map((entry, i) =>
+    validator.embed(`violations[${i}]`, violation(entry), entry),
+  );
   return validator.toResult(() => {
     const counts: Record<Severity, number> = { info: 0, warning: 0, error: 0, critical: 0 };
-    for (const violation of input.violations) {
-      counts[violation.severity] += 1;
+    for (const entry of validatedViolations) {
+      counts[entry.severity] += 1;
     }
     return Object.freeze({
-      violations: Object.freeze([...input.violations]),
+      violations: Object.freeze(validatedViolations),
       filesScanned: input.filesScanned,
       countsBySeverity: Object.freeze(counts),
     });
@@ -106,11 +109,23 @@ export function completeScan(
   scan: RunningScan,
   finishedAt: Timestamp,
   result: ScanResult,
-): Result<CompletedScan, ScanTransitionError> {
+): Result<CompletedScan, ScanTransitionError | ValidationError> {
+  // Rebuild through the factory (D-2a): re-validates embedded violations and
+  // re-derives countsBySeverity, so a hand-rolled literal cannot smuggle in
+  // stale counts or unvalidated positions.
+  const revalidated = scanResult({
+    violations: result.violations,
+    filesScanned: result.filesScanned,
+  });
+  if (revalidated.isErr()) {
+    return err(revalidated.error);
+  }
   if (finishedAt < scan.startedAt) {
     return err(new ScanTransitionError(scan.id, "finishedAt must not precede startedAt"));
   }
-  return ok(Object.freeze({ ...scan, status: "completed" as const, finishedAt, result }));
+  return ok(
+    Object.freeze({ ...scan, status: "completed" as const, finishedAt, result: revalidated.value }),
+  );
 }
 
 export function failScan(

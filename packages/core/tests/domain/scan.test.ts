@@ -9,6 +9,7 @@ import {
   type CompletedScan,
   type QueuedScan,
   type RunningScan,
+  type ScanResult,
 } from "../../src/domain/scan.js";
 import { ScanTransitionError } from "../../src/errors/scan-transition-error.js";
 import { ValidationError } from "../../src/errors/validation-error.js";
@@ -53,6 +54,17 @@ describe("scanResult", () => {
     const error = scanResult({ violations: [], filesScanned: -1 })._unsafeUnwrapErr();
     expect(error.issues.map((issue) => issue.path)).toEqual(["filesScanned"]);
   });
+
+  it("re-validates embedded violations, reporting issues under violations[i].*", () => {
+    const bogus = { ...someViolation("error", "v-2"), message: " " };
+    const error = scanResult({
+      violations: [someViolation(), bogus],
+      filesScanned: 1,
+    })._unsafeUnwrapErr();
+    expect(error.issues).toEqual([
+      { path: "violations[1].message", message: "must be a non-empty string" },
+    ]);
+  });
 });
 
 describe("scan lifecycle", () => {
@@ -95,6 +107,28 @@ describe("scan lifecycle", () => {
     const error = completeScan(running(), someTimestamp(1_499), emptyResult())._unsafeUnwrapErr();
     expect(error).toBeInstanceOf(ScanTransitionError);
     expect(error.message).toContain("startedAt");
+  });
+
+  it("completeScan rebuilds a hand-rolled result, re-deriving the severity counts", () => {
+    const handRolled: ScanResult = {
+      violations: [someViolation("error", "v-1")],
+      filesScanned: 1,
+      countsBySeverity: { info: 9, warning: 9, error: 9, critical: 9 },
+    };
+    const done = completeScan(running(), someTimestamp(1_500), handRolled)._unsafeUnwrap();
+    expect(done.result.countsBySeverity).toEqual({ info: 0, warning: 0, error: 1, critical: 0 });
+    expect(Object.isFrozen(done.result)).toBe(true);
+    expect(Object.isFrozen(done.result.violations)).toBe(true);
+  });
+
+  it("completeScan rejects a result carrying an invalid embedded violation", () => {
+    const bad: ScanResult = {
+      violations: [{ ...someViolation(), message: "" }],
+      filesScanned: 1,
+      countsBySeverity: { info: 0, warning: 0, error: 1, critical: 0 },
+    };
+    const error = completeScan(running(), someTimestamp(1_500), bad)._unsafeUnwrapErr();
+    expect(error).toBeInstanceOf(ValidationError);
   });
 
   it("failScan works from queued, floored at queuedAt", () => {

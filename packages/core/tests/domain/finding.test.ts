@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { finding, type FindingInput } from "../../src/domain/finding.js";
-import { somePosition } from "../fixtures.js";
+import { someFilePath, somePosition } from "../fixtures.js";
 
 const base: FindingInput = {
   tool: "jscpd",
@@ -36,5 +36,30 @@ describe("finding", () => {
         ._unsafeUnwrapErr()
         .issues.map((issue) => issue.path),
     ).toEqual([field]);
+  });
+
+  it("re-validates an embedded position literal (0-based adapter output is rejected)", () => {
+    const zeroBased = {
+      file: someFilePath(),
+      startLine: 0,
+      startColumn: 1,
+      endLine: 1,
+      endColumn: 1,
+    };
+    const error = finding({ ...base, position: zeroBased })._unsafeUnwrapErr();
+    expect(error.issues.map((issue) => issue.path)).toEqual(["position.startLine"]);
+  });
+
+  it("replaces an embedded position literal with the factory's frozen copy", () => {
+    const literal = {
+      file: someFilePath(),
+      startLine: 1,
+      startColumn: 1,
+      endLine: 2,
+      endColumn: 1,
+    };
+    const result = finding({ ...base, position: literal })._unsafeUnwrap();
+    expect(Object.isFrozen(result.position)).toBe(true);
+    expect(result.position).not.toBe(literal);
   });
 });

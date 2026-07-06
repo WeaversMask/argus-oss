@@ -2,7 +2,7 @@ import type { Result } from "neverthrow";
 import type { ValidationError } from "../errors/validation-error.js";
 import type { ViolationId } from "./ids.js";
 import type { LayerName } from "./layer.js";
-import type { Position } from "./position.js";
+import { position, type Position } from "./position.js";
 import type { RuleId } from "./rule.js";
 import type { Severity } from "./severity.js";
 import { Validator } from "./validation.js";
@@ -21,13 +21,14 @@ export interface Violation {
 export function violation(input: Violation): Result<Violation, ValidationError> {
   const validator = new Validator("Violation");
   validator.nonBlankString("message", input.message);
+  const validatedPosition = validator.embed("position", position(input.position), input.position);
   return validator.toResult(() =>
     Object.freeze({
       id: input.id,
       ruleId: input.ruleId,
       severity: input.severity,
       message: input.message,
-      position: input.position,
+      position: validatedPosition,
       ...(input.layer !== undefined ? { layer: input.layer } : {}),
     }),
   );
