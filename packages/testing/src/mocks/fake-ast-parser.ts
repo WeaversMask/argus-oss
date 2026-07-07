@@ -3,9 +3,10 @@ import type { AstParserPort, FilePath, Language, ParseError, ParsedFile } from "
 
 /**
  * Canned-response `AstParserPort`. Prime a `ParsedFile` per file with
- * `primeParse`; parsing an unprimed file **rejects** with a plain `Error` —
- * no sane default tree exists, so an unprimed call is a test-setup bug and
- * should fail loudly, contract notwithstanding.
+ * `primeParse`; parsing an unprimed file — or passing a language outside
+ * `languages` (review finding on #13: the one contract clause a fake can
+ * cheaply enforce) — **rejects** with a plain `Error`: both are test-setup
+ * bugs and should fail loudly, contract notwithstanding.
  *
  * The default `languages` mirrors core's `LANGUAGES`; it is a literal so
  * this module keeps zero runtime imports from `@argus/core` (the union
@@ -31,8 +32,15 @@ export class FakeAstParser implements AstParserPort {
   parse(
     file: FilePath,
     _source: string,
-    _language: Language,
+    language: Language,
   ): Promise<Result<ParsedFile, ParseError>> {
+    if (!this.languages.includes(language)) {
+      return Promise.reject(
+        new Error(
+          `FakeAstParser.parse: language "${language}" is outside this fake's languages (${this.languages.join(", ")}) — construct the fake with the languages the test needs`,
+        ),
+      );
+    }
     const error = this.nextError;
     this.nextError = undefined;
     if (error !== undefined) {

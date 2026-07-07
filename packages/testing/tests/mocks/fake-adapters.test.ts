@@ -36,6 +36,13 @@ describe("FakeAstParser", () => {
     );
   });
 
+  it("throws on a language outside its configured set — enforcing the port's language clause", async () => {
+    const parser = new FakeAstParser(["python"]);
+    await expect(parser.parse(someFilePath(), "", "typescript")).rejects.toThrow(
+      /outside this fake's languages/,
+    );
+  });
+
   it("failNextWith fails exactly the next parse", async () => {
     const parser = new FakeAstParser();
     const parsed = someParsedFile();
