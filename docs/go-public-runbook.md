@@ -36,8 +36,27 @@ clean-history repo:
    - Private vulnerability reporting toggle (SECURITY.md §Reporting relies on it)
    - Review the Actions/fork-PR permission defaults GitHub applies on flip
 5. **Flip visibility → Public.**
-6. Optional, cosmetic: the GitHub profile display name (real name) is stamped
+6. **Immediately after the flip — public-only quality layers** (maintainer-approved 2026-07-07):
+   - Enable **CodeQL default setup** (Settings → Code security and analysis).
+     Free semantic SAST for public repos, low-noise; gitleaks covers secrets,
+     CodeQL covers code-level vulnerability patterns — the one static-analysis
+     layer the private repo cannot have.
+   - Run **OpenSSF Scorecard** once against the repo and add the badge/action
+     if the score is worth showing — it should be: pinned deps, blocked
+     install scripts, SHA-pinned actions, and branch protection are its
+     heavyweight criteria and all are already in place.
+7. Optional, cosmetic: the GitHub profile display name (real name) is stamped
    on web-UI merge commits — the email stays safe either way.
+
+## Before the first npm publish (separate step, any time after going public)
+
+- **Resolve Open Decision D-5 first** (see `IMPLEMENTATION.md`): `@argus/core`
+  is deliberately buildless (`exports` → `src/`) and the workspace's turbo
+  cycle-break depends on that (#13 review finding). Publishing requires dist
+  artifacts, so the restructure in D-5's recommendation (extract the shared
+  vitest config into a leaf package, then give core a normal build edge)
+  must land **before** any build step is added.
+- `NPM_TOKEN` secret (P0-09 admin item) — set at this moment, not before.
 
 ## Already replicated on this repo (2026-07-04 migration)
 
