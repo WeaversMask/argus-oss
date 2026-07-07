@@ -16,7 +16,7 @@ The hexagon has its edges: ten ports in `packages/core/src/ports/` with full TSD
 
 - **Async:** port methods return `Promise<Result<T, E>>` (plain neverthrow, not `ResultAsync`). Implementations never throw — failures travel as `DomainError` values.
 - **Absence is not an error:** lookups resolve `ok(undefined)` / `ok([])`.
-- **`AstNode`/`ParsedFile` live in core** (`ports/ast-parser.ts`) — `@argus/ast` conforms _inward_ to them; core never imports an AST library. The contract is minimal (nodeType, position, text, children); visitors and queries belong to `@argus/ast`.
+- **`AstNode`/`ParsedFile` live in core** (`ports/ast-parser.ts`) — `@argus/ast` conforms _inward_ to them; core never imports an AST library. Shape ruled by the maintainer 2026-07-07 (#13 review finding): nodeType, **fieldName?** (grammar field labels — rules need named-child access), position, text, children; parent links and byte offsets deferred until a real consumer demands them. Visitors and queries belong to `@argus/ast`.
 - **Positions crossing any port are 1-based end-exclusive** (ADR-0004).
 - **Fakes:** type-only imports from `@argus/core`; failure injection is `failNextWith(error)` with the _test_ supplying the error instance; `FakeAstParser.parse` rejects on unprimed files (test-setup bug → loud). Extend these fakes rather than hand-rolling new doubles.
 - The `require-await` lint rule rejects await-less `async` methods — write sync methods returning `Promise.resolve(...)`.

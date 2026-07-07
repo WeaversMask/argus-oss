@@ -13,6 +13,12 @@ export type Language = (typeof LANGUAGES)[number];
  * inward; core never imports an AST library. Richer traversal (visitors,
  * queries) lives with the implementation, not in this contract.
  *
+ * Shape ruled by the maintainer on the #13 review finding (2026-07-07):
+ * field labels are IN (`fieldName` — rules need named-child access);
+ * parent links and byte offsets are DEFERRED until a real consumer
+ * demands them (all implementations are in-repo, so later widening has a
+ * contained blast radius).
+ *
  * `position` follows ADR-0004: 1-based, end-exclusive. Implementations own
  * the conversion from their native coordinates (tree-sitter is 0-based)
  * and must contract-test it.
@@ -20,6 +26,12 @@ export type Language = (typeof LANGUAGES)[number];
 export interface AstNode {
   /** Grammar node type, e.g. `"function_declaration"`. Implementation-defined vocabulary. */
   readonly nodeType: string;
+  /**
+   * The grammar field this node occupies in its parent (e.g. `"name"`,
+   * `"body"` — tree-sitter's `childForFieldName` labels), when the grammar
+   * names it. Absent for unlabelled children and the root.
+   */
+  readonly fieldName?: string;
   readonly position: Position;
   /** Source text this node spans. May be computed lazily via a getter. */
   readonly text: string;
