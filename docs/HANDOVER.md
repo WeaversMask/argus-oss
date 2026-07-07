@@ -20,6 +20,7 @@ The hexagon has its edges: ten ports in `packages/core/src/ports/` with full TSD
 - **Positions crossing any port are 1-based end-exclusive** (ADR-0004).
 - **Fakes:** type-only imports from `@argus/core`; failure injection is `failNextWith(error)` with the _test_ supplying the error instance; `FakeAstParser.parse` rejects on unprimed files (test-setup bug → loud). Extend these fakes rather than hand-rolling new doubles.
 - The `require-await` lint rule rejects await-less `async` methods — write sync methods returning `Promise.resolve(...)`.
+- **`@argus/testing` depends on `@argus/core` via `peerDependencies` ONLY — never add it to devDependencies.** Turbo refuses package-graph cycles even when dev-only (`core` dev-depends on `testing` for its vitest config); peer edges sit outside turbo's graph, and pnpm auto-installs workspace peers, so resolution still works. Both are default behaviors, verified 2026-07-07 after CI caught the cycle.
 
 ## Gotchas for P1-03 (the ones that will actually bite)
 
@@ -30,6 +31,7 @@ The hexagon has its edges: ten ports in `packages/core/src/ports/` with full TSD
 5. Performance acceptance: 1000-line TS file < 100ms on M2 — benchmark early, not at the end.
 6. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` — `nvm alias default 22` still pending (admin item).
 7. Session hygiene: sync main first; context budget 50→70% **of the 1M window**; full-packet review tier for executable core logic.
+8. **Run ROOT `pnpm typecheck && pnpm build && pnpm test` before every push** — `pnpm --filter <pkg> …` bypasses turbo entirely, so it cannot catch task-graph problems (that is how the P1-02 cycle reached CI).
 
 ## Maintainer admin items (carried over + new)
 
