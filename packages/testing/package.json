@@ -33,7 +33,6 @@
     "@argus/core": "workspace:*"
   },
   "devDependencies": {
-    "@argus/core": "workspace:*",
     "@types/node": "22.19.19",
     "@vitest/coverage-v8": "4.1.9",
     "rimraf": "^5.0.10",

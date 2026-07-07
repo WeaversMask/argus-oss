@@ -88,13 +88,13 @@ importers:
 
   packages/testing:
     dependencies:
+      '@argus/core':
+        specifier: workspace:*
+        version: link:../core
       neverthrow:
         specifier: 8.2.0
         version: 8.2.0
     devDependencies:
-      '@argus/core':
-        specifier: workspace:*
-        version: link:../core
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
