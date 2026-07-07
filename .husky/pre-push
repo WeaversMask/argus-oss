@@ -48,18 +48,41 @@ while read -r local_ref local_sha _remote_ref remote_sha; do
   if [ "$remote_sha" = "$zero" ]; then
     # New remote ref: scan every commit not already on a remote-tracking
     # ref (i.e. everything this push would publish for the first time).
+    # Deliberately broader than origin/main..HEAD so pushes to a second
+    # remote are covered too, at the cost of a bigger first scan — a
+    # conscious breadth/cost tradeoff, do not narrow it (#14 review).
+    range="$local_sha --not --remotes"
+  elif ! git rev-parse --verify -q "${remote_sha}^{commit}" >/dev/null 2>&1; then
+    # The remote-tracking SHA git handed us is stale, pruned, or from a
+    # never-fetched remote. A range built on it makes gitleaks error out
+    # internally while still exiting 0 (#14 review, major finding) — fall
+    # back to the conservative new-ref range instead of trusting it.
+    echo "⚠️  pre-push: remote SHA for $local_ref does not resolve locally — scanning all not-yet-remote commits instead."
     range="$local_sha --not --remotes"
   else
     range="$remote_sha..$local_sha"
   fi
 
-  if ! "$gitleaks_bin" detect --redact --no-banner \
+  # gitleaks exits 0 on internal/git errors while logging ERR + "no leaks
+  # found" (verified on the pinned version; #14 review, major finding).
+  # Capture the output and fail CLOSED on any ERR line, not just on the
+  # exit code — a scan that never ran must block, not pass.
+  scan_status=0
+  scan_output=$("$gitleaks_bin" detect --redact --no-banner \
     --config "$repo_root/.gitleaks.toml" \
     --source "$repo_root" \
-    --log-opts "$range"; then
+    --log-opts "$range" 2>&1) || scan_status=$?
+  printf '%s\n' "$scan_output"
+  if [ "$scan_status" -ne 0 ]; then
     echo "❌ pre-push: gitleaks flagged potential secrets in the outgoing commits ($local_ref)."
-    echo "   Nothing was pushed. Scrub the offending commits before retrying"
-    echo "   (docs/SECURITY-NOTES.md — history rewrite guidance)."
+    echo "   Nothing was pushed — git aborts every ref in this push together."
+    echo "   Scrub the offending commits before retrying (docs/SECURITY-NOTES.md)."
+    exit 1
+  fi
+  if printf '%s' "$scan_output" | grep -q "ERR"; then
+    echo "❌ pre-push: gitleaks reported an internal error — the scan did not complete; failing closed."
+    echo "   Nothing was pushed — git aborts every ref in this push together."
+    echo "   Fix the underlying git/gitleaks problem, or bypass once with justification: SKIP=gitleaks git push ..."
     exit 1
   fi
 done
