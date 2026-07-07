@@ -1,0 +1,67 @@
+#!/usr/bin/env sh
+# Argus pre-push hook
+#
+# Second-layer secret scan: gitleaks over every commit that is about to
+# leave the machine. Pre-commit scans staged content, but a SKIP=gitleaks
+# commit or history rewritten after the fact (rebase, amend) can slip past
+# it — this hook closes that gap by scanning the exact outgoing range per
+# pushed ref, so nothing unscanned lands on the remote.
+#
+# Bypass (requires written justification in the PR — see
+# docs/SECURITY-NOTES.md §SKIP policy):
+#   SKIP=gitleaks git push ...
+#
+# stdin (from git): one line per ref being pushed —
+#   <local-ref> <local-sha> <remote-ref> <remote-sha>
+
+set -e
+
+skip_normalized=$(printf '%s' "${SKIP:-}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+case ",${skip_normalized}," in
+  *",gitleaks,"*)
+    echo "⚠️  pre-push: SKIP=gitleaks — bypassing outgoing-range secret scan. Document the reason in the PR."
+    exit 0
+    ;;
+esac
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+gitleaks_bin=""
+if [ -x "$repo_root/.bin/gitleaks" ]; then
+  gitleaks_bin="$repo_root/.bin/gitleaks"
+elif command -v gitleaks >/dev/null 2>&1; then
+  gitleaks_bin="gitleaks"
+else
+  echo "❌ pre-push: gitleaks not found."
+  echo "   Run: ./scripts/install-gitleaks.sh"
+  echo "   Or install system-wide (brew install gitleaks) and retry."
+  echo "   To bypass once (requires justification): SKIP=gitleaks git push ..."
+  exit 1
+fi
+
+zero="0000000000000000000000000000000000000000"
+
+while read -r local_ref local_sha _remote_ref remote_sha; do
+  # Deleting a remote ref pushes no commits — nothing to scan.
+  [ "$local_sha" = "$zero" ] && continue
+
+  if [ "$remote_sha" = "$zero" ]; then
+    # New remote ref: scan every commit not already on a remote-tracking
+    # ref (i.e. everything this push would publish for the first time).
+    range="$local_sha --not --remotes"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  if ! "$gitleaks_bin" detect --redact --no-banner \
+    --config "$repo_root/.gitleaks.toml" \
+    --source "$repo_root" \
+    --log-opts "$range"; then
+    echo "❌ pre-push: gitleaks flagged potential secrets in the outgoing commits ($local_ref)."
+    echo "   Nothing was pushed. Scrub the offending commits before retrying"
+    echo "   (docs/SECURITY-NOTES.md — history rewrite guidance)."
+    exit 1
+  fi
+done
+
+exit 0

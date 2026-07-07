@@ -74,9 +74,11 @@ SKIP=gitleaks git commit -m "fix(thing): legitimate-secret-shaped-string-explain
 
 The `SKIP` env var is comma-separated and applies to other hook steps too: `SKIP=lint`, `SKIP=format`, `SKIP=commitlint`, or combinations like `SKIP=gitleaks,lint`. Never use `--no-verify` to bypass all hooks at once — name the specific gate you're skipping and explain why.
 
+**Pre-push layer (OPS-03).** `.husky/pre-push` runs `gitleaks detect` over the exact range each push would publish (`remote-sha..local-sha`; for a new branch, everything not already on a remote-tracking ref). It catches what pre-commit cannot: commits created with `SKIP=gitleaks` and history rewritten after the staged scan (rebase, amend). Nothing unscanned leaves the machine unless explicitly bypassed — `SKIP=gitleaks git push` works here too, with the justification going in the PR description instead of a commit message. Negative test (a planted synthetic `ghp_` token on a throwaway local branch, blocked with exit 1) is documented in the OPS-03 PR.
+
 ### 3. CI Secret Scanning
 
-GitHub Actions runs `gitleaks` (via the official `gitleaks/gitleaks-action@v2`) against the full repo history on every PR and every push to `main`. This catches anything the pre-commit hook missed (including secrets pushed directly to a branch by an agent that used `SKIP=gitleaks`). The same `.gitleaks.toml` config is honoured, so the fixture allowlist applies in both places.
+GitHub Actions runs `gitleaks` (via the official `gitleaks/gitleaks-action@v2`) against the full repo history on every PR and every push to `main`. This is the third layer, and the only one that cannot be `SKIP`'d — it catches anything the local pre-commit and pre-push hooks missed or were bypassed on. The same `.gitleaks.toml` config is honoured, so the fixture allowlist applies in all three places.
 
 ### 4. Build Output Path Sanitisation
 
