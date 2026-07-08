@@ -1,42 +1,41 @@
-# Handover — D-2/3/4 ruled + implemented (P1-01a); P1-02 started
+# Handover — P1-02 complete
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-07-06
-**Phase:** P1 — Domain Core (1/6 tasks done; P1-01a follow-up in review)
-**Last task completed:** P1-01a — ruled decisions implemented ([argus-oss#11](https://github.com/WeaversMask/argus-oss/pull/11), pending merge)
+**Date:** 2026-07-07
+**Phase:** P1 — Domain Core (2/6 tasks done)
+**Last task completed:** P1-02 — Core port interfaces ([argus-oss#13](https://github.com/WeaversMask/argus-oss/pull/13), pending merge)
 
 ---
 
 ## Context
 
-The maintainer ruled **option (a) on all of D-2/D-3/D-4** in session (2026-07-06) — recorded in [ADR-0004](./adr/0004-domain-model-boundary-semantics.md), implemented and tracker-flipped in [#11](https://github.com/WeaversMask/argus-oss/pull/11):
+The hexagon has its edges: ten ports in `packages/core/src/ports/` with full TSDoc contracts, six new port-level `DomainError`s, and in-memory fakes for every port in `packages/testing/src/mocks/`. **Next: P1-03 — AST abstraction layer** (`@argus/ast`, tree-sitter wrapper conforming to `AstParserPort`). P1-05/P1-06 stay parallel-eligible off P1-01. Branch from `main` after #13 merges — #13 owns this tracker/handover state.
 
-- **D-2a:** composite factories (`violation`, `finding`, `scanResult`, `layerManifest`) re-validate embedded components via the new internal `Validator.embed` (path-prefixed issues, factory's frozen copy embedded). Extended to `completeScan`, which rebuilds its `ScanResult` (re-derives `countsBySeverity`); its error union is now `ScanTransitionError | ValidationError`.
-- **D-3a:** `Position` is **1-based, end-exclusive** (LSP/SARIF/tree-sitter aligned). TSDoc-only change. Every adapter converts against this — P1-03 must ship `+1` conversion contract tests (in-range off-by-ones pass validation; that residual risk is in ADR-0004).
-- **D-4a:** `Suppression` stays project-agnostic; **`SuppressionRepositoryPort` takes a `ProjectId` query parameter** — this binds P1-02's port design.
+## Port conventions established in P1-02 (follow these, don't reinvent)
 
-## P1-02 — Core port interfaces (IN PROGRESS, no code yet)
+- **Async:** port methods return `Promise<Result<T, E>>` (plain neverthrow, not `ResultAsync`). Implementations never throw — failures travel as `DomainError` values.
+- **Absence is not an error:** lookups resolve `ok(undefined)` / `ok([])`.
+- **`AstNode`/`ParsedFile` live in core** (`ports/ast-parser.ts`) — `@argus/ast` conforms _inward_ to them; core never imports an AST library. Shape ruled by the maintainer 2026-07-07 (#13 review finding): nodeType, **fieldName?** (grammar field labels — rules need named-child access), position, text, children; parent links and byte offsets deferred until a real consumer demands them. Visitors and queries belong to `@argus/ast`.
+- **Positions crossing any port are 1-based end-exclusive** (ADR-0004).
+- **Fakes:** type-only imports from `@argus/core`; failure injection is `failNextWith(error)` with the _test_ supplying the error instance; `FakeAstParser.parse` rejects on unprimed files (test-setup bug → loud). Extend these fakes rather than hand-rolling new doubles.
+- The `require-await` lint rule rejects await-less `async` methods — write sync methods returning `Promise.resolve(...)`.
+- **`@argus/testing` depends on `@argus/core` via `peerDependencies` ONLY — never add it to devDependencies.** Turbo refuses package-graph cycles even when dev-only (`core` dev-depends on `testing` for its vitest config); peer edges sit outside turbo's graph, and pnpm auto-installs workspace peers, so resolution still works. Both are default behaviors, verified 2026-07-07 after CI caught the cycle. **Caveat (review finding on #13): this break is benign only while `@argus/core` stays buildless** (its `exports` point at `src/`) — turbo cannot order `testing` after a core build it can't see, so if core ever gains a real `build` step, revisit this edge first.
 
-- Branch **`p1-02-core-ports`** exists, cut from main **without** #11 — **rebase onto main once #11 merges** before completing.
-- Full design plan, settled decisions (async convention, core-owned AST contract, port errors, dep-cycle defusal, coverage exception), declared file set, and work order are in **`.work/P1-02.md`** (gitignored, local to this machine). Read it before writing any port.
-- Tracker already shows P1-02 in progress (#11's tracker commit). Complete the tracker flip in the P1-02 PR itself.
+## Gotchas for P1-03 (the ones that will actually bite)
 
-## Domain conventions (unchanged from P1-01 — follow, don't reinvent)
-
-Branded primitives via `Brand<T,B>`; factories return `Result<T, ValidationError>` collecting **all** issues; outputs deep-frozen; optional keys constructed conditionally (`exactOptionalPropertyTypes`); time injected as branded epoch-ms `Timestamp`; `Scan` is a discriminated union with narrow-typed transitions. Composites now also re-validate embedded components (D-2a) — extend that pattern to any new composite.
-
-## Gotchas (will actually bite)
-
-1. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` — `nvm alias default 22` still pending (admin item).
-2. **Workspace dep cycle** for P1-02 fakes: `@argus/testing` needs `@argus/core` types while core devDepends on testing — planned defusal is type-only imports (details in `.work/P1-02.md`); flag it in the PR.
-3. Ports are interface-only → no runtime for v8 coverage; document the exclusion in the package `vitest.config.ts` per quality-gates.md.
-4. Prettier reflows Markdown tables — run it before staging.
-5. Session hygiene: sync main first; context budget 50→70%; full-packet review tier for anything in core.
+1. **`@argus/ast` is a NEW package** — the full checklist applies: compose named volume + Dockerfile mountpoint line, root `vitest.config.ts` projects entry, `pnpm notices` after the dep tree changes.
+2. **Tree-sitter deps need the ADR-0003 dance:** exact-pin every grammar, `minimumReleaseAge` 3-day gate, `allowBuilds` review (tree-sitter packages ship native/wasm build scripts — expect to justify entries), license gate over new transitives.
+3. **`+1` conversion contract tests are mandatory**, not optional: tree-sitter is 0-based end-exclusive, ours is 1-based end-exclusive — a uniform `+1` on all four numbers. In-range off-by-ones pass validation (ADR-0004 residual risk); only contract tests catch them.
+4. Per-language parse smoke test (phase note): catches grammar drift on dependency updates.
+5. Performance acceptance: 1000-line TS file < 100ms on M2 — benchmark early, not at the end.
+6. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` — `nvm alias default 22` still pending (admin item).
+7. Session hygiene: sync main first; context budget 50→70% **of the 1M window**; full-packet review tier for executable core logic.
+8. **Run ROOT `pnpm typecheck && pnpm build && pnpm test` before every push** — `pnpm --filter <pkg> …` bypasses turbo entirely, so it cannot catch task-graph problems (that is how the P1-02 cycle reached CI).
 
 ## Maintainer admin items (carried over + new)
 
-1. **Merge [#11](https://github.com/WeaversMask/argus-oss/pull/11)** — unblocks P1-02 completion (rebase) and P1-03.
+1. **Merge [#13](https://github.com/WeaversMask/argus-oss/pull/13)** — unblocks P1-03/P1-04.
 2. Archive the retired `argus` repo (Settings → Archive).
 3. D-1: Turbo remote cache decision (only decision still open).
 4. Dependabot PRs #1–#7.
@@ -46,13 +45,12 @@ Branded primitives via `Brand<T,B>`; factories return `Result<T, ValidationError
 
 ## State of the System
 
-- ✅ main green: 117 tests aggregate, lint/typecheck/build, license gate (479 pkgs)
-- ⏸ [#11](https://github.com/WeaversMask/argus-oss/pull/11) open: D-2a/D-3a code (116 core tests, 100% coverage), ADR-0004, tracker flip, this handover — pending human merge
-- ⏸ `p1-02-core-ports` branch: created, empty of code, plan in `.work/P1-02.md`
+- ✅ Local gates green on the branch: 158 tests aggregate (`@argus/core` 126, `@argus/testing` 32), 100% lines/branches/functions both packages, lint/typecheck clean
+- ⏸ [#13](https://github.com/WeaversMask/argus-oss/pull/13) open (P1-02 + this tracker/handover state), pending human merge
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Sign-off
 
-The model's ambiguities are ruled and closed; nothing structural is left to guess. Ports next — the design is written down, so P1-02 is execution, not invention.
+Entities speak, ports listen. The first adapter (tree-sitter) gets to prove the whole hexagon idea — measure it, pin it, and mind the `+1`.
 
 — claude-fable-5
