@@ -1,0 +1,51 @@
+# `@argus/core`
+
+> The Argus domain model — entities, value objects, errors, and the **port interfaces** adapters implement. The gravitational centre of the monorepo: everything depends on it, it depends on nothing internal.
+
+## Purpose
+
+`core` holds the pure domain of a code-analysis platform: what a scan, violation, finding, rule, layer, project, and suppression **are**, independent of how they are stored, parsed, or reported. It has **zero infrastructure dependencies** (its only runtime dependency is [`neverthrow`](https://github.com/supermacro/neverthrow) for typed results). It performs no I/O, reads no clock, and imports no other `@argus/*` package. Adapters and apps implement behaviour _around_ this model; the model itself stays pure. It also declares the **ports** — the interface contracts (repositories, AST parser, rule runner, tool adapter, notification, progress) that adapters implement from the outside. Core owns the contract; adapters conform inward.
+
+## Public surface
+
+Everything is exported from [`src/index.ts`](./src/index.ts) (which re-exports `domain/`, `errors/`, and `ports/`). Each value type is built through a **factory that returns `Result<T, ValidationError>`** and collects _all_ validation issues; successful outputs are deep-frozen.
+
+| Export                                                                                                                                                                                                                                                                                                                                                               | Kind                   | Summary                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Scan`, `queueScan` / `startScan` / `completeScan` / `failScan`, `ScanStatus`, `scanResult`                                                                                                                                                                                                                                                                          | union + transitions    | A scan's lifecycle as a discriminated union (queued → running → completed/failed); transitions take narrow member types, so illegal moves are compile errors |
+| `Violation` / `violation`, `Finding` / `finding`                                                                                                                                                                                                                                                                                                                     | entity + factory       | A rule breach and a located finding                                                                                                                          |
+| `Rule` / `rule`, `RuleProfile` / `ruleProfile`, `RuleId` / `ruleId`, `RuleActivation`                                                                                                                                                                                                                                                                                | entity + factory       | Rules, rule profiles, and their activation state                                                                                                             |
+| `Layer` / `layer`, `LayerManifest` / `layerManifest`, `LayerBoundary`, `LayerName`                                                                                                                                                                                                                                                                                   | entity + factory       | Architecture layers and the boundaries between them                                                                                                          |
+| `Project` / `project` / `renameProject`, `Suppression` / `suppression` / `isSuppressionExpired`, `Metrics` / `metrics`                                                                                                                                                                                                                                               | entities + factories   | Project, suppression, and code-metric value objects                                                                                                          |
+| `Severity`, `SEVERITIES`, `compareSeverity`, `severityAtLeast`, `isSeverity`                                                                                                                                                                                                                                                                                         | value object + helpers | Ordered severities (`info < warning < error < critical`)                                                                                                     |
+| `FilePath` / `filePath`, `Position` / `position`, `Timestamp` / `timestamp`, branded ids (`projectId`, `scanId`, `violationId`, `suppressionId`)                                                                                                                                                                                                                     | branded value objects  | Primitives that are never bare strings/numbers                                                                                                               |
+| `Brand<T, B>`                                                                                                                                                                                                                                                                                                                                                        | type util              | The branding primitive underneath the value objects                                                                                                          |
+| Ports — `AstParserPort`, `RuleRunnerPort`, `ToolAdapterPort`, `DependencyResolverPort`, `ProjectRepositoryPort` / `ScanRepositoryPort` / `ViolationRepositoryPort` / `SuppressionRepositoryPort`, `NotificationPort`, `ProgressReporterPort` (+ supporting types `AstNode`, `ParsedFile`, `Language`, `RuleRunInput`, `ToolTarget`, `ScanEvent`, `FileDependencies`) | interfaces             | The hexagonal boundary — adapters implement these; async operations return `Promise<Result<T, E>>`                                                           |
+| `DomainError`, `ValidationError` (`ValidationIssue`), `ScanTransitionError`, `ParseError`, `ResolutionError`, `RepositoryError`, `RuleExecutionError`, `ToolExecutionError`, `NotificationError`                                                                                                                                                                     | errors                 | The error types factories and transitions return                                                                                                             |
+
+## How it fits
+
+- **Depends on:** `neverthrow` (external, MIT) only. No internal packages.
+- **Consumed by:** every other package and app in the workspace.
+- **Boundary rule:** `packages/core/*` **may not import from any other package** (enforced by dogfooding from Phase 2 — see [`../../docs/plan/01-repo-structure.md`](../../docs/plan/01-repo-structure.md#forbidden-imports-enforced-by-dogfooding)).
+- **Ports are implemented outward:** by adapters (from Phase 4) and by the in-memory fakes in [`@argus/testing`](../testing/README.md) for tests.
+
+## Usage
+
+```ts
+import { filePath } from "@argus/core";
+
+const result = filePath("src/index.ts"); // Result<FilePath, ValidationError>
+
+result.match(
+  (path) => useIt(path), // branded FilePath — never a bare string
+  (err) => report(err.issues), // every validation issue, not just the first
+);
+```
+
+## Maintenance notes
+
+- **Conventions are uniform** — branded primitives, `Result`-returning factories that collect all issues, deep-frozen outputs, injected `Timestamp`, discriminated-union `Scan`. Summary + rationale in [`../../docs/architecture.md`](../../docs/architecture.md#domain-conventions-how-core-is-built). Follow them when extending; don't reinvent.
+- **Composite factories re-validate embedded components** and boundary semantics (`Position` is 1-based, end-exclusive) are ruled in [ADR-0004](../../docs/adr/0004-domain-model-boundary-semantics.md).
+- **Coverage bar is high** — this package sits at 100% and any drop is a review flag (domain logic is where correctness matters most).
+- **Publish status:** internal workspace package (`private`, `UNLICENSED`, `0.0.0`) — not published individually. Reuse is governed by the repo-root MIT [`LICENSE`](../../LICENSE).

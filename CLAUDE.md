@@ -30,6 +30,7 @@ Full policy with examples: [agentic-execution.md §Permission-Prompt Description
 - Prettier reflows Markdown tables — run `pnpm exec prettier --write <files>` before staging or pre-commit fails.
 - Never `--no-verify`. Use scoped `SKIP=<gate>` with written justification ([SECURITY-NOTES.md](docs/SECURITY-NOTES.md)).
 - Conventional commits only: `feat|fix|chore|refactor|docs|test`.
+- Documentation is captured progressively — every task records a doc delta (or an explicit "no docs delta"). Standard: [docs/plan/03-documentation.md](docs/plan/03-documentation.md).
 - One task = one branch = one PR. Branch from `main`; plan/doc changes other tasks depend on land first as their own small PR.
 - Agents may push branches and open PRs. **Agents never merge — the maintainer does.**
 - **Going public is maintainer-only, voluntary, unscheduled — never agentic.** Agents never change repo visibility or create public repos. The retired `WeaversMask/argus` repo is a frozen pre-scrub archive — never push there, never make it public. Procedure: [go-public-runbook](docs/go-public-runbook.md).

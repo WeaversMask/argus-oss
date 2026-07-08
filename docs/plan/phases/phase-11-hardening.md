@@ -45,14 +45,16 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 ### [P11-03] Full documentation site
 
 - **Deps:** P10 complete
-- **Outputs:** Docusaurus (or Mintlify) site with:
-  - User guide
+- **Outputs:** Docusaurus (or Mintlify) site — **assembled and polished from the material captured progressively per [`../03-documentation.md`](../03-documentation.md)**, not written from scratch:
+  - User guide (edit/expand `docs/guide/`)
   - Rule reference (auto-generated from rule TSDoc)
   - Layer manifest guide
   - API docs (auto-generated from tRPC routers)
+  - Architecture section (from `docs/architecture.md` + package READMEs)
+  - Contributor guide + recipes (from `docs/dev/`)
   - ADR index
   - Tutorials and recipes
-- **Effort:** XL
+- **Effort:** XL (largely assembly if the capture streams have been fed along the way)
 
 ### [P11-04] Migration guides
 

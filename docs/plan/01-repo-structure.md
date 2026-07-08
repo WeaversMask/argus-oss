@@ -63,7 +63,10 @@ argus/
 │   ├── README.md
 │   ├── IMPLEMENTATION.md
 │   ├── HANDOVER.md
+│   ├── architecture.md              # how the packages fit together (reader-facing map)
 │   ├── risks.md
+│   ├── guide/                       # user-facing guide (fills in from Phase 2)
+│   ├── dev/                         # contributor/maintainer recipes
 │   ├── plan/                        # phase docs, protocols, templates
 │   ├── adr/                         # Architecture Decision Records
 │   └── handovers/                   # Historical handover snapshots
@@ -95,6 +98,9 @@ argus/
 | A new shared UI primitive              | `packages/ui-components/src/primitives/`                            |
 | A test data builder                    | `packages/testing/src/builders/`                                    |
 | An in-memory port fake                 | `packages/testing/src/mocks/`                                       |
+| Docs for a user-facing capability      | `docs/guide/`                                                       |
+| A how-to for extending a pattern       | `docs/dev/` — one recipe per pattern                                |
+| What a package is / why / its surface  | `packages/<pkg>/README.md` (template in `docs/plan/templates/`)     |
 
 ## Why This Structure
 
@@ -104,6 +110,7 @@ argus/
 - **`persistence/sqlite` and `persistence/postgres` are interchangeable.** Factory picks based on config.
 - **Reports are self-contained.** New format = one new folder under `formatters/`.
 - **`testing` package is consumed only by other packages' tests.** Builders and fakes shared, not duplicated.
+- **Every package/app carries a `README.md`** — what it is, why, and its public surface. Documentation is captured progressively; where each kind lives is defined in [`03-documentation.md`](./03-documentation.md).
 
 ## Forbidden Imports (Enforced by Dogfooding)
 
