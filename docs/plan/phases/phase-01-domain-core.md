@@ -63,7 +63,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
   - Query helpers for tree-sitter S-expression queries
   - Initial support: TypeScript, JavaScript, Python
 - **Acceptance:**
-  - Parsing a 1000-line TS file completes in <100ms on M2
+  - Parsing a 1000-line TS file completes in <100ms on M2 — asserted by an executable benchmark committed with the package, not a doc-only number (maintainer-approved 2026-07-07)
   - Visitor pattern correctly traverses arbitrary subtrees
   - Contract tests verify the wrapper conforms to `AstParserPort`
 - **Effort:** L
@@ -76,7 +76,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
   - `RuleContext`: read-only view exposed to rules (file path, layer, config snapshot)
   - `Runner`: orchestrates per-file rule execution and aggregates violations
 - **Acceptance:**
-  - A no-op file of 1000 nodes with 50 registered rules runs in <50ms
+  - A no-op file of 1000 nodes with 50 registered rules runs in <50ms — asserted by an executable benchmark with a committed baseline (maintainer-approved 2026-07-07)
   - Rules cannot mutate the AST or context (TypeScript readonly + frozen objects)
   - Adding a new rule requires zero changes to the engine
 - **Effort:** L
@@ -124,7 +124,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 - **Tree-sitter grammar versions** drift. Pin every grammar in `package.json`. Add a smoke test that parses a sample file per language; it'll catch breaking changes on dependency updates.
 - **`exactOptionalPropertyTypes`** changes how optional properties are typed. Some libraries don't play well with it. Document any exceptions you make.
 - **Domain services must be pure.** No `Date.now()`, no `Math.random()`, no file I/O. Take time/randomness/IO as injected dependencies.
-- **The rule engine is the hottest code path.** Benchmark from day one. A microbenchmark in `packages/rule-engine/tests/perf/` is part of the deliverable.
+- **The rule engine is the hottest code path.** Benchmark from day one. A microbenchmark in `packages/rule-engine/tests/perf/` is part of the deliverable — and it runs in CI against a committed baseline (maintainer-approved 2026-07-07: a perf criterion that isn't executable is an aspiration, not a gate). Gate on gross regressions only, with generous headroom for shared-runner noise; the precise M2 numbers are asserted locally.
 
 ---
 

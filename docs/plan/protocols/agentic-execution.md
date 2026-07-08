@@ -73,8 +73,8 @@ Two writer agents may work simultaneously **only** when their declared file sets
 Before marking a task complete:
 
 - [ ] All acceptance criteria from the task definition are met
-- [ ] Tests pass locally (`pnpm test`)
-- [ ] Lint and type-check clean (`pnpm lint && pnpm typecheck`)
+- [ ] Tests pass locally (**root** `pnpm test` — turbo)
+- [ ] Lint, type-check, and build clean at the **root** (`pnpm lint && pnpm typecheck && pnpm build`) — `pnpm --filter` runs bypass turbo's task graph and cannot catch graph-level failures (P1-02's workspace dependency cycle reached CI exactly that way)
 - [ ] Coverage threshold met for new code (≥85% line, ≥80% branch)
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
 - [ ] If user-facing: documentation updated

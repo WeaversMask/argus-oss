@@ -18,6 +18,13 @@ Write every Bash `description` so the maintainer can decide from the prompt alon
 
 Full policy with examples: [agentic-execution.md §Permission-Prompt Descriptions](docs/plan/protocols/agentic-execution.md).
 
+## Best practices (hold these at all times)
+
+- **Sign-off gates run at the repo ROOT before every push:** `pnpm lint && pnpm typecheck && pnpm build && pnpm test`. `pnpm --filter <pkg>` runs bypass turbo's task graph and miss whole-graph failures (P1-02: a workspace dependency cycle reached CI exactly this way). Filtered runs are for iteration only, never sign-off.
+- **Independent review pass before requesting merge — never skip it.** Fresh-context agent, tiered by diff risk: light for docs/config-only, full packet for executable logic; Sonnet-class by default, **escalated model for domain core / adapter boundaries / releases**. Brief and packet format: [agentic-execution.md §Task Completion Checklist](docs/plan/protocols/agentic-execution.md).
+- **Secret scanning is layered — keep every layer intact:** pre-commit scans staged content, pre-push scans the outgoing range, CI scans full history. `SKIP=gitleaks` at any local layer requires written justification ([SECURITY-NOTES.md](docs/SECURITY-NOTES.md)).
+- Work through the full [Task Completion Checklist](docs/plan/protocols/agentic-execution.md) before calling a task done — acceptance criteria, gates, review pass, tracker + handover. A task without its checklist is not complete.
+
 ## Evergreen gotchas
 
 - Prettier reflows Markdown tables — run `pnpm exec prettier --write <files>` before staging or pre-commit fails.
