@@ -77,8 +77,8 @@ Before marking a task complete:
 - [ ] Lint, type-check, and build clean at the **root** (`pnpm lint && pnpm typecheck && pnpm build`) — `pnpm --filter` runs bypass turbo's task graph and cannot catch graph-level failures (P1-02's workspace dependency cycle reached CI exactly that way)
 - [ ] Coverage threshold met for new code (≥85% line, ≥80% branch)
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
-- [ ] If user-facing: documentation updated
-- [ ] If architectural: ADR written or updated
+- [ ] **Documentation delta recorded** (see [`../03-documentation.md`](../03-documentation.md)) — for each stream the change touched: package `README.md` current · public exports carry TSDoc · user-facing change reflected in [`../../guide/`](../../guide/) · first-of-a-pattern gets a [`../../dev/`](../../dev/) recipe. If none apply, record **"no docs delta"** with a one-line reason.
+- [ ] If architectural: ADR written or updated (the decision-rationale stream of [`../03-documentation.md`](../03-documentation.md))
 - [ ] **Independent review pass done:** a fresh-context agent reviewed the diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md). Depth is tiered by diff risk (maintainer-approved 2026-07-04 — P0-12's review spent most of its budget re-verifying results the author had already documented):
   - **Light** — docs-only or config-only diffs with no executable logic: bugs-only findings + verdict, summarized in the PR description; no packet boilerplate.
   - **Full packet** — any diff with executable logic or security-relevant behavior: risk-ranked findings, acceptance-criteria mapping, and "what to manually verify in <10 min", attached to the PR.
@@ -138,6 +138,7 @@ The intent of this modular structure is to keep working context lean:
 | Active phase file                  | ~200 lines | Every session                  |
 | `01-repo-structure.md`             | ~150 lines | When creating new files        |
 | `02-roadmap.md`                    | ~50 lines  | When planning cross-phase work |
+| `03-documentation.md`              | ~120 lines | When a task may produce docs   |
 | `quality-gates.md`                 | ~60 lines  | Before opening a PR            |
 
 **Steady-state load: ~660 lines** vs. ~1000+ lines for a monolithic plan. The savings compound across many sessions.

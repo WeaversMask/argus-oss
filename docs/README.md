@@ -21,6 +21,7 @@
 - [`SECURITY-NOTES.md`](./SECURITY-NOTES.md) — **read once before your first commit**; what must never be committed
 - [`plan/01-repo-structure.md`](./plan/01-repo-structure.md) — when creating new files or unsure where something goes
 - [`plan/02-roadmap.md`](./plan/02-roadmap.md) — when planning cross-phase work
+- [`plan/03-documentation.md`](./plan/03-documentation.md) — when a task may produce documentation (the progressive-docs standard)
 - [`plan/protocols/quality-gates.md`](./plan/protocols/quality-gates.md) — before opening a PR
 - [`risks.md`](./risks.md) — when a new risk is identified
 - [`adr/`](./adr/) — when a design decision conflicts with an existing one
@@ -38,12 +39,16 @@ argus/
     ├── IMPLEMENTATION.md        live tracker (current state)
     ├── HANDOVER.md              active handover (rotates per task)
     ├── SECURITY-NOTES.md        what must never be committed
+    ├── architecture.md          how the packages fit together (reader map)
     ├── risks.md                 risk register
+    ├── guide/                   user-facing guide (fills in from Phase 2)
+    ├── dev/                     contributor/maintainer recipes
 │
 ├── plan/
 │   ├── 00-principles.md         engineering principles (always load)
 │   ├── 01-repo-structure.md     code structure (load on demand)
 │   ├── 02-roadmap.md            phase overview table (load on demand)
+│   ├── 03-documentation.md      progressive-docs standard (load on demand)
 │   ├── phases/                  one file per phase (load active only)
 │   │   ├── phase-00-foundation.md
 │   │   ├── phase-01-domain-core.md
@@ -63,7 +68,8 @@ argus/
 │   └── templates/
 │       ├── HANDOVER.template.md
 │       ├── TASK.template.md
-│       └── PR.template.md
+│       ├── PR.template.md
+│       └── README.package.template.md
 │
 ├── adr/                         architecture decision records
 └── handovers/                   archived handover snapshots
@@ -73,7 +79,11 @@ argus/
 
 ## For Humans
 
-If you're new to the project, read these in order:
+- **Using Argus** → [`guide/`](./guide/) (fills in from Phase 2).
+- **How it fits together** → [`architecture.md`](./architecture.md).
+- **Working on the internals** → [`dev/`](./dev/), then the package's own `README.md`.
+
+New contributor? Read these in order:
 
 1. [`plan/00-principles.md`](./plan/00-principles.md)
 2. [`plan/01-repo-structure.md`](./plan/01-repo-structure.md)
