@@ -12,6 +12,8 @@ Argus is a **pnpm-workspaces monorepo** (Turborepo for build orchestration) orga
 
 The full intended tree and the forbidden-import rules that enforce this live in [`plan/01-repo-structure.md`](./plan/01-repo-structure.md). The reasoning behind the layering is in [`plan/00-principles.md`](./plan/00-principles.md).
 
+**The boundaries are mechanically enforced** (OPS-04): [`.dependency-cruiser.cjs`](../.dependency-cruiser.cjs) runs in CI (`pnpm boundaries`) and fails the build if `packages/core/src` imports anything but `neverthrow` (Node builtins included), if any import crosses a package boundary other than through the target's public `exports` entry points, or if the one-way, type-only-in-src `testing → core` edge is violated. When a package's public surface changes, its `exports` map and the rule allowlist in `.dependency-cruiser.cjs` change together. Phase-2 dogfooding will reinforce, not replace, these rules.
+
 ## What exists today
 
 Two packages are real; the rest of the tree in `01-repo-structure.md` is planned.

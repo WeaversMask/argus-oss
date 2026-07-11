@@ -291,3 +291,33 @@ jobs:
           # Use repo-committed config (.gitleaks.toml) including the fixture
           # allowlist. The action picks it up automatically.
           GITLEAKS_CONFIG: .gitleaks.toml
+
+  # Architecture boundary enforcement (OPS-04, argus-oss#15 item 2): the
+  # dependency-cruiser rules in .dependency-cruiser.cjs make the package
+  # contracts mechanical — core/src imports nothing but neverthrow (no Node
+  # builtins), cross-package imports land only on public entry points, the
+  # testing→core edge stays one-way and type-only in src. Convention-and-
+  # review enforcement becomes CI; Phase-2 dogfooding will reinforce, not
+  # replace, this job. Not a branch-protection required check until the
+  # maintainer adds it (same admin bucket as the other jobs, P0-03).
+  boundaries:
+    name: Architecture boundaries (dependency-cruiser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check architecture boundaries (dependency-cruiser)
+        run: pnpm boundaries

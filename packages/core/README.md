@@ -27,7 +27,7 @@ Everything is exported from [`src/index.ts`](./src/index.ts) (which re-exports `
 
 - **Depends on:** `neverthrow` (external, MIT) only. No internal packages.
 - **Consumed by:** every other package and app in the workspace.
-- **Boundary rule:** `packages/core/*` **may not import from any other package** (enforced by dogfooding from Phase 2 — see [`../../docs/plan/01-repo-structure.md`](../../docs/plan/01-repo-structure.md#forbidden-imports-enforced-by-dogfooding)).
+- **Boundary rule:** `packages/core/*` **may not import from any other package** — and `src/` may import nothing but `neverthrow`, Node builtins included. **CI-enforced since OPS-04** by [`.dependency-cruiser.cjs`](../../.dependency-cruiser.cjs) (`pnpm boundaries`); Phase-2 dogfooding will reinforce it (see [`../../docs/plan/01-repo-structure.md`](../../docs/plan/01-repo-structure.md#forbidden-imports-enforced-by-dogfooding)).
 - **Ports are implemented outward:** by adapters (from Phase 4) and by the in-memory fakes in [`@argus/testing`](../testing/README.md) for tests.
 
 ## Usage
