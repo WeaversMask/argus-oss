@@ -39,18 +39,53 @@ module.exports = {
         "zero-infrastructure guarantee — add an adapter package instead.",
       from: { path: "^packages/core/src" },
       to: {
-        pathNot: ["^packages/core/src", "node_modules/neverthrow"],
+        // Trailing slash matters (review finding): without it this is a
+        // substring match and node_modules/neverthrow-anything would slip
+        // through — a typosquat-shaped hole in the very rule meant to
+        // enforce the allowlist.
+        pathNot: ["^packages/core/src", "node_modules/neverthrow/"],
+      },
+    },
+    // Per-package public-entry rules: each mirrors that package's
+    // package.json `exports` map EXACTLY — when a package's public surface
+    // changes, its exports map and its *-public-entry-only rule change
+    // together. Every new package gets its own rule (new-package checklist).
+    {
+      name: "core-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/core exports only '.' — imports from outside the package " +
+        "must land on src/index.ts. Anything else is a deep import into " +
+        "internals.",
+      from: { pathNot: "^packages/core/" },
+      to: {
+        path: "^packages/core/",
+        pathNot: "^packages/core/src/index\\.ts$",
+      },
+    },
+    {
+      name: "testing-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/testing exports '.', './config' and './setup' — imports from " +
+        "outside the package must land on src/index.ts, src/config.ts or " +
+        "src/setup.ts. Anything else is a deep import into internals.",
+      from: { pathNot: "^packages/testing/" },
+      to: {
+        path: "^packages/testing/",
+        pathNot: "^packages/testing/src/(index|config|setup)\\.ts$",
       },
     },
     {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:
-        "Imports across package boundaries must land on the target's public " +
-        "entry points (its package.json `exports` map) — never reach into " +
-        "internals. The allowlist below mirrors the exports maps of " +
-        "@argus/core (.) and @argus/testing (., ./config, ./setup): update " +
-        "both together when a package's public surface changes.",
+        "Coarse BACKSTOP for packages added without their own " +
+        "*-public-entry-only rule above (the real, exports-map-exact " +
+        "contract). This one is package-agnostic, so it would allow any " +
+        "src/(index|config|setup).ts of any package — do not rely on it " +
+        "alone; add the per-package rule with every new package. Dormant " +
+        "today: with two packages, the dedicated rules subsume it.",
       from: { path: "^packages/([^/]+)/" },
       to: {
         path: "^packages/(?!$1/)[^/]+/",
