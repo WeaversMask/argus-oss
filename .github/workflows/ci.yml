@@ -283,8 +283,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'pull_request'
+    # issues:read alongside pull-requests:read (review finding): the comments
+    # call below is the Issues API (PR conversation comments live there); the
+    # fine-grained permission docs list the endpoint under both categories, so
+    # grant both — if pull-requests:read alone were insufficient, every
+    # full-tier PR would 403 and the fail-closed script would block it.
     permissions:
       contents: read
+      issues: read
       pull-requests: read
     steps:
       - name: Require evidence of the independent review pass
@@ -305,7 +311,10 @@ jobs:
           # packets post "## Independent review packet" as a PR comment;
           # light-tier diffs carry an "## Independent review" block in the
           # description. Both share the "## Independent review" heading stem,
-          # at any heading level.
+          # at any heading level. Deliberately no trailing word boundary — it
+          # must also match "...review packet"; the accepted tradeoff is that
+          # an unrelated heading extending the stem (e.g. "## Independent
+          # reviewer duties") would also pass. Dumb-and-fast beats clever here.
           marker='^#{1,6}[[:space:]]+Independent[[:space:]]+review'
 
           # Drafts are WIP — the review pass runs at completion.
