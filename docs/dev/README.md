@@ -26,3 +26,7 @@ One page per repeatable extension point. Each is a placeholder until the first i
 
 - **Domain conventions** (branded primitives, `Result`-returning factories, frozen outputs, injected time) are summarised in [`../architecture.md`](../architecture.md#domain-conventions-how-core-is-built) and used uniformly — follow them, don't reinvent.
 - **Public exports carry TSDoc** — it's both in-editor help and the source for the Phase 11 generated reference.
+
+## Mutation testing (weekly, report-only)
+
+100% coverage proves the tests _execute_ the code; the weekly [Stryker](https://stryker-mutator.io/) run ([`mutation.yml`](../../.github/workflows/mutation.yml), Tuesdays 12:00 UTC + manual dispatch) proves they _assert_ on it. Locally: `pnpm mutation` (~30s at current size; grows with the codebase), report at `reports/mutation/index.html`. Config: [`stryker.config.mjs`](../../stryker.config.mjs) — **report-only** (`thresholds.break: null`) until the baseline stabilises; the score lives in [`IMPLEMENTATION.md`](../IMPLEMENTATION.md) → Metrics Snapshot. Reading survivors: a surviving mutant means no test failed when that statement was broken — either add the missing assertion or consciously accept it (e.g. error-message wording). No TypeScript checker is wired in (doubles runtime), so a survivor can also be type-invalid noise — check before chasing it.

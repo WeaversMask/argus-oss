@@ -13,6 +13,14 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/*.min.js",
       ".bin/**",
+      // Stryker sandbox + generated mutation reports (OPS-04c). Flat config
+      // does not honor .gitignore; the sandbox contains a full tree copy,
+      // which also makes typescript-eslint see two candidate project roots.
+      ".stryker-tmp/**",
+      "reports/**",
+      // Session-local agent infrastructure (untracked); worktrees under it
+      // hold full repo copies.
+      ".claude/**",
     ],
   },
 

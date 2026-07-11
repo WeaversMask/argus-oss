@@ -184,3 +184,7 @@ exports/
 /tmp/
 /var/
 C:\\
+
+# Stryker mutation testing (OPS-04) — temp dir + generated reports
+.stryker-tmp/
+reports/
