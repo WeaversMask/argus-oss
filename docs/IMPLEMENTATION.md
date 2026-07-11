@@ -107,6 +107,7 @@
 ## Metrics Snapshot
 
 - **Test coverage:** 100% lines / 100% branches aggregate — `@argus/core` (126 tests) + `@argus/testing` (32 tests)
+- **Mutation score (Stryker, report-only):** 85.74% — 553/645 valid mutants detected (552 killed + 1 timeout, 92 survived, 0 no-coverage), 30s wall; baseline 2026-07-12 (OPS-04c). Survivors cluster in error-class prose, `testing/src` vitest plumbing, fixtures
 - **License gate:** 479 third-party packages, 3 named exceptions (as of P1-01; +neverthrow)
 - **CI wall time:** ~25s per job, 8 jobs parallel (cold cache)
 - **Self-scan results:** _—_
