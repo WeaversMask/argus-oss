@@ -16,14 +16,15 @@ The full intended tree and the forbidden-import rules that enforce this live in 
 
 ## What exists today
 
-Two packages are real; the rest of the tree in `01-repo-structure.md` is planned.
+Three packages are real; the rest of the tree in `01-repo-structure.md` is planned.
 
-| Package                                           | Role                                                                                                                                                   | README                                                        |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [`@argus/core`](../packages/core/README.md)       | The domain model + the port interfaces adapters implement: entities, value objects, errors, ports. Pure, frozen, zero infrastructure deps.             | [`packages/core/README.md`](../packages/core/README.md)       |
-| [`@argus/testing`](../packages/testing/README.md) | Shared test infrastructure: Vitest config, custom matchers, fixtures, and in-memory fakes for every core port. Consumed only by other packages' tests. | [`packages/testing/README.md`](../packages/testing/README.md) |
+| Package                                           | Role                                                                                                                                                                                                                       | README                                                        |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [`@argus/core`](../packages/core/README.md)       | The domain model + the port interfaces adapters implement: entities, value objects, errors, ports. Pure, frozen, zero infrastructure deps.                                                                                 | [`packages/core/README.md`](../packages/core/README.md)       |
+| [`@argus/testing`](../packages/testing/README.md) | Shared test infrastructure: Vitest config, custom matchers, fixtures, and in-memory fakes for every core port. Consumed only by other packages' tests.                                                                     | [`packages/testing/README.md`](../packages/testing/README.md) |
+| [`@argus/ast`](../packages/ast/README.md)         | The first real port implementation: tree-sitter (wasm, [ADR-0005](./adr/0005-ast-adapter-wasm-tree-sitter.md)) behind `AstParserPort` — parses TS/JS/Python into frozen domain `AstNode`s; visitor + S-expression queries. | [`packages/ast/README.md`](../packages/ast/README.md)         |
 
-The **ten port interfaces** now live in `packages/core/src/ports/` (P1-02) — the hexagonal boundary that adapters implement from Phase 4 onward — and `@argus/testing` ships an in-memory fake for every one. The first adapters, persistence, and apps arrive from Phase 2 onward.
+The **ten port interfaces** live in `packages/core/src/ports/` (P1-02) — the hexagonal boundary — and `@argus/testing` ships an in-memory fake for every one. `@argus/ast` (P1-03) is the first adapter to implement one for real; the remaining adapters, persistence, and apps arrive from Phase 2 onward.
 
 ## Domain conventions (how `core` is built)
 
