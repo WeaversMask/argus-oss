@@ -108,7 +108,7 @@
 
 - **Test coverage:** 100% lines / 100% branches aggregate — `@argus/core` (126 tests) + `@argus/testing` (32 tests)
 - **Mutation score (Stryker, report-only):** 85.74% — 553/645 valid mutants detected (552 killed + 1 timeout, 92 survived, 0 no-coverage), 30s wall; baseline 2026-07-12 (OPS-04c). Survivors cluster in error-class prose, `testing/src` vitest plumbing, fixtures
-- **License gate:** 479 third-party packages, 3 named exceptions (as of P1-01; +neverthrow)
+- **License gate:** 558 third-party packages, 4 named exceptions (as of OPS-04b+04c; +dependency-cruiser, +Stryker; +caniuse-lite CC-BY-4.0 data exception)
 - **CI wall time:** ~25s per job, 8 jobs parallel (cold cache)
 - **Self-scan results:** _—_
 - **CI build time (cold / cached):** _—_
