@@ -57,6 +57,18 @@ describe("AstDocument.query", () => {
     }
   });
 
+  it("returns every match when one pattern matches multiple times", async () => {
+    const doc = await documentOf("function a() {}\nfunction b() {}\n");
+    try {
+      const matches = doc.query("(function_declaration name: (identifier) @fn)")._unsafeUnwrap();
+      expect(matches).toHaveLength(2);
+      expect(matches.map((m) => m.captures[0]!.node.text)).toEqual(["a", "b"]);
+      expect(matches.every((m) => m.patternIndex === 0)).toBe(true);
+    } finally {
+      doc.dispose();
+    }
+  });
+
   it("returns ok([]) when nothing matches", async () => {
     const doc = await documentOf("const a = 1;");
     try {

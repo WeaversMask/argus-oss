@@ -105,13 +105,18 @@ function makeFrame(cursor: TreeCursor, file: FilePath): Frame {
 }
 
 function finalizeFrame(frame: Frame, source: string): AstNode {
+  // Locals, not `frame`: the getter's closure must retain only the two
+  // indices and `source`, never the whole Frame (with its children array) —
+  // review finding, P1-03. Note a retained node still pins its file's full
+  // source string; the README warns long-term holders to copy `text` out.
+  const { startIndex, endIndex } = frame;
   let memo: string | undefined;
   const node = {
     nodeType: frame.nodeType,
     position: frame.position,
     children: Object.freeze(frame.children),
     get text(): string {
-      return (memo ??= source.slice(frame.startIndex, frame.endIndex));
+      return (memo ??= source.slice(startIndex, endIndex));
     },
   };
   // `fieldName` is conditionally *absent*, never `undefined`-valued

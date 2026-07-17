@@ -12,7 +12,9 @@ import { someFile } from "../helpers.js";
  * sanction gating CI on gross regressions only; the precise M2 number is
  * asserted locally, where `CI` is unset.
  */
-const BUDGET_MS = process.env["CI"] === undefined ? 100 : 500;
+// Truthiness, not presence: `CI=""` in a local shell must keep the strict
+// budget (review nit, P1-03).
+const BUDGET_MS = process.env["CI"] ? 500 : 100;
 const WARMUP_RUNS = 3;
 const MEASURED_RUNS = 15;
 

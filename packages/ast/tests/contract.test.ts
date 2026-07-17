@@ -92,6 +92,20 @@ describe("TreeSitterAstParser: AstParserPort conformance", () => {
     }
   });
 
+  it("dispose() frees cached engine objects and the parser stays usable", async () => {
+    const parser = new TreeSitterAstParser();
+    (await parser.parse(someFile(), "let a = 1;", "typescript"))._unsafeUnwrap();
+    parser.dispose();
+    const again = await parser.parse(someFile(), "let b = 2;", "typescript");
+    expect(again.isOk()).toBe(true);
+  });
+
+  it("dispose() is idempotent and safe before first use", () => {
+    const parser = new TreeSitterAstParser();
+    parser.dispose();
+    parser.dispose();
+  });
+
   it("threads file and language through to the ParsedFile", async () => {
     const file = someFile("src/deep/nested.ts");
     const result = await sharedParser.parse(file, "const a = 1;", "typescript");

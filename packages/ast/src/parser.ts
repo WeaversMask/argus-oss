@@ -134,4 +134,25 @@ export class TreeSitterAstParser implements AstParserPort {
     // the wasm engine is initialised. Callers await `grammar()` first.
     return (this.parser ??= new Parser());
   }
+
+  /**
+   * Releases what the web-tree-sitter API lets us release (review finding,
+   * P1-03): the engine `Parser` is deleted (its wasm allocation is not
+   * garbage-collected), and cached grammar references are dropped.
+   * `Language` exposes **no** free/delete — a loaded grammar's wasm
+   * instantiation lives until process exit regardless, which is why the
+   * intended steady state is **one adapter instance per process**;
+   * instance churn re-instantiates grammar wasm that can never be
+   * reclaimed. Idempotent; the instance stays usable (next `parse`
+   * re-initialises lazily).
+   *
+   * Call only when quiescent: no parse in flight, and every `AstDocument`
+   * from `parseDocument` already disposed (documents query against the
+   * cached grammars).
+   */
+  dispose(): void {
+    this.parser?.delete();
+    this.parser = undefined;
+    this.grammars.clear();
+  }
 }
