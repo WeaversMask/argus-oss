@@ -91,7 +91,7 @@ GitHub Actions runs `gitleaks` (via the official `gitleaks/gitleaks-action@v2`) 
 Configured in `pnpm-workspace.yaml`, enforced by pnpm ≥11 (pinned via `packageManager`):
 
 - **`minimumReleaseAge: 4320`** — `pnpm add`/`update` refuses any version published less than 3 days ago (`ERR_PNPM_NO_MATURE_MATCHING_VERSION`). This is the window in which malicious releases are typically detected and yanked. It does **not** affect `--frozen-lockfile` installs of already-locked versions.
-- **`allowBuilds: {}`** — no dependency may run install/build scripts. The root project's own `prepare` (husky + gitleaks) still runs.
+- **`allowBuilds`** — no dependency may run install/build scripts unless listed `true`. The root project's own `prepare` (husky + gitleaks) still runs. Entries are a **review ledger**, both directions: `pkg: true` = reviewed, script may run; `pkg: false` = reviewed and **denied** — the script stays blocked and pnpm stops failing install (`ERR_PNPM_IGNORED_BUILDS`) over it. pnpm 11 scaffolds placeholder entries into `pnpm-workspace.yaml` when it hits an unreviewed build script — replace the placeholder with an explicit decision, never a reflexive `true`. (First `false` entries: the tree-sitter grammars, whose native-binding install scripts are dead weight next to the wasm we actually consume — ADR-0005.)
 
 **Urgent security patch that can't wait 3 days:**
 

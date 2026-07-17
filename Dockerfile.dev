@@ -24,7 +24,7 @@ RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
 # copy content AND ownership from the image on first use. Without this they
 # mount root-owned and pnpm's mkdir fails (EACCES) under USER node.
 RUN mkdir -p /app/node_modules /app/packages/testing/node_modules \
-    /app/packages/core/node_modules \
+    /app/packages/core/node_modules /app/packages/ast/node_modules \
     /home/node/.local/share/pnpm/store \
   && chown -R node:node /app /home/node/.local/share/pnpm
 

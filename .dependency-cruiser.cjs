@@ -77,6 +77,19 @@ module.exports = {
       },
     },
     {
+      name: "ast-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/ast exports only '.' — imports from outside the package " +
+        "must land on src/index.ts. Anything else is a deep import into " +
+        "internals.",
+      from: { pathNot: "^packages/ast/" },
+      to: {
+        path: "^packages/ast/",
+        pathNot: "^packages/ast/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

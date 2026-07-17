@@ -1,56 +1,51 @@
-# Handover — P1-02 complete
+# Handover — P1-03 complete
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-07-07
-**Phase:** P1 — Domain Core (2/6 tasks done)
-**Last task completed:** P1-02 — Core port interfaces ([argus-oss#13](https://github.com/WeaversMask/argus-oss/pull/13), pending merge)
+**Date:** 2026-07-17
+**Phase:** P1 — Domain Core (3/6 tasks done)
+**Last task completed:** P1-03 — AST abstraction layer (PR pending merge — see tracker)
 
 ---
 
 ## Context
 
-The hexagon has its edges: ten ports in `packages/core/src/ports/` with full TSDoc contracts, six new port-level `DomainError`s, and in-memory fakes for every port in `packages/testing/src/mocks/`. **Next: P1-03 — AST abstraction layer** (`@argus/ast`, tree-sitter wrapper conforming to `AstParserPort`). P1-05/P1-06 stay parallel-eligible off P1-01. Branch from `main` after #13 merges — #13 owns this tracker/handover state.
+The hexagon has its first working edge: `@argus/ast` implements `AstParserPort` on tree-sitter's **wasm build** (ADR-0005) for TypeScript/JavaScript/Python, converts to core's frozen `AstNode` view with the `+1` coordinate contract tested, and adds `visit` (skip/stop) plus `AstDocument.query` (S-expression). **Next: P1-04 — Rule engine** (`packages/rule-engine`; deps P1-02 ✅ + P1-03, base on this branch only if [#22](https://github.com/WeaversMask/argus-oss/pull/22) hasn't merged — say so in the PR if you do). P1-05/P1-06 stay parallel-eligible off P1-01.
 
-## Port conventions established in P1-02 (follow these, don't reinvent)
+## Conventions established in P1-03 (follow, don't reinvent)
 
-- **Async:** port methods return `Promise<Result<T, E>>` (plain neverthrow, not `ResultAsync`). Implementations never throw — failures travel as `DomainError` values.
-- **Absence is not an error:** lookups resolve `ok(undefined)` / `ok([])`.
-- **`AstNode`/`ParsedFile` live in core** (`ports/ast-parser.ts`) — `@argus/ast` conforms _inward_ to them; core never imports an AST library. Shape ruled by the maintainer 2026-07-07 (#13 review finding): nodeType, **fieldName?** (grammar field labels — rules need named-child access), position, text, children; parent links and byte offsets deferred until a real consumer demands them. Visitors and queries belong to `@argus/ast`.
-- **Positions crossing any port are 1-based end-exclusive** (ADR-0004).
-- **Fakes:** type-only imports from `@argus/core`; failure injection is `failNextWith(error)` with the _test_ supplying the error instance; `FakeAstParser.parse` rejects on unprimed files (test-setup bug → loud). Extend these fakes rather than hand-rolling new doubles.
-- The `require-await` lint rule rejects await-less `async` methods — write sync methods returning `Promise.resolve(...)`.
-- **`@argus/testing` depends on `@argus/core` via `peerDependencies` ONLY — never add it to devDependencies.** Turbo refuses package-graph cycles even when dev-only (`core` dev-depends on `testing` for its vitest config); peer edges sit outside turbo's graph, and pnpm auto-installs workspace peers, so resolution still works. Both are default behaviors, verified 2026-07-07 after CI caught the cycle. **Caveat (review finding on #13): this break is benign only while `@argus/core` stays buildless** (its `exports` point at `src/`) — turbo cannot order `testing` after a core build it can't see, so if core ever gains a real `build` step, revisit this edge first.
+- **Consume `@argus/ast` through its index only** (cruiser-enforced). `parse()` for plain trees; `parseDocument()` **only** when you need queries — you then own `dispose()` (wasm memory is not GC'd; `parsed` stays valid after). The parser instance itself also has `dispose()` (deletes the engine parser, drops grammar references; documents first) — but grammar wasm is **unfreeable** (web-tree-sitter's `Language` has no delete), so **one adapter per process** is the design; don't churn instances outside tests. A retained `AstNode` pins its file's full source string (lazy `text`).
+- **`AstNode.children` includes anonymous nodes** (keywords, punctuation) and comments. Rule-engine dispatch must expect node types like `"function"` or `"let"`; `fieldName` is how you find labelled children.
+- **Positions:** 1-based end-exclusive; columns/indices are **UTF-16 code units** (JS string slicing ≡ LSP default), pinned by test.
+- **Traversal is iterative** (explicit stack) everywhere — "never throws" includes stack overflow on pathological nesting. Keep that property in the rule engine's walk.
+- **Benchmark pattern:** committed executable test in `tests/perf/`, strict local budget, widened `process.env.CI` budget (phase-note-sanctioned). P1-04's is stricter: CI runs it against a **committed baseline** — design that in from the start, not at the end.
 
-## Gotchas for P1-03 (the ones that will actually bite)
+## Gotchas for the next sessions (the ones that will actually bite)
 
-1. **`@argus/ast` is a NEW package** — the full checklist applies: compose named volume + Dockerfile mountpoint line, root `vitest.config.ts` projects entry, `pnpm notices` after the dep tree changes.
-2. **Tree-sitter deps need the ADR-0003 dance:** exact-pin every grammar, `minimumReleaseAge` 3-day gate, `allowBuilds` review (tree-sitter packages ship native/wasm build scripts — expect to justify entries), license gate over new transitives.
-3. **`+1` conversion contract tests are mandatory**, not optional: tree-sitter is 0-based end-exclusive, ours is 1-based end-exclusive — a uniform `+1` on all four numbers. In-range off-by-ones pass validation (ADR-0004 residual risk); only contract tests catch them.
-4. Per-language parse smoke test (phase note): catches grammar drift on dependency updates.
-5. Performance acceptance: 1000-line TS file < 100ms on M2 — benchmark early, not at the end.
-6. **Every shell needs Node 22 first:** `source ~/.nvm/nvm.sh && nvm use` before any `pnpm`/`git commit` — `nvm alias default 22` still pending (admin item).
-7. Session hygiene: sync main first; context budget 50→70% **of the 1M window**; full-packet review tier for executable core logic.
-8. **Run ROOT `pnpm typecheck && pnpm build && pnpm test` before every push** — `pnpm --filter <pkg> …` bypasses turbo entirely, so it cannot catch task-graph problems (that is how the P1-02 cycle reached CI).
+1. **pnpm 11 edits `pnpm-workspace.yaml` itself** when a new dep has an unreviewed build script: install fails (`ERR_PNPM_IGNORED_BUILDS`) and pnpm scaffolds placeholder `allowBuilds` entries ("set this to true or false") into the file. Replace placeholders with an explicit decision — `false` = reviewed-and-denied (blocks script, install passes). SECURITY-NOTES §5 now documents both directions. Don't be surprised by a policy file diff you didn't write.
+2. **New-package checklist grew:** vitest root `projects` entry · per-package `*-public-entry-only` cruiser rule · compose named volume + Dockerfile mkdir line · `pnpm notices` + license gate · (from OPS-04b) negative-test the new cruiser rule.
+3. **`noUncheckedIndexedAccess` bites in tests** (`matches[0].captures[0]`): vitest runs fine, `tsc` fails. Non-null assertions are sanctioned in tests (eslint rule off there). Run root `pnpm typecheck` before assuming green.
+4. **Grammar/engine compatibility:** web-tree-sitter 0.26 accepts language ABI 13–15 (current grammars: 14–15). A bump outside the window fails at `Language.load`; the per-language smoke tests catch it on update day. New language → `docs/dev/adding-a-language.md`.
+5. **Weekly Stryker now mutates `ast/src` too** (glob picks it up). Wasm parsing per mutant will slow the weekly run; if it balloons, scope or shard before touching thresholds (report-only anyway).
+6. Root gates before every push (`pnpm lint && pnpm typecheck && pnpm build && pnpm test`) — filtered runs bypass the task graph (P1-02 lesson, still true).
 
 ## Maintainer admin items (carried over + new)
 
-1. **Merge [#13](https://github.com/WeaversMask/argus-oss/pull/13)** — unblocks P1-03/P1-04.
-2. Archive the retired `argus` repo (Settings → Archive).
-3. D-1: Turbo remote cache decision (only decision still open).
-4. Dependabot PRs #1–#7.
-5. `nvm alias default 22` on the dev machine.
-6. Delete `~/argus-pre-scrub-backup.bundle` when satisfied.
-7. `NPM_TOKEN` / `LICENSE` placeholder / private-vuln-reporting — go-public bucket, unchanged.
+1. **Merge P1-03** ([#22](https://github.com/WeaversMask/argus-oss/pull/22)) — unblocks P1-04.
+2. D-1: Turbo remote cache decision (only decision still open).
+3. Dependabot [#21](https://github.com/WeaversMask/argus-oss/pull/21) open (npm minor/patch group).
+4. `nvm alias default 22` — **appears resolved** (fresh shells now get 22.23.1); confirm and drop from this list next rotation.
+5. Archive the retired `argus` repo · delete `~/argus-pre-scrub-backup.bundle` when satisfied · `NPM_TOKEN`/`LICENSE`/private-vuln-reporting stay in the go-public bucket.
 
 ## State of the System
 
-- ✅ Local gates green on the branch: 158 tests aggregate (`@argus/core` 126, `@argus/testing` 32), 100% lines/branches/functions both packages, lint/typecheck clean
-- ⏸ [#13](https://github.com/WeaversMask/argus-oss/pull/13) open (P1-02 + this tracker/handover state), pending human merge
+- ✅ Root gates green on the branch: 204 tests (core 126, testing 33, ast 45), aggregate 99.2%/98%/100%; lint/typecheck/build/boundaries/license clean
+- ✅ Benchmark: 1000-line TS parse median 13.2ms local M2 (budget 100; CI 500)
+- ⏸ P1-03 PR pending human merge (tracker + this handover ride in it)
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Sign-off
 
-Entities speak, ports listen. The first adapter (tree-sitter) gets to prove the whole hexagon idea — measure it, pin it, and mind the `+1`.
+Parse, convert, freeze, dispose — the first adapter proves the port design holds. The rule engine gets a tree it can trust; mind the anonymous children.
 
 — claude-fable-5
