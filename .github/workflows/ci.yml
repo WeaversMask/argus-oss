@@ -12,6 +12,11 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    # Default types + ready_for_review (OPS-04): the review-gate job passes
+    # trivially on drafts, so the draft → ready transition must re-run CI —
+    # without this type a draft's green check would survive into the ready PR
+    # on the same SHA (stale-green bypass of the review gate).
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   # Weekly re-audit (P0-07): advisories disclosed between PRs still surface,
@@ -262,6 +267,90 @@ jobs:
             --from "${{ github.event.pull_request.base.sha }}" \
             --to   "${{ github.event.pull_request.head.sha }}" \
             --verbose
+
+  # Independent-review gate (OPS-04): makes the protocol's mandatory review
+  # pass mechanical, now that status checks are required. Fails a PR unless it
+  # carries evidence of the review — an "## Independent review packet" comment
+  # (full tier) or an "## Independent review" block in the description (light
+  # tier, docs/config-only diffs). Dumb by design: it checks for the marker,
+  # not the review's quality — the required artifact is the forcing function
+  # (the P1-02 review was skipped until the maintainer asked; prose gates fail
+  # under momentum). No repo checkout, one API call. Not a branch-protection
+  # required check until the maintainer adds it (admin step, same bucket as the
+  # other jobs since P0-03).
+  review-gate:
+    name: Independent review pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    # issues:read alongside pull-requests:read (review finding): the comments
+    # call below is the Issues API (PR conversation comments live there); the
+    # fine-grained permission docs list the endpoint under both categories, so
+    # grant both — if pull-requests:read alone were insufficient, every
+    # full-tier PR would 403 and the fail-closed script would block it.
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Require evidence of the independent review pass
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PR-author-controlled text — pass via env and read from env; never
+          # interpolate ${{ github.event.* }} into the script body (Actions
+          # script-injection hardening).
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eu
+
+          # Canonical marker (protocol §Task Completion Checklist). Full-tier
+          # packets post "## Independent review packet" as a PR comment;
+          # light-tier diffs carry an "## Independent review" block in the
+          # description. Both share the "## Independent review" heading stem,
+          # at any heading level. Deliberately no trailing word boundary — it
+          # must also match "...review packet"; the accepted tradeoff is that
+          # an unrelated heading extending the stem (e.g. "## Independent
+          # reviewer duties") would also pass. Dumb-and-fast beats clever here.
+          marker='^#{1,6}[[:space:]]+Independent[[:space:]]+review'
+
+          # Drafts are WIP — the review pass runs at completion.
+          if [ "${PR_DRAFT}" = "true" ]; then
+            echo "Draft PR — review pass deferred until ready. Passing."
+            exit 0
+          fi
+
+          # Bot-authored dependency/release PRs (Dependabot, the changesets
+          # Version PR) are maintainer-reviewed directly at merge and never go
+          # through the agent review-packet flow — don't deadlock them. Quoted
+          # case patterns match the literal "[bot]" login (no glob).
+          case "${PR_AUTHOR}" in
+            'dependabot[bot]' | 'github-actions[bot]' | 'dependabot-preview[bot]')
+              echo "Bot author ${PR_AUTHOR} — review gate not applicable. Passing."
+              exit 0
+              ;;
+          esac
+
+          if printf '%s' "${PR_BODY:-}" | grep -qiE "${marker}"; then
+            echo "Review summary found in the PR description. Passing."
+            exit 0
+          fi
+
+          # One API call: the PR's conversation comments (review packets post
+          # here). Fails closed if the call errors — set -e aborts the job on a
+          # non-zero substitution, matching the pre-push gate's fail-closed
+          # posture (OPS-03).
+          comments="$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" --jq '.[].body')"
+          if printf '%s' "${comments}" | grep -qiE "${marker}"; then
+            echo "Independent review packet comment found. Passing."
+            exit 0
+          fi
+
+          echo "::error title=Independent review pass missing::No review evidence on this PR. Post an '## Independent review packet' comment (full tier) or add an '## Independent review' block to the description (light tier), then RE-RUN this job — comments and description edits do not re-trigger CI. See docs/plan/protocols/agentic-execution.md and docs/plan/protocols/quality-gates.md."
+          exit 1
 
   secret-scan:
     name: Secret scan (gitleaks)
