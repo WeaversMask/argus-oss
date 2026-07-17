@@ -65,6 +65,17 @@ const NAMED_EXCEPTIONS = [
     license: "(MIT AND CC-BY-3.0)",
     reason: "license-checker transitive — SPDX range data (P0-12)",
   },
+  {
+    // Stryker transitive (OPS-04c): browser-compat DATA tables, not code
+    // (caniuse-lite ← browserslist ← @babel/* ← @stryker-mutator/
+    // instrumenter). Attribution-only license, dev-only, unmodified, not
+    // redistributed by Argus; attribution preserved in THIRD-PARTY-NOTICES.
+    // Same shape as the spdx-* CC-BY data exceptions above (P0-12
+    // precedent); maintainer sign-off = merging the OPS-04c PR.
+    name: /^caniuse-lite$/,
+    license: "CC-BY-4.0",
+    reason: "Stryker transitive — browser-compat data (OPS-04c)",
+  },
 ];
 
 // ── SPDX expression evaluation (minimal, fail-closed) ──────────────────────
