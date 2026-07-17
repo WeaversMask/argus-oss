@@ -19,7 +19,7 @@ describe("AstDocument.query", () => {
     try {
       const matches = doc.query("(function_declaration name: (identifier) @fn)")._unsafeUnwrap();
       expect(matches).toHaveLength(1);
-      const captured = matches[0].captures[0];
+      const captured = matches[0]!.captures[0]!;
       expect(captured.name).toBe("fn");
       expect(captured.node.text).toBe("fetchAll");
       let viaVisit: AstNode | undefined;
@@ -73,8 +73,8 @@ describe("AstDocument.query", () => {
       const matches = doc.query("(function_declaration) @fn")._unsafeUnwrap();
       expect(Object.isFrozen(matches)).toBe(true);
       expect(Object.isFrozen(matches[0])).toBe(true);
-      expect(Object.isFrozen(matches[0].captures)).toBe(true);
-      expect(Object.isFrozen(matches[0].captures[0])).toBe(true);
+      expect(Object.isFrozen(matches[0]!.captures)).toBe(true);
+      expect(Object.isFrozen(matches[0]!.captures[0])).toBe(true);
     } finally {
       doc.dispose();
     }
