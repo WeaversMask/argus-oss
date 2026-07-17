@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title                                | Assignee       | Started    | ETA          |
+| ------- | ------------------------------------ | -------------- | ---------- | ------------ |
+| P1-03   | AST abstraction layer (`@argus/ast`) | claude-fable-5 | 2026-07-17 | this session |
 
 ### Blocked
 

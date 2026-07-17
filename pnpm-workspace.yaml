@@ -12,9 +12,21 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude: []
 
 # No dependency may run install/build scripts. pnpm 11 blocks unlisted
-# packages by default; the empty map makes the reviewed posture explicit.
-# Add `pkg-name: true` only after reviewing what that package's script does.
-allowBuilds: {}
+# packages by default; the map makes the reviewed posture explicit.
+# `pkg: true` = reviewed, script may run — only after reviewing what the
+# script does. `pkg: false` = reviewed and DENIED: the script stays blocked
+# and pnpm stops failing install (ERR_PNPM_IGNORED_BUILDS) over it. pnpm
+# itself scaffolds placeholder entries here when it hits unreviewed builds.
+#
+# tree-sitter grammars (P1-03, ADR-0005): `install: node-gyp-build` would
+# compile the NATIVE binding, which @argus/ast never loads — it consumes
+# only the prebuilt .wasm shipped in the same tarballs. Keys cover every
+# lockfile version (tree-sitter-javascript appears as 0.25.0 direct and
+# 0.23.1 via tree-sitter-typescript).
+allowBuilds:
+  tree-sitter-javascript: false
+  tree-sitter-python: false
+  tree-sitter-typescript: false
 
 # ── Security pins for dev-only transitives (Dependabot, 2026-07-03) ────────
 # pnpm update cannot reach these (not direct deps of any workspace project),

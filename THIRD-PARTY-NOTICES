@@ -19,7 +19,7 @@ osv-scanner) are not npm dependencies and are never distributed with
 Argus — users install them separately. See README "External tools /
 Prerequisites" and ADR-0002 §A/§B.
 
-Snapshot: 2026-07-17 · pnpm 11.5.3 · darwin-arm64 · 494 packages, 14 licenses
+Snapshot: 2026-07-17 · pnpm 11.5.3 · darwin-arm64 · 500 packages, 14 licenses
 Platform-specific binary packages (e.g. lightningcss-<platform>) vary with
 the host that generated this file.
 
@@ -496,7 +496,7 @@ yargs-parser 22.0.0
   https://github.com/yargs/yargs-parser#readme
 
 ================================================================================
-MIT — 387 packages
+MIT — 393 packages
 ================================================================================
 
 @babel/code-frame 7.29.7
@@ -1655,6 +1655,14 @@ neverthrow 8.2.0
   Copyright (c) 2019 Giorgio Delgado
   https://github.com/supermacro/neverthrow#readme
 
+node-addon-api 8.9.0
+  Copyright (c) 2017 [Node.js API collaborators](https://github.com/nodejs/node-addon-api#collaborators)
+  https://github.com/nodejs/node-addon-api
+
+node-gyp-build 4.8.4
+  Copyright (c) 2017 Mathias Buus
+  https://github.com/prebuild/node-gyp-build
+
 node-releases 2.0.51
   Copyright (c) 2017 Sergey Rubanov (https://github.com/chicoxyzzy)
   https://github.com/chicoxyzzy/node-releases#readme
@@ -1975,6 +1983,18 @@ tree-kill 1.2.2
   Copyright (c) 2018 Peter Krumins
   https://github.com/pkrumins/node-tree-kill
 
+tree-sitter-javascript 0.23.1, 0.25.0
+  Copyright (c) 2014 Max Brunsfeld
+  https://github.com/tree-sitter/tree-sitter-javascript#readme
+
+tree-sitter-python 0.25.0
+  Copyright (c) 2016 Max Brunsfeld
+  https://github.com/tree-sitter/tree-sitter-python#readme
+
+tree-sitter-typescript 0.23.2
+  Copyright (c) 2017 Max Brunsfeld
+  https://github.com/tree-sitter/tree-sitter-typescript#readme
+
 treeify 1.1.0
   Copyright (c) 2012-2018 Luke Plaster <notatestuser@gmail.com>
   https://github.com/notatestuser/treeify#readme
@@ -2053,6 +2073,10 @@ vitest 4.1.9
 watskeburt 6.0.0
   Copyright (c) 2022-2025 Sander Verweij
   https://github.com/sverweij/watskeburt
+
+web-tree-sitter 0.26.11
+  Copyright (c) 2018 Max Brunsfeld
+  https://github.com/tree-sitter/tree-sitter#readme
 
 why-is-node-running 2.3.0
   Copyright (c) 2016 Mathias Buus
