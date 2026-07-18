@@ -24,6 +24,12 @@ export type RuleListener = (node: AstNode) => void;
  * real children (P1-03 convention). Any other selector shape is a rule
  * failure at run time.
  *
+ * Two selector sigils shadow real grammar tokens (review finding, #24):
+ * `"*"` always means every node, so the literal `*` token (multiplication,
+ * `export *`) cannot be subscribed to directly, and a bare `":"` token is
+ * not a parseable selector. Match either from a `"*"` listener by checking
+ * `node.nodeType`.
+ *
  * There is no per-rule flow control (`skip`/`stop`): the walk is shared by
  * every active rule, so one rule pruning a subtree would starve the others.
  * `@argus/ast`'s `visit` keeps those levers for standalone traversal.

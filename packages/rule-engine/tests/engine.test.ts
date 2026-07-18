@@ -97,6 +97,31 @@ describe("dispatch", () => {
     expect(events).toEqual(["enter:decl", "enter:x", "exit:decl", "enter:y"]);
   });
 
+  it('subscribes to a literal "then" node type without being mistaken for a Promise', async () => {
+    // Regression (review #24): a listeners map with a `then` key is a
+    // then-keyed dispatch table, not a thenable — duck-typing would have
+    // rejected it as an async create().
+    const engine = new Engine();
+    let thens = 0;
+    engine
+      .register(
+        moduleOf("then-rule", {
+          then: () => {
+            thens += 1;
+          },
+        }),
+      )
+      ._unsafeUnwrap();
+    const tree = makeNode({
+      nodeType: "program",
+      children: [makeNode({ nodeType: "then", startLine: 2, text: "then" })],
+    });
+
+    (await engine.run(inputOf(tree, [activationOf("then-rule")])))._unsafeUnwrap();
+
+    expect(thens).toBe(1);
+  });
+
   it("dispatches anonymous node types (keywords, punctuation)", async () => {
     const engine = new Engine();
     let keywords = 0;
@@ -502,7 +527,10 @@ describe("containment — the run never throws", () => {
   it("rejects an async listener as a rule failure", async () => {
     // Cast: an async listener is exactly the type misuse the engine must
     // survive at run time — the type system forbids it, rules can still do it.
-    const asyncListener = (() => Promise.resolve()) as unknown as RuleListener;
+    // Rejecting, not resolving: also proves the engine silences the stray
+    // promise — an unhandled rejection would fail this test run.
+    const asyncListener = (() =>
+      Promise.reject(new Error("late failure"))) as unknown as RuleListener;
     await expectAttributedError(
       (engine) => {
         engine.register(moduleOf("bad-rule", { identifier: asyncListener }))._unsafeUnwrap();

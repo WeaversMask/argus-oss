@@ -46,11 +46,20 @@ function parseSelector(
   return { nodeType, phase: "exit" };
 }
 
-function isThenable(value: unknown): boolean {
-  return (
-    ((typeof value === "object" && value !== null) || typeof value === "function") &&
-    typeof (value as { then?: unknown }).then === "function"
-  );
+/**
+ * Detects the async-misuse failure mode: an `async` listener or `create`
+ * returns a native `Promise`. Deliberately `instanceof`, not a duck-typed
+ * thenable check — a listeners map with a literal `"then"` node-type key
+ * (a real keyword in some grammars) must not be mistaken for a Promise
+ * (review finding, #24).
+ */
+function isPromise(value: unknown): value is Promise<unknown> {
+  return value instanceof Promise;
+}
+
+/** Swallow a detected stray Promise so its later rejection cannot surface as an unhandled rejection. */
+function silence(promise: Promise<unknown>): void {
+  promise.catch(() => undefined);
 }
 
 /** Wraps a thrown value as an attributed `RuleExecutionError`. */
@@ -131,7 +140,14 @@ export class Engine implements RuleRunnerPort {
   }
 
   run(input: RuleRunInput): Promise<Result<readonly Violation[], RuleExecutionError>> {
-    return Promise.resolve(this.runSync(input));
+    try {
+      return Promise.resolve(this.runSync(input));
+    } catch (cause) {
+      // Defensive, uncovered: runSync guards every rule-reachable path
+      // internally; this catch makes "never throws" structural rather than
+      // dependent on that exhaustiveness (review finding, #24).
+      return Promise.resolve(err(toExecutionError(cause, undefined)));
+    }
   }
 
   private runSync(input: RuleRunInput): Result<readonly Violation[], RuleExecutionError> {
@@ -160,7 +176,8 @@ export class Engine implements RuleRunnerPort {
       });
       try {
         const listeners = module.create(context);
-        if (isThenable(listeners)) {
+        if (isPromise(listeners)) {
+          silence(listeners);
           return err(
             new RuleExecutionError(
               "create() returned a Promise — rule modules must be synchronous",
@@ -204,7 +221,8 @@ export class Engine implements RuleRunnerPort {
     const invoke = (handler: Handler, node: AstNode): void => {
       currentRule = handler.ruleId;
       const returned = handler.listener(node) as unknown;
-      if (isThenable(returned)) {
+      if (isPromise(returned)) {
+        silence(returned);
         throw new RuleExecutionError(
           "listener returned a Promise — rule listeners must be synchronous",
           handler.ruleId,

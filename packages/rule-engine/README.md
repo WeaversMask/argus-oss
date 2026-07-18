@@ -53,7 +53,7 @@ const summary = await new Runner(engine).runAll(inputs); // { violations, failur
 ## Design decisions (the ones rules depend on)
 
 - **One shared walk, no per-rule flow control.** All active rules ride one traversal; `skip`/`stop` would let one rule starve the others, so listeners return `void`. `@argus/ast`'s `visit` keeps those levers for standalone use.
-- **Selectors:** `"<nodeType>"` (enter/pre-order), `"<nodeType>:exit"` (post-order), `"*"`/`"*:exit"` (every node). Node types include anonymous grammar tokens (`"let"`, `"("`) — P1-03 convention.
+- **Selectors:** `"<nodeType>"` (enter/pre-order), `"<nodeType>:exit"` (post-order), `"*"`/`"*:exit"` (every node). Node types include anonymous grammar tokens (`"let"`, `"("`) — P1-03 convention. The literal `*` and `:` tokens are shadowed by selector syntax — match them from a wildcard listener (documented limitation, review #24).
 - **Rules are synchronous.** A listener or `create()` returning a Promise is a contained rule failure, not a silent skip — async errors must not escape the engine's containment.
 - **Failure policy is layered.** A rule crash (throw, invalid selector, invalid report, unregistered activation) fails that **file's** run with a `RuleExecutionError` attributed via `ruleId` ("no silent suppression"); the `Runner` above skips-and-collects so one bad file cannot sink a scan.
 - **Determinism end to end.** Same input ⇒ same violations, including ids: violation ids are built from file + rule + position + report ordinal (no randomness in the domain path). Output order is the port contract: start position, ties by rule id, then end position.
@@ -62,5 +62,6 @@ const summary = await new Runner(engine).runAll(inputs); // { violations, failur
 ## Maintenance notes
 
 - **Performance:** `tests/perf/engine-benchmark.test.ts` asserts the P1-04 acceptance number (1000 nodes × 50 rules < 50ms) locally and gates CI against the committed baseline in `tests/perf/baseline.ts` on gross regressions only (median × 20 — an accidental once-per-rule walk is ~50×). Last recorded: median 0.49ms on M2. Re-baseline via PR only.
-- **Uncovered defensive branch** (engine's generated-id validation failure): unreachable by construction — the id is URI-encoded path + validated rule id + digits, all inside the opaque-id charset. Kept so charset drift fails loudly.
+- **Uncovered defensive branches (two):** the generated-id validation failure (unreachable by construction — the id is URI-encoded path + validated rule id + digits, all inside the opaque-id charset; kept so charset drift fails loudly) and `run()`'s outer catch (makes "never throws" structural rather than dependent on `runSync`'s internal exhaustiveness — review #24).
+- **AST immutability is the adapter's guarantee.** The engine relies on `readonly` types and does not re-freeze nodes on the hot path; `@argus/ast` freezes everything it emits, but `AstParserPort` does not yet _mandate_ freezing (review #24) — revisit the port TSDoc when a second parser adapter appears.
 - Private workspace package; not published.

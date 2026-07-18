@@ -32,7 +32,7 @@ export const noLet: RuleModule = {
 
 ## Rules of the road
 
-- **Node types are the grammar's vocabulary**, and children include **anonymous tokens** — keywords (`"let"`) and punctuation (`"("`) are real nodes you can subscribe to; `fieldName` finds labelled children (P1-03). Inspect real trees with `@argus/ast`'s `visit` while developing.
+- **Node types are the grammar's vocabulary**, and children include **anonymous tokens** — keywords (`"let"`) and punctuation (`"("`) are real nodes you can subscribe to; `fieldName` finds labelled children (P1-03). Inspect real trees with `@argus/ast`'s `visit` while developing. Two exceptions: `"*"` is reserved as the every-node wildcard and a bare `":"` is not a parseable selector — to match those literal tokens, use a `"*"` listener and check `node.nodeType`.
 - **Listeners are synchronous and return `void`.** No `skip`/`stop`: every active rule shares one walk. A Promise-returning listener (or `create`) fails the rule, deliberately.
 - **You cannot mutate anything.** Context, options, nodes, and positions are frozen/read-only; a mutation attempt is a `TypeError` in strict mode and fails your rule.
 - **Report, don't construct.** `context.report({ message, position })` — usually `node.position`, always a range in the current file (`context.file`). The engine assigns severity (the activation's, not your default), layer, and a deterministic violation id.
