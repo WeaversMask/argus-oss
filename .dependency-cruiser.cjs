@@ -90,6 +90,19 @@ module.exports = {
       },
     },
     {
+      name: "rule-engine-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/rule-engine exports only '.' — imports from outside the " +
+        "package must land on src/index.ts. Anything else is a deep import " +
+        "into internals.",
+      from: { pathNot: "^packages/rule-engine/" },
+      to: {
+        path: "^packages/rule-engine/",
+        pathNot: "^packages/rule-engine/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

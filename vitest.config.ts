@@ -15,6 +15,7 @@ export default defineConfig({
       "packages/testing/vitest.config.ts",
       "packages/core/vitest.config.ts",
       "packages/ast/vitest.config.ts",
+      "packages/rule-engine/vitest.config.ts",
     ],
     coverage: {
       provider: "v8",

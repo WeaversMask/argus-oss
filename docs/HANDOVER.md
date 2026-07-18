@@ -1,51 +1,54 @@
-# Handover — P1-03 complete
+# Handover — P1-04 complete
 
 **From:** claude-fable-5
 **To:** next picker
-**Date:** 2026-07-17
-**Phase:** P1 — Domain Core (3/6 tasks done)
-**Last task completed:** P1-03 — AST abstraction layer (PR pending merge — see tracker)
+**Date:** 2026-07-18
+**Phase:** P1 — Domain Core (4/6 tasks done)
+**Last task completed:** P1-04 — Rule engine (PR pending merge — see tracker)
 
 ---
 
 ## Context
 
-The hexagon has its first working edge: `@argus/ast` implements `AstParserPort` on tree-sitter's **wasm build** (ADR-0005) for TypeScript/JavaScript/Python, converts to core's frozen `AstNode` view with the `+1` coordinate contract tested, and adds `visit` (skip/stop) plus `AstDocument.query` (S-expression). **Next: P1-04 — Rule engine** (`packages/rule-engine`; deps P1-02 ✅ + P1-03, base on this branch only if [#22](https://github.com/WeaversMask/argus-oss/pull/22) hasn't merged — say so in the PR if you do). P1-05/P1-06 stay parallel-eligible off P1-01.
+The hexagon's hot path exists: `@argus/rule-engine` implements `RuleRunnerPort` — one iterative AST walk per file, node-type dispatch to registered `RuleModule`s, frozen `RuleContext`s, attributed `RuleExecutionError` containment, deterministic sorted violations; `Runner` aggregates across files (skip-and-collect). Benchmarked from day one: committed baseline in `tests/perf/baseline.ts` (0.5ms median M2 for 1000 nodes × 50 rules), CI gates at baseline ×20, gross regressions only. **Next: P1-05 — Config system or P1-06 — Domain services** (both dep on P1-01 ✅ only, parallel-eligible, spec in phase-01). Rule-author contract: [`docs/dev/adding-a-rule.md`](./dev/adding-a-rule.md).
 
-## Conventions established in P1-03 (follow, don't reinvent)
+## Conventions established in P1-04 (follow, don't reinvent)
 
-- **Consume `@argus/ast` through its index only** (cruiser-enforced). `parse()` for plain trees; `parseDocument()` **only** when you need queries — you then own `dispose()` (wasm memory is not GC'd; `parsed` stays valid after). The parser instance itself also has `dispose()` (deletes the engine parser, drops grammar references; documents first) — but grammar wasm is **unfreeable** (web-tree-sitter's `Language` has no delete), so **one adapter per process** is the design; don't churn instances outside tests. A retained `AstNode` pins its file's full source string (lazy `text`).
-- **`AstNode.children` includes anonymous nodes** (keywords, punctuation) and comments. Rule-engine dispatch must expect node types like `"function"` or `"let"`; `fieldName` is how you find labelled children.
-- **Positions:** 1-based end-exclusive; columns/indices are **UTF-16 code units** (JS string slicing ≡ LSP default), pinned by test.
-- **Traversal is iterative** (explicit stack) everywhere — "never throws" includes stack overflow on pathological nesting. Keep that property in the rule engine's walk.
-- **Benchmark pattern:** committed executable test in `tests/perf/`, strict local budget, widened `process.env.CI` budget (phase-note-sanctioned). P1-04's is stricter: CI runs it against a **committed baseline** — design that in from the start, not at the end.
+- **Rule modules are the only integration point** — `Engine.register(module)`, zero engine changes per rule. Selectors: `"<nodeType>"` (enter), `"<nodeType>:exit"`, `"*"`/`"*:exit"`. No per-rule `skip`/`stop`: all rules share one walk (`@argus/ast`'s `visit` keeps those levers for standalone use).
+- **rule-engine depends on `@argus/core` only.** It walks core's `AstNode` with its own iterative walk rather than importing the `@argus/ast` adapter. Keep that direction when wiring Phase-2 orchestration: parse with the adapter, hand `ParsedFile` to the engine.
+- **Failure policy is layered:** rule crash (throw / async listener / invalid selector / invalid report / unregistered activation) fails that _file's_ run, attributed via `error.ruleId`; `Runner` skips-and-collects across files. No silent skips anywhere.
+- **Determinism includes ids:** violation ids = URI-encoded file + rule id + position + report ordinal (`src/violation-id.ts`). Don't introduce randomness or clock reads into the run path.
+- **Rules are synchronous by contract** — a Promise-returning `create`/listener is a contained failure, never awaited. Phase-2 rules must be written sync.
+- **Benchmark-with-committed-baseline pattern** (first instance): `tests/perf/baseline.ts` (typed const, not JSON — no resolveJsonModule needed), local absolute budget (acceptance number) + CI `baseline × factor` gate. Re-baseline via PR only; never delete the gate to silence a flake — widen the factor in a PR.
 
-## Gotchas for the next sessions (the ones that will actually bite)
+## Gotchas for the next sessions
 
-1. **pnpm 11 edits `pnpm-workspace.yaml` itself** when a new dep has an unreviewed build script: install fails (`ERR_PNPM_IGNORED_BUILDS`) and pnpm scaffolds placeholder `allowBuilds` entries ("set this to true or false") into the file. Replace placeholders with an explicit decision — `false` = reviewed-and-denied (blocks script, install passes). SECURITY-NOTES §5 now documents both directions. Don't be surprised by a policy file diff you didn't write.
-2. **New-package checklist grew:** vitest root `projects` entry · per-package `*-public-entry-only` cruiser rule · compose named volume + Dockerfile mkdir line · `pnpm notices` + license gate · (from OPS-04b) negative-test the new cruiser rule.
-3. **`noUncheckedIndexedAccess` bites in tests** (`matches[0].captures[0]`): vitest runs fine, `tsc` fails. Non-null assertions are sanctioned in tests (eslint rule off there). Run root `pnpm typecheck` before assuming green.
-4. **Grammar/engine compatibility:** web-tree-sitter 0.26 accepts language ABI 13–15 (current grammars: 14–15). A bump outside the window fails at `Language.load`; the per-language smoke tests catch it on update day. New language → `docs/dev/adding-a-language.md`.
-5. **Weekly Stryker now mutates `ast/src` too** (glob picks it up). Wasm parsing per mutant will slow the weekly run; if it balloons, scope or shard before touching thresholds (report-only anyway).
+1. **Coverage excludes `src/**/index.ts` and `src/**/types.ts`** (shared vitest config) — pure-type modules are free, but don't put runtime code in a file named `types.ts`.
+2. **New-package checklist worked verbatim** (P1-03's list, nothing new): vitest root `projects` entry · per-package cruiser rule + negative test · compose named volume + Dockerfile mkdir · `pnpm license-check`/`notices` (no delta this time — no new external deps; a date-only `THIRD-PARTY-NOTICES` diff is churn, restore it).
+3. **`@typescript-eslint/require-await` bites test fixtures:** an `async () => ({})` misuse-fixture fails lint — write `(() => Promise.resolve({})) as unknown as T` instead.
+4. **One uncovered branch in `engine.ts` is deliberate** (generated-id validation, unreachable by construction, documented in the package README) — don't chase it, don't delete it.
+5. **Weekly Stryker now also mutates `rule-engine/src`** (glob). Watch the Tuesday run's wall time; scope/shard before touching thresholds.
 6. Root gates before every push (`pnpm lint && pnpm typecheck && pnpm build && pnpm test`) — filtered runs bypass the task graph (P1-02 lesson, still true).
 
 ## Maintainer admin items (carried over + new)
 
-1. **Merge P1-03** ([#22](https://github.com/WeaversMask/argus-oss/pull/22)) — unblocks P1-04.
+1. **Merge P1-04** (PR link in tracker).
 2. D-1: Turbo remote cache decision (only decision still open).
-3. Dependabot [#21](https://github.com/WeaversMask/argus-oss/pull/21) open (npm minor/patch group).
-4. `nvm alias default 22` — **appears resolved** (fresh shells now get 22.23.1); confirm and drop from this list next rotation.
+3. Dependabot [#21](https://github.com/WeaversMask/argus-oss/pull/21) open (npm minor/patch group; two more Dependabot branches were force-updated 2026-07-18 — check the queue).
+4. `nvm alias default 22` — appeared resolved last rotation; confirm and drop.
 5. Archive the retired `argus` repo · delete `~/argus-pre-scrub-backup.bundle` when satisfied · `NPM_TOKEN`/`LICENSE`/private-vuln-reporting stay in the go-public bucket.
 
 ## State of the System
 
-- ✅ Root gates green on the branch: 204 tests (core 126, testing 33, ast 45), aggregate 99.2%/98%/100%; lint/typecheck/build/boundaries/license clean
-- ✅ Benchmark: 1000-line TS parse median 13.2ms local M2 (budget 100; CI 500)
-- ⏸ P1-03 PR pending human merge (tracker + this handover ride in it)
+- ✅ Root gates green on the branch: 252 tests (core 126, testing 33, ast 45, rule-engine 48), aggregate 99.3%/98%/100%; lint/typecheck/build/boundaries/license clean
+- ✅ Benchmark: 1000 nodes × 50 rules median 0.49ms local M2 (budget 50; CI baseline×20 = 10ms, CI path exercised locally with `CI=1`)
+- ✅ Cruiser rule `rule-engine-public-entry-only` negative-tested (planted deep import fired it + backstop, removed)
+- ✅ Phase exit criterion "100 fixture rules across 10 fixture files without errors" covered now — Runner stress test in `tests/runner.test.ts` (20,000 aggregated violations, zero failures)
+- ⏸ P1-04 PR pending human merge (tracker + this handover ride in it)
 - ⏸ Dogfood scan: N/A until Phase 2
 
 ## Sign-off
 
-Parse, convert, freeze, dispose — the first adapter proves the port design holds. The rule engine gets a tree it can trust; mind the anonymous children.
+Fifty rules, one walk, half a millisecond. The engine trusts the adapter's frozen trees and repays the domain with deterministic violations — mind the sync-only contract when Phase 2 starts writing real rules.
 
 — claude-fable-5
