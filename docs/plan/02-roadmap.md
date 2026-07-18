@@ -20,11 +20,28 @@
 | [10](./phases/phase-10-lsp-ide.md)          | LSP + VS Code Extension      | 2 weeks  | Real-time IDE feedback                           | ✅ IDE demo          |
 | [11](./phases/phase-11-hardening.md)        | Hardening, Docs, GA          | 3 weeks  | Perf, security audit, full docs                  | ✅ **Launch**        |
 
-**Total: ~32 weeks** with serial execution.
+**Total: ~32 weeks** with serial execution — but see **Milestone M1** below: only Phases 0–2 are committed; everything after is the continuation track.
+
+## Milestone M1 — Showcase-Ready (end of Phase 2)
+
+> **Maintainer directive (2026-07-18).** The project's primary goals are career value and demonstrated agentic-workflow discipline, not market adoption. Phase 2 therefore ends at a hard milestone: the repo must deliver that value **standing alone**, while keeping continuation open. Tasks DOC-02/DOC-03/DOC-04/OPS-05 in [phase-02](./phases/phase-02-mvp.md) implement it.
+
+M1 is reached when all of the following hold:
+
+1. **Phase 2 exit criteria met** — `argus check` produces real findings, 10 rules live, **Argus scans itself in CI** (dogfooding).
+2. **Recruiter tier (DOC-02):** the root README's top is a 30-second surface — what it is, a real terminal demo of Argus scanning itself, and a quality-receipts table where **every claim links to both its mechanism and a real receipt** (config + PR/CI run). Comprehension bar: a technical reader who reads _only_ the README top gets to "this is what it is, this is how it works, this is how the quality was enforced" in about a minute — the _ah, I get it_ test. No unverifiable claims.
+3. **Workflow story (DOC-03):** `docs/workflow.md` explains, for someone who has never seen an agentic workflow, how tasks flow (pick → branch → build under gates → independent review → human-only merge → tracker/handover rotation) and how each guardrail contributed production-grade quality — one diagram, plain language, receipts linked.
+4. **Developer tier (DOC-04):** `docs/dev/tour.md` — an ordered ~15-minute reading path over the existing docs scaffolding that takes a developer new to the project from zero to a working mental model, ending able to follow the `adding-a-rule` recipe unaided.
+5. **Go-public-ready (OPS-05):** every agent-preparable item in the [go-public runbook](../go-public-runbook.md) verified and prepared, so what remains is exactly the maintainer's ~10-minute flip list. **The flip itself stays voluntary, unscheduled, and maintainer-only — M1 does not schedule it.**
+6. **Continuation stays open:** Phases 3–11 remain published below as the roadmap's continuation track, and the README frames them as "what's next", never as unfinished debt.
+
+## Continuation Track (Phases 3–11 — optional, post-M1)
+
+Phases 3–11 are **not committed work**. They stay fully specified so that (a) the eventually-public repo shows a thought-through product trajectory and (b) the maintainer can resume at any time with zero re-planning. Picking up Phase 3 after M1 is a maintainer decision recorded in `IMPLEMENTATION.md`, not a default.
 
 ## Parallelisation Opportunities
 
-Once Phase 2 (MVP) is complete, several phases can run in parallel with sufficient agent capacity:
+Once Phase 2 (MVP) is complete, several continuation-track phases can run in parallel with sufficient agent capacity:
 
 ```
 Phase 2 (MVP) ──┬── Phase 3 (Layer Enforcement)
