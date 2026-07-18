@@ -4,7 +4,16 @@ import type { Violation } from "@argus/core";
 import { FakeRuleRunner } from "@argus/testing";
 import { Engine, Runner } from "../src/index.js";
 import type { RuleContext } from "../src/index.js";
-import { activationOf, inputOf, makeNode, moduleOf, rid, someFile } from "./helpers.js";
+import {
+  NODE_TYPES,
+  activationOf,
+  inputOf,
+  makeNode,
+  moduleOf,
+  rid,
+  someFile,
+  syntheticTree,
+} from "./helpers.js";
 
 function reportingEngine(): Engine {
   const engine = new Engine();
@@ -96,6 +105,34 @@ describe("Runner", () => {
 
     expect(summary.violations).toEqual([]);
     expect(summary.failures).toEqual([]);
+  });
+
+  it("handles 100 rules across 10 files without errors (phase-1 exit criterion)", async () => {
+    const engine = new Engine();
+    const activations = Array.from({ length: 100 }, (_, index) => {
+      const id = `fixture-rule-${String(index).padStart(3, "0")}`;
+      engine
+        .register(
+          moduleOf(id, (context: RuleContext) => ({
+            [NODE_TYPES[index % NODE_TYPES.length]!]: (node) => {
+              context.report({ message: `finding of ${id}`, position: node.position });
+            },
+          })),
+        )
+        ._unsafeUnwrap();
+      return activationOf(id);
+    });
+    // 200 nodes cycling 10 node types → 20 nodes per type per file; each
+    // of the 100 rules reports every node of its one type.
+    const inputs = Array.from({ length: 10 }, (_, index) => {
+      const file = someFile(`src/fixture-${String(index)}.ts`);
+      return inputOf(syntheticTree(200, 8, file), activations, { file });
+    });
+
+    const summary = await new Runner(engine).runAll(inputs);
+
+    expect(summary.failures).toEqual([]);
+    expect(summary.violations).toHaveLength(10 * 100 * 20);
   });
 
   it("composes any RuleRunnerPort, not just the Engine", async () => {
