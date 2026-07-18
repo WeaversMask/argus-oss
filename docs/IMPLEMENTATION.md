@@ -2,7 +2,7 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-07-17 by claude-fable-5 (P1-03)_
+**Last updated:** _2026-07-18 by claude-fable-5 (P1-04 pickup)_
 **Current phase:** _Phase 1 — Domain Core_
 **Active phase doc:** [`plan/phases/phase-01-domain-core.md`](./plan/phases/phase-01-domain-core.md)
 **Overall progress:** _Phase 0 complete — 16/16 P0 tasks (1 of 12 phases complete)_
@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title       | Assignee       | Started    | ETA          |
+| ------- | ----------- | -------------- | ---------- | ------------ |
+| P1-04   | Rule engine | claude-fable-5 | 2026-07-18 | this session |
 
 ### Blocked
 
@@ -27,9 +27,8 @@
 
 > Specs in [phase-01](./plan/phases/phase-01-domain-core.md) — load only when picking up work.
 
-1. **P1-04 — Rule engine** (deps: P1-02 ✅ [#13](https://github.com/WeaversMask/argus-oss/pull/13), P1-03 ✅ pending merge) — recommended next: `packages/rule-engine` (Engine walks the AST once per file, dispatches by node type; RuleContext read-only; Runner aggregates). Acceptance includes an **executable benchmark with a committed baseline that runs in CI** (1000 nodes × 50 rules < 50ms local; gate CI on gross regressions only — maintainer-approved 2026-07-07). New-package checklist applies (vitest project entry, cruiser rule, compose/Dockerfile lines). Note from P1-03: `AstNode.children` includes anonymous nodes — dispatch tables must expect keyword/punctuation node types, and `visit`'s `"skip"`/`"stop"` controls are the intended traversal levers.
-2. P1-05 — Config system (deps: P1-01 ✅) — parallel-eligible
-3. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
+1. P1-05 — Config system (deps: P1-01 ✅) — parallel-eligible
+2. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
 
 ---
 
@@ -38,7 +37,7 @@
 | Phase                  | Status         | Completed | Notes                                                                                                               |
 | ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
 | P0 — Foundation        | ✅ Complete    | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified |
-| P1 — Domain Core       | 🟡 In progress | 3/6       | P1-01 + P1-01a + P1-02 merged; P1-03 in PR (pending merge); P1-04 next                                              |
+| P1 — Domain Core       | 🟡 In progress | 3/6       | P1-01 + P1-01a + P1-02 + P1-03 merged ([#22](https://github.com/WeaversMask/argus-oss/pull/22)); P1-04 in progress  |
 | P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                   |
 | P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                   |
 | P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                   |
