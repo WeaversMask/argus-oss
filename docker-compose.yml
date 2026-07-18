@@ -42,6 +42,7 @@ services:
       - testing_node_modules:/app/packages/testing/node_modules
       - core_node_modules:/app/packages/core/node_modules
       - ast_node_modules:/app/packages/ast/node_modules
+      - rule_engine_node_modules:/app/packages/rule-engine/node_modules
       # Persist pnpm's content-addressable store too: it lives in the
       # container layer otherwise, so every down/up would refetch packages
       # the node_modules volume already has (review finding, P0-06).
@@ -92,6 +93,7 @@ volumes:
   testing_node_modules:
   core_node_modules:
   ast_node_modules:
+  rule_engine_node_modules:
   pnpm_store:
   redis_data:
   postgres_data:
