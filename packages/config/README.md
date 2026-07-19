@@ -57,6 +57,7 @@ User-facing format reference: [`docs/guide/configuration.md`](../../docs/guide/c
 - **Merge semantics:** `rules` per-rule-id wholesale replace; `languages`/`ignore` replace, never concatenate; `extends` never survives resolution. One place implements it (`src/merge.ts`), the guide documents it.
 - **Absence is not an error:** `search`/`loadHierarchy` return `ok(undefined)` when no file exists (port convention from P1-02).
 - **YAML 1.2 core schema** — unquoted `off` is the string `"off"`, not `false`; pinned by test against option drift.
+- **`.yaml` beats `.yml`** when one directory holds both (deterministic `CONFIG_FILE_NAMES` order; the `.yml` is ignored — documented in the guide). `extends:` entries are plain relative/absolute paths, no `~` expansion, no sandbox — trusted local input, ESLint's model (review #26).
 - **Deferred:** `suppressions:` (identity/`createdAt` design, Phase 2) and `layers:` (P3-01). The schema is strict, so both will be _added_, not retrofitted around loose keys.
 
 ## Maintenance notes

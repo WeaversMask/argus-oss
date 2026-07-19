@@ -60,3 +60,35 @@ export function positionOf(
   }
   return { line: 1, column: 1 };
 }
+
+interface MapLikeNode {
+  readonly items?: readonly {
+    readonly key?: { readonly value?: unknown; readonly range?: readonly [number, number, number] };
+  }[];
+}
+
+/**
+ * 1-based line/column of the **key** named by the last path segment — for
+ * issues about the key itself (unrecognized keys), where pointing at the
+ * value's block reads one line off (review finding, #26). Falls back to
+ * {@link positionOf} when the key node cannot be located.
+ */
+export function keyPositionOf(
+  source: ConfigSource,
+  path: readonly string[],
+): { readonly line: number; readonly column: number } {
+  const last = path.at(-1);
+  const parent: unknown =
+    path.length <= 1 ? source.document.contents : source.document.getIn(path.slice(0, -1), true);
+  const items = (parent as MapLikeNode | null | undefined)?.items;
+  if (last !== undefined && items !== undefined) {
+    for (const item of items) {
+      const key = item.key;
+      if (key?.range !== undefined && String(key.value) === last) {
+        const position = source.lineCounter.linePos(key.range[0]);
+        return { line: position.line, column: position.col };
+      }
+    }
+  }
+  return positionOf(source, path);
+}

@@ -1,21 +1,32 @@
 import { z } from "zod";
 import { LANGUAGES, SEVERITIES, ruleId } from "@argus/core";
 
-const severitySchema = z.enum(SEVERITIES);
-const severityOrOffSchema = z.union([severitySchema, z.literal("off")]);
+const SEVERITY_OR_OFF = [...SEVERITIES, "off"] as const;
+const severityOrOffSchema = z.enum(SEVERITY_OR_OFF);
+
+const SEVERITY_HINT = SEVERITY_OR_OFF.map((value) => `"${value}"`).join(" | ");
 
 /**
  * One rule's setting: either shorthand (`style/no-let: error`) or the long
  * form with rule-specific options
  * (`style/no-let: { severity: error, options: { … } }`).
+ *
+ * The union carries a custom error: zod's generic invalid-union "Invalid
+ * input" never tells the user the valid severity set, and this is the
+ * most-edited field in the file (review finding, #26).
  */
-export const ruleSettingSchema = z.union([
-  severityOrOffSchema,
-  z.strictObject({
-    severity: severityOrOffSchema,
-    options: z.record(z.string(), z.unknown()).optional(),
-  }),
-]);
+export const ruleSettingSchema = z.union(
+  [
+    severityOrOffSchema,
+    z.strictObject({
+      severity: severityOrOffSchema,
+      options: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ],
+  {
+    error: () => `must be a severity (${SEVERITY_HINT}) or an object { severity, options }`,
+  },
+);
 
 export type RuleSetting = z.infer<typeof ruleSettingSchema>;
 

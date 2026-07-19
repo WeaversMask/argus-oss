@@ -29,9 +29,13 @@ rules: # optional — rule id → setting
 - **Rule ids** are kebab-case with optional `/`-separated category segments.
 - **Unknown keys are errors.** A typo like `rulez:` fails validation loudly instead of silently deactivating your settings.
 
+Argus prefers `reviewtool.yaml` when a directory contains both spellings — a `reviewtool.yml` next to it is ignored.
+
 ## Inheritance — `extends:`
 
 Works like ESLint's `extends`: each entry is resolved relative to the extending file, bases apply first, and the extending file wins. With a list, later entries beat earlier ones. Chains can nest; cycles are detected and reported as errors.
+
+Entries are plain paths — relative (resolved from the extending file) or absolute. `~` is **not** expanded. Nothing stops a chain from leaving the repository; config files are trusted local input, same as ESLint's.
 
 ## Layering — multiple files in one tree
 

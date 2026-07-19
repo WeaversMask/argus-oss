@@ -4,7 +4,7 @@ import { ConfigError } from "./errors.js";
 import type { ConfigIssue } from "./errors.js";
 import { rawConfigSchema } from "./schema.js";
 import type { RawConfig } from "./schema.js";
-import { parseSource, positionOf } from "./yaml-source.js";
+import { keyPositionOf, parseSource, positionOf } from "./yaml-source.js";
 import type { ConfigSource } from "./yaml-source.js";
 
 /**
@@ -25,7 +25,7 @@ export function validateSource(source: ConfigSource): Result<RawConfig, ConfigEr
           const path = [...issue.path, key].map((part) => String(part));
           return {
             file: source.file,
-            ...positionOf(source, path),
+            ...keyPositionOf(source, path),
             path: path.join("."),
             message: `unrecognized key "${key}"`,
           };

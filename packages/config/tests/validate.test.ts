@@ -71,16 +71,28 @@ describe("validateConfigText", () => {
     expect(error.message).toContain(`${FILE}:4:5`);
   });
 
-  it("points at the value of a bad rule severity", () => {
+  it("points at the value of a bad rule severity and names the valid set", () => {
     const error = invalid(["rules:", "  style/no-let: severe"].join("\n"));
 
     const issue = error.issues[0]!;
     expect(issue.path).toBe("rules.style/no-let");
     expect(issue.line).toBe(2);
     expect(issue.column).toBe(17);
+    // Not zod's generic "Invalid input" — the user must see their options
+    // (review finding, #26).
+    expect(issue.message).toContain('"critical"');
+    expect(issue.message).toContain('"off"');
   });
 
-  it("rejects unknown top-level keys, pointing at each stray key", () => {
+  it("names the valid set for a bad long-form severity too", () => {
+    const error = invalid(["rules:", "  style/no-let:", "    severity: severe"].join("\n"));
+
+    const issue = error.issues[0]!;
+    expect(issue.path).toBe("rules.style/no-let");
+    expect(issue.message).toContain('"warning"');
+  });
+
+  it("rejects unknown top-level keys, pointing at the key itself", () => {
     const error = invalid(
       ["languages:", "  - typescript", "rulez:", "  style/no-let: error"].join("\n"),
     );
@@ -88,7 +100,8 @@ describe("validateConfigText", () => {
     const issue = error.issues.find((candidate) => candidate.path === "rulez");
     expect(issue).toBeDefined();
     expect(issue!.message).toContain('unrecognized key "rulez"');
-    expect(issue!.line).toBe(4); // points at the key's value block
+    expect(issue!.line).toBe(3); // the key's own line, not its value block (review finding, #26)
+    expect(issue!.column).toBe(1);
   });
 
   it("rejects invalid rule ids via core's ruleId vocabulary", () => {
