@@ -29,7 +29,7 @@ Architectural conformance checking — the platform's differentiating capability
 - **Deps:** P2 complete
 - **Outputs:** `packages/layer-enforcer/src/manifest-loader.ts`, Zod schema in `packages/config`
 - **Acceptance:**
-  - Loads `layers:` section of `reviewtool.yaml`
+  - Loads `layers:` section of `argus.yaml` (D-7 rename, 2026-07-19)
   - Validates pattern syntax (globs)
   - Detects ambiguous classifications (file matching multiple layers)
 - **Effort:** M

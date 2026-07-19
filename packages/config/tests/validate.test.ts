@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ConfigError } from "../src/index.js";
 import { validateConfigText } from "../src/index.js";
 
-const FILE = "team/reviewtool.yaml";
+const FILE = "team/argus.yaml";
 
 function invalid(text: string): ConfigError {
   return validateConfigText(FILE, text)._unsafeUnwrapErr();

@@ -85,7 +85,7 @@ The domain model and rule dispatch engine, with zero infrastructure dependencies
 
 - **Deps:** P1-01
 - **Outputs:** `packages/config/`
-  - Zod schemas for `reviewtool.yaml`
+  - Zod schemas for `argus.yaml` (named `reviewtool.yaml` until D-7, resolved 2026-07-19)
   - cosmiconfig integration for discovery
   - Hierarchical merging (org → team → repo → path)
   - Validation errors that include file path and YAML line numbers

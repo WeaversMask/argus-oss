@@ -2,7 +2,7 @@
   "name": "@argus/config",
   "version": "0.0.0",
   "private": true,
-  "description": "Configuration system for Argus — zod-validated reviewtool.yaml schema, cosmiconfig discovery, extends-chain inheritance, hierarchical merging, and validation errors that point at the exact YAML line.",
+  "description": "Configuration system for Argus — zod-validated argus.yaml schema, cosmiconfig discovery, extends-chain inheritance, hierarchical merging, and validation errors that point at the exact YAML line.",
   "license": "UNLICENSED",
   "type": "module",
   "sideEffects": false,

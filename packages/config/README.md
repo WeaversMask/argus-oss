@@ -1,10 +1,10 @@
 # `@argus/config`
 
-> The configuration system: zod-validated `reviewtool.yaml`, cosmiconfig discovery, ESLint-style `extends:` inheritance, hierarchical merging — and validation errors that point at the exact YAML line.
+> The configuration system: zod-validated `argus.yaml`, cosmiconfig discovery, ESLint-style `extends:` inheritance, hierarchical merging — and validation errors that point at the exact YAML line.
 
 ## Purpose
 
-`config` owns everything between a `reviewtool.yaml` on disk and a typed, frozen `ResolvedConfig` in memory: discovery (cosmiconfig, nearest-file-wins), parsing (the `yaml` package, positions kept), schema validation (zod, strict — unknown keys are errors; rule ids validated through core's `ruleId` factory), `extends:` resolution (relative paths, depth-first, cycle-detected), and level merging (org → team → repo → path, nearest wins). It does **not** decide what the config _means_ at scan time — matching `ignore` globs, activating rules, choosing files is Phase-2 orchestration.
+`config` owns everything between a `argus.yaml` on disk and a typed, frozen `ResolvedConfig` in memory: discovery (cosmiconfig, nearest-file-wins), parsing (the `yaml` package, positions kept), schema validation (zod, strict — unknown keys are errors; rule ids validated through core's `ruleId` factory), `extends:` resolution (relative paths, depth-first, cycle-detected), and level merging (org → team → repo → path, nearest wins). It does **not** decide what the config _means_ at scan time — matching `ignore` globs, activating rules, choosing files is Phase-2 orchestration.
 
 This package touches the filesystem by design (it is the config-loading edge of the hexagon); the parse/validate/merge core is pure and exposed for in-memory use.
 
@@ -17,7 +17,7 @@ This package touches the filesystem by design (it is the config-loading edge of 
 | `ConfigError` (`ConfigIssue`)    | error    | `DomainError` (`code: "config/invalid"`); every issue carries file, 1-based line/column, and dot-path                                                                                                                              |
 | `ResolvedConfig`                 | type     | Frozen final shape: `languages` (default: all), `ignore` (default: none), `rules` as core `RuleActivation`s sorted by rule id (`"off"` entries preserved)                                                                          |
 | `RawConfig`, `RuleSetting`       | types    | The validated per-file document shape (pre-merge)                                                                                                                                                                                  |
-| `CONFIG_FILE_NAMES`              | const    | `reviewtool.yaml`, `reviewtool.yml` — the discovery search places                                                                                                                                                                  |
+| `CONFIG_FILE_NAMES`              | const    | `argus.yaml`, `argus.yml` — the discovery search places                                                                                                                                                                            |
 
 ## How it fits
 
