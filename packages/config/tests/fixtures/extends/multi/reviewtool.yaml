@@ -1,0 +1,5 @@
+extends:
+  - ./a.yaml
+  - ./b.yaml
+rules:
+  only/self: critical

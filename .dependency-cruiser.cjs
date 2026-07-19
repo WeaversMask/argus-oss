@@ -103,6 +103,19 @@ module.exports = {
       },
     },
     {
+      name: "config-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/config exports only '.' — imports from outside the " +
+        "package must land on src/index.ts. Anything else is a deep import " +
+        "into internals.",
+      from: { pathNot: "^packages/config/" },
+      to: {
+        path: "^packages/config/",
+        pathNot: "^packages/config/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

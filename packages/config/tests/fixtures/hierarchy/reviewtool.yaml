@@ -1,0 +1,6 @@
+languages:
+  - typescript
+  - javascript
+rules:
+  org/base-rule: error
+  org/overridden: error
