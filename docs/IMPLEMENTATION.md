@@ -2,7 +2,7 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-07-18 by claude-fable-5 (P1-04)_
+**Last updated:** _2026-07-19 by claude-fable-5 (P1-05 pickup)_
 **Current phase:** _Phase 1 — Domain Core_
 **Active phase doc:** [`plan/phases/phase-01-domain-core.md`](./plan/phases/phase-01-domain-core.md)
 **Overall progress:** _Phase 0 complete — 16/16 P0 tasks (1 of 12 phases complete)_
@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title         | Assignee       | Started    | ETA          |
+| ------- | ------------- | -------------- | ---------- | ------------ |
+| P1-05   | Config system | claude-fable-5 | 2026-07-19 | this session |
 
 ### Blocked
 
@@ -27,27 +27,26 @@
 
 > Specs in [phase-01](./plan/phases/phase-01-domain-core.md) — load only when picking up work.
 
-1. P1-05 — Config system (deps: P1-01 ✅) — parallel-eligible
-2. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
+1. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
 
 ---
 
 ## Phase Status
 
-| Phase                  | Status         | Completed | Notes                                                                                                               |
-| ---------------------- | -------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| P0 — Foundation        | ✅ Complete    | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified |
-| P1 — Domain Core       | 🟡 In progress | 4/6       | P1-01 + P1-01a + P1-02 + P1-03 merged; P1-04 in PR (pending merge); P1-05/P1-06 remain, parallel-eligible           |
-| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                   |
-| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                   |
-| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                   |
-| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                   |
-| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                   |
-| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                   |
-| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                   |
-| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                   |
-| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                   |
-| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                   |
+| Phase                  | Status         | Completed | Notes                                                                                                                                     |
+| ---------------------- | -------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| P0 — Foundation        | ✅ Complete    | 16/16     | Completed 2026-07-05 (P0-09/argus-oss#9). +4 unplanned ops/sec tasks (SEC-01/02, OPS-01/02). Exit criteria verified                       |
+| P1 — Domain Core       | 🟡 In progress | 4/6       | P1-01 + P1-01a + P1-02 + P1-03 + P1-04 merged ([#24](https://github.com/WeaversMask/argus-oss/pull/24)); P1-05 in progress; P1-06 remains |
+| P2 — MVP               | ⏸ Not started  | —         | —                                                                                                                                         |
+| P3 — Layer Enforcement | ⏸ Not started  | —         | —                                                                                                                                         |
+| P4 — Tool Adapters     | ⏸ Not started  | —         | —                                                                                                                                         |
+| P5 — Persistence       | ⏸ Not started  | —         | —                                                                                                                                         |
+| P6 — API Server        | ⏸ Not started  | —         | —                                                                                                                                         |
+| P7 — Web UI            | ⏸ Not started  | —         | —                                                                                                                                         |
+| P8 — Reporting         | ⏸ Not started  | —         | —                                                                                                                                         |
+| P9 — CI Integrations   | ⏸ Not started  | —         | —                                                                                                                                         |
+| P10 — LSP + IDE        | ⏸ Not started  | —         | —                                                                                                                                         |
+| P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                                         |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
 
