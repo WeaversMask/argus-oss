@@ -6,3 +6,5 @@ coverage/
 .bin/
 pnpm-lock.yaml
 *.min.js
+# Deliberately malformed fixture — prettier cannot parse invalid YAML
+packages/config/tests/fixtures/invalid/bad-syntax.yaml

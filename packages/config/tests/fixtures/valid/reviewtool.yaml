@@ -1,0 +1,13 @@
+languages:
+  - typescript
+  - python
+ignore:
+  - "dist/**"
+  - "coverage/**"
+rules:
+  style/no-let: error
+  architecture/no-god-objects:
+    severity: warning
+    options:
+      maxLines: 300
+  style/no-console: "off"

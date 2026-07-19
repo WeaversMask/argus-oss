@@ -1,0 +1,5 @@
+ignore:
+  - "root-ignored/**"
+rules:
+  style/no-let: warning
+  style/no-var: error

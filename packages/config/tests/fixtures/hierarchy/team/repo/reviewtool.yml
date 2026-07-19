@@ -1,0 +1,5 @@
+languages:
+  - python
+rules:
+  repo/rule: info
+  org/overridden: "off"

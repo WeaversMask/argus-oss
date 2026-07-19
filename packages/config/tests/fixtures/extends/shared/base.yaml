@@ -1,0 +1,6 @@
+extends: ./root.yaml
+languages:
+  - typescript
+rules:
+  style/no-let: info
+  architecture/no-cycles: error

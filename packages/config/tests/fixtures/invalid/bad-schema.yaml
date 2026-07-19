@@ -1,0 +1,5 @@
+languages:
+  - typescript
+  - klingon
+rules:
+  style/no-let: severe

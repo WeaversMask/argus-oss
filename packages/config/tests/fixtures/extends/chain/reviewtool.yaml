@@ -1,0 +1,7 @@
+extends: ../shared/base.yaml
+rules:
+  style/no-var: "off"
+  style/max-lines:
+    severity: critical
+    options:
+      max: 500

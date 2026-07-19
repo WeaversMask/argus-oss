@@ -1,0 +1,36 @@
+{
+  "name": "@argus/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Configuration system for Argus — zod-validated reviewtool.yaml schema, cosmiconfig discovery, extends-chain inheritance, hierarchical merging, and validation errors that point at the exact YAML line.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf coverage .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@argus/core": "workspace:*",
+    "cosmiconfig": "9.0.2",
+    "neverthrow": "8.2.0",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@argus/testing": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.9",
+    "rimraf": "^5.0.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}
