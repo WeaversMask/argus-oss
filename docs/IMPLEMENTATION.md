@@ -2,7 +2,7 @@
 
 > **Live document.** Always reflects current state. Update on every task transition.
 
-**Last updated:** _2026-07-19 by claude-fable-5 (P1-05)_
+**Last updated:** _2026-07-19 by claude-fable-5 (P1-06 pickup)_
 **Current phase:** _Phase 1 — Domain Core_
 **Active phase doc:** [`plan/phases/phase-01-domain-core.md`](./plan/phases/phase-01-domain-core.md)
 **Overall progress:** _Phase 0 complete — 16/16 P0 tasks (1 of 12 phases complete)_
@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title                          | Assignee       | Started    | ETA          |
+| ------- | ------------------------------ | -------------- | ---------- | ------------ |
+| P1-06   | Domain services (+ D-7 rename) | claude-fable-5 | 2026-07-19 | this session |
 
 ### Blocked
 
@@ -27,7 +27,7 @@
 
 > Specs in [phase-01](./plan/phases/phase-01-domain-core.md) — load only when picking up work.
 
-1. P1-06 — Domain services (deps: P1-01 ✅) — parallel-eligible
+_(P1-06 is the last P1 task — phase transition follows it.)_
 
 ---
 
