@@ -21,7 +21,7 @@ One page per repeatable extension point. Each is a placeholder until the first i
 | `adding-a-tool-adapter.md`                       | external-tool adapter (behind the `ToolAdapter` boundary) | first adapter (Phase 4)                                                    |
 | `adding-a-report-formatter.md`                   | output format under `reports/formatters/`                 | first formatter (Phase 8)                                                  |
 | `adding-a-persistence-backend.md`                | storage backend behind the repository ports               | first backend (Phase 5)                                                    |
-| `testing.md`                                     | fakes, matchers, and builders from `@argus/testing`       | expands from now                                                           |
+| [`testing.md`](./testing.md)                     | fakes, builders, property-based testing (fast-check)      | 🟡 P1-06 (property pattern) · expands from now                             |
 
 ## Conventions worth knowing now
 
