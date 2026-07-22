@@ -1,8 +1,8 @@
 # Configuration
 
-> `reviewtool.yaml` — what goes in it, how files inherit and layer, and what the errors mean. The schema ships with P1-05; rule names and CLI wiring arrive in Phase 2, so today this page documents the format itself.
+> `argus.yaml` — what goes in it, how files inherit and layer, and what the errors mean. The schema ships with P1-05; rule names and CLI wiring arrive in Phase 2, so today this page documents the format itself.
 
-Argus reads configuration from `reviewtool.yaml` (or `.yml`), discovered from the directory you run in upward — the nearest file wins, like ESLint.
+Argus reads configuration from `argus.yaml` (or `.yml`), discovered from the directory you run in upward — the nearest file wins, like ESLint.
 
 ## The file
 
@@ -29,7 +29,7 @@ rules: # optional — rule id → setting
 - **Rule ids** are kebab-case with optional `/`-separated category segments.
 - **Unknown keys are errors.** A typo like `rulez:` fails validation loudly instead of silently deactivating your settings.
 
-Argus prefers `reviewtool.yaml` when a directory contains both spellings — a `reviewtool.yml` next to it is ignored.
+Argus prefers `argus.yaml` when a directory contains both spellings — a `argus.yml` next to it is ignored.
 
 ## Inheritance — `extends:`
 
@@ -49,7 +49,7 @@ Config files may live at several levels (org root, team folder, repo, subfolder)
 Every validation failure carries the file, 1-based line and column, and the path of the offending value:
 
 ```
-Invalid configuration in team/reviewtool.yaml: team/reviewtool.yaml:4:5 languages.1 — Invalid option: expected one of "typescript"|"javascript"|"python"
+Invalid configuration in team/argus.yaml: team/argus.yaml:4:5 languages.1 — Invalid option: expected one of "typescript"|"javascript"|"python"
 ```
 
 Malformed YAML (including duplicate keys) reports the same way.

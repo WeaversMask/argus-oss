@@ -12,7 +12,7 @@ The P1-01 review of `@argus/core` surfaced three model-level ambiguities that ga
 
 - **D-2:** Composite factories (`violation`, `finding`, `scanResult`, `layerManifest`) trusted embedded components structurally — an unvalidated inline `Position` literal compiled, passed, and escaped `Object.freeze`. The imminent risk is P1-03: tree-sitter coordinates are 0-based, ours are 1-based, and a hastily mapped literal would flow straight into the domain.
 - **D-3:** `Position`'s TSDoc claimed columns are _inclusive_ **and** that `start == end` is zero-width — mutually exclusive statements. Every adapter (tree-sitter, LSP, SARIF export) converts against this sentence.
-- **D-4:** `Suppression` carries no project association; suppressions are authored in each project's own config file (`reviewtool.yaml`, P1-05).
+- **D-4:** `Suppression` carries no project association; suppressions are authored in each project's own config file (`argus.yaml`, P1-05 — named `reviewtool.yaml` when this ADR was accepted; renamed under D-7, 2026-07-19).
 
 ## Decision
 

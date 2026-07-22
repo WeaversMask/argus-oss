@@ -1,55 +1,63 @@
-# Handover — P1-05 complete
+# Handover — Phase 1 complete (P1-06)
 
 **From:** claude-fable-5
-**To:** next picker
+**To:** next picker (first P2 session)
 **Date:** 2026-07-19
-**Phase:** P1 — Domain Core (5/6 tasks done)
-**Last task completed:** P1-05 — Config system (PR pending merge — see tracker)
+**Phase:** P1 — Domain Core ✅ 6/6 → **P2 — MVP** (Milestone M1 Showcase-Ready at its end)
+**Last task completed:** P1-06 — Domain services + D-7 rename (PR pending merge)
 
 ---
 
-## Context
+## Phase 1 exit criteria — verified
 
-`@argus/config` turns `reviewtool.yaml` into a frozen `ResolvedConfig`: strict zod schema (rule ids through core's `ruleId`), `yaml`-package parsing that keeps positions so every error carries `file:line:col` + dot-path, ESLint-style `extends:` (relative, cycle-detected), cosmiconfig discovery, and `loadHierarchy` merging org→team→repo→path nearest-wins. **Next: P1-06 — Domain services** (`packages/core/src/services/` — LayerClassifier, ConformanceScorer, SuppressionEvaluator; pure functions, property-based tests with fast-check = a **new dev dependency to vet**). P1-06 is the **last P1 task** — after it merges, run the phase transition (exit criteria, phase-completion handover, tracker flip to P2).
+1. **Domain model complete and frozen** ✓ — entities/value objects/errors stable since P1-01a; P1-06 added services without touching the model.
+2. **Rule engine handles 100 fixture rules × 10 files without errors** ✓ — Runner stress test, `packages/rule-engine/tests/runner.test.ts` (20k violations).
+3. **All ports have in-memory fakes** ✓ — ten fakes in `@argus/testing` (P1-02).
+4. **Phase handover with glossary, rule-authoring guide, tree-sitter gotchas** ✓ — glossary below; rule authoring: [`dev/adding-a-rule.md`](./dev/adding-a-rule.md); tree-sitter version pinning: [`dev/adding-a-language.md`](./dev/adding-a-language.md) + [ADR-0005](./adr/0005-ast-adapter-wasm-tree-sitter.md) + `@argus/ast` README (grammar ABI window, smoke-test canary).
 
-## Conventions established in P1-05 (follow, don't reinvent)
+## Domain glossary (ubiquitous language — use these words exactly)
 
-- **Config vocabulary comes from core** — severities via `SEVERITIES`, languages via `LANGUAGES`, rule ids via `ruleId`. Never re-declare enums in a schema.
-- **Absence is not an error:** discovery (`search`, `loadHierarchy`) returns `ok(undefined)` when no config exists. Reserve `ConfigError` for real failures.
-- **Merge semantics are fixed** (and guide-documented): `rules` per-rule-id wholesale replace; `languages`/`ignore` replace, never concatenate; `extends` consumed by resolution. P2 orchestration must not invent new blending.
-- **`validateConfigText(file, text)`** is the fs-free seam — editors/LSP (P10) validate buffers through it; don't add a parallel path.
-- **Error shape:** `ConfigError.issues[]` each with `file`, 1-based `line`/`column`, dot-`path`, `message`. Formatting lives in one place (`errors.ts`).
+- **Scan** — one analysis run; a discriminated union `queued → running → completed | failed` with compile-safe transitions. **ScanResult** — a completed scan's aggregate.
+- **Finding** — a located observation from an adapter, pre-domain-judgement. **Violation** — a confirmed rule breach (id, rule, severity, message, `Position`) — findings become violations.
+- **Rule** — the static definition (id, name, description, default severity). **RuleActivation** — a rule switched on at a severity (or `"off"`) with opaque options. **RuleProfile** — a named activation set. **RuleModule** — a rule's implementation against the engine (`create(context) → listeners`).
+- **Layer / LayerManifest / LayerBoundary** — declared architecture: named layers with glob patterns, and which layers each may import. **LayerConformance** — per-layer compliance figures (P1-06).
+- **Suppression** — a justified, possibly-expiring decision to ignore a rule for matching paths; `reason` mandatory.
+- **Project / Metrics / Severity (`info<warning<error<critical`) / Position (1-based, end-exclusive, UTF-16 columns — ADR-0004) / Timestamp (branded epoch-ms, always injected)**.
+- **Brands everywhere:** `RuleId`, `FilePath`, `LayerName`, ids — never bare strings. Factories return `Result<T, ValidationError>` collecting all issues; outputs frozen.
 
-## Gotchas for the next sessions
+## The five packages (all green, 346 tests, 99.0/96.8/100 aggregate)
 
-1. **cosmiconfig 9 does NOT search upward by default** — `searchStrategy: "global"` is set deliberately; removing it silently breaks nearest-file discovery (tests pin it).
-2. **`yaml` error positions:** `prettyErrors: false` + compute from `error.pos[0]` via `LineCounter`. With prettyErrors on you get code-frame noise in messages; `linePos` on errors exists only in pretty mode — don't "simplify" back to it.
-3. **Prettier chokes on deliberately-broken fixtures** — `bad-syntax.yaml` is in `.prettierignore`; any future malformed fixture needs the same or pre-commit fails.
-4. **YAML 1.2 semantics are pinned by test:** unquoted `off` is the _string_ `"off"`, not `false`. Touching parse options can flip this — the test will catch it.
-5. **fast-check for P1-06:** new dev-dep — full ADR-0003 dance (age, license, scripts) + tracker record. It's test-only, so it belongs in devDependencies of `packages/core`; check whether the coverage exclusions and Stryker need any accommodation for property tests (shrinking can be slow under mutation — consider excluding property suites from Stryker if the weekly run balloons).
-6. **P1-06 services are core-internal** (`packages/core/src/services/`) — the core cruiser rules (nothing but neverthrow) apply; fast-check must stay in tests, never in `src/`.
-7. Root gates before every push (`pnpm lint && pnpm typecheck && pnpm build && pnpm test`) — filtered runs bypass the task graph.
+`core` (model + ports + services, 100%) · `testing` (fakes for all ten ports) · `ast` (tree-sitter wasm behind `AstParserPort`) · `rule-engine` (`RuleRunnerPort`: one walk per file, benchmark-gated) · `config` (`argus.yaml` → `ResolvedConfig`, line-mapped errors).
 
-## Maintainer admin items (carried over + new)
+## What P2 needs to know
 
-1. **Merge P1-05** (PR link in tracker).
-2. **D-7 (new):** config file name — `reviewtool.yaml` is the plan's name but reads as the pre-rename working title; recommendation is `argus.yaml` at the Phase-2 boundary. Ruling wanted before MVP.
-3. D-1: Turbo remote cache decision (still open).
-4. Dependabot queue ([#21](https://github.com/WeaversMask/argus-oss/pull/21) + force-updated branches) — merge or close.
-5. `nvm alias default 22` — confirm resolved and drop next rotation.
-6. Archive the retired `argus` repo · delete `~/argus-pre-scrub-backup.bundle` when satisfied · `NPM_TOKEN`/`LICENSE`/private-vuln-reporting stay in the go-public bucket.
+1. **P2-01 rules are `RuleModule`s** — recipe exists ([`dev/adding-a-rule.md`](./dev/adding-a-rule.md)); sync-only listeners, anonymous node types dispatch, `context.report({message, position})`. TDD: ≥5 valid + 5 invalid fixtures per rule **before** implementation. Property tests where the rule states a law.
+2. **Wiring order for `check`:** config (`ConfigLoader.search`) → parse (`TreeSitterAstParser`, **one instance per process** — grammar wasm is unfreeable) → engine per file → `Runner` aggregates → `matchingSuppression` filters (inject `now`) → `classifyLayer`/`scoreConformance` for reporting. Every piece exists; P2 composes them.
+3. **`ignore` globs:** use core's `matchGlob` (exported) — don't add a glob dependency.
+4. **Deferred into P2:** `suppressions:` config section (needs id/`createdAt` design — see P1-05 packet notes); orchestrator decides what config `ignore`/`languages` mean at scan time.
+5. **Dogfooding starts at P2's end** — CI runs Argus on Argus; every PR then needs zero new self-violations. The M1 showcase tail (DOC-02/03/04, OPS-05) closes the phase; **going public stays maintainer-only**.
+6. **Perf budget:** `check` <30s on 50k lines, benchmarked per PR (phase note). The committed-baseline pattern from P1-04 (`tests/perf/baseline.ts`) is the template.
+7. **New-package checklist** (per new package: rules-builtin, orchestrator, apps/cli…): vitest root `projects` entry · per-package cruiser rule + negative test · compose volume + Dockerfile mkdir · license gate/notices · README. `apps/*` will need cruiser rules written fresh (first non-`packages/` workspace member — check `pnpm-workspace.yaml` includes `apps/*`!).
 
-## State of the System
+## Evergreen gotchas (carried forward)
 
-- ✅ Root gates green on the branch: 292 tests (core 126, testing 33, ast 45, rule-engine 49, config 39), aggregate 99.0%/96.9%/100%; lint/typecheck/build/boundaries clean
-- ✅ License gate: 561 packages, 4 named exceptions — zod/cosmiconfig/yaml were already tooling transitives (no notices delta)
-- ✅ Cruiser rule `config-public-entry-only` negative-tested (plant fired rule + backstop, removed)
-- ✅ First user-facing guide page exists: `docs/guide/configuration.md`
-- ⏸ P1-05 PR pending human merge (tracker + this handover ride in it)
-- ⏸ `suppressions:`/`layers:` schema sections deferred by design (P2 / P3-01)
+- Root gates before every push; filtered runs bypass the task graph.
+- prettier reflows Markdown tables and cannot parse deliberately-broken fixtures (`.prettierignore` them).
+- commitlint: header ≤100 chars — a failed commit leaves files staged; don't let the next commit sweep them.
+- pnpm 11 scaffolds `allowBuilds` placeholders into `pnpm-workspace.yaml` when a new dep has install scripts — replace with an explicit decision.
+- `gh pr edit` fails on this machine (projectCards GraphQL deprecation) — PATCH via `gh api` instead.
+- Weekly Stryker now mutates `core/services` + everything else; property tests shrink slowly under mutation — watch the Tuesday wall time.
+
+## Maintainer admin items
+
+1. **Merge P1-06** (PR link in tracker) — completes Phase 1.
+2. D-1: Turbo remote cache (last open decision).
+3. Dependabot queue ([#21](https://github.com/WeaversMask/argus-oss/pull/21) + branches).
+4. `nvm alias default 22` — confirm and drop.
+5. Retired-repo archive · pre-scrub bundle deletion · go-public bucket (`NPM_TOKEN`, LICENSE, private-vuln-reporting) — unchanged.
 
 ## Sign-off
 
-The hexagon can now read its own instructions: strict at the boundary, line-accurate when you get it wrong, nearest-file-wins when teams disagree. One task left in the phase — keep the services pure and the clock injected.
+Phase 1 closes with the hexagon whole: a frozen model, ten ports, a real parser, a benchmarked engine, a strict config loader, and pure services to judge what they find — 346 tests standing watch. Phase 2 makes it a tool: point it at code, print the truth, then point it at itself.
 
 — claude-fable-5

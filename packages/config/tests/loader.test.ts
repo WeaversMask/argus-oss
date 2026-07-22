@@ -19,9 +19,7 @@ function activationsOf(config: {
 
 describe("ConfigLoader.load", () => {
   it("loads a valid file into a frozen, typed, sorted ResolvedConfig", async () => {
-    const config = (
-      await new ConfigLoader().load(fixture("valid", "reviewtool.yaml"))
-    )._unsafeUnwrap();
+    const config = (await new ConfigLoader().load(fixture("valid", "argus.yaml")))._unsafeUnwrap();
 
     expect(config.languages).toEqual(["typescript", "python"]);
     expect(config.ignore).toEqual(["dist/**", "coverage/**"]);
@@ -72,7 +70,7 @@ describe("ConfigLoader.load", () => {
 describe("ConfigLoader extends chains", () => {
   it("resolves a two-hop chain, nearest definition winning", async () => {
     const config = (
-      await new ConfigLoader().load(fixture("extends", "chain", "reviewtool.yaml"))
+      await new ConfigLoader().load(fixture("extends", "chain", "argus.yaml"))
     )._unsafeUnwrap();
 
     expect(activationsOf(config)).toEqual({
@@ -87,7 +85,7 @@ describe("ConfigLoader extends chains", () => {
 
   it("applies multiple extends left-to-right, later and self winning", async () => {
     const config = (
-      await new ConfigLoader().load(fixture("extends", "multi", "reviewtool.yaml"))
+      await new ConfigLoader().load(fixture("extends", "multi", "argus.yaml"))
     )._unsafeUnwrap();
 
     expect(activationsOf(config)).toEqual({
@@ -109,7 +107,7 @@ describe("ConfigLoader extends chains", () => {
 
   it("fails readably when an extends target is missing", async () => {
     const error = (
-      await new ConfigLoader().load(fixture("missing", "reviewtool.yaml"))
+      await new ConfigLoader().load(fixture("missing", "argus.yaml"))
     )._unsafeUnwrapErr();
 
     expect(error.message).toContain("Cannot read configuration file");
@@ -123,7 +121,7 @@ describe("ConfigLoader.search", () => {
       await new ConfigLoader().search(fixture("hierarchy", "team", "repo", "src"))
     )._unsafeUnwrap();
 
-    // Nearest is team/repo/reviewtool.yml — the .yml variant.
+    // Nearest is team/repo/argus.yml — the .yml variant.
     expect(config).toBeDefined();
     expect(config!.languages).toEqual(["python"]);
     expect(activationsOf(config!)).toEqual({
@@ -192,7 +190,7 @@ describe("ConfigLoader.loadHierarchy", () => {
   });
 
   it("propagates a broken file anywhere in the hierarchy", async () => {
-    // missing/reviewtool.yaml has an extends target that does not exist.
+    // missing/argus.yaml has an extends target that does not exist.
     const error = (
       await new ConfigLoader().loadHierarchy(fixture("missing"), fixture("missing"))
     )._unsafeUnwrapErr();

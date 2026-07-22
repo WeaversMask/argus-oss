@@ -31,7 +31,7 @@ export const ruleSettingSchema = z.union(
 export type RuleSetting = z.infer<typeof ruleSettingSchema>;
 
 /**
- * The `reviewtool.yaml` document schema (v1). Strict: unknown keys are
+ * The `argus.yaml` document schema (v1). Strict: unknown keys are
  * validation errors — a typoed key must fail loudly, not silently
  * deactivate a setting. Rule ids are validated through core's `ruleId`
  * factory so config and domain agree on the vocabulary.

@@ -11,10 +11,7 @@ import type { RawConfig } from "./schema.js";
 import { validateConfigText } from "./validate.js";
 
 /** File names recognised as Argus configuration, in search order. */
-export const CONFIG_FILE_NAMES: readonly string[] = Object.freeze([
-  "reviewtool.yaml",
-  "reviewtool.yml",
-]);
+export const CONFIG_FILE_NAMES: readonly string[] = Object.freeze(["argus.yaml", "argus.yml"]);
 
 /** cosmiconfig loader that hands the raw text through — parsing stays ours so positions survive. */
 function rawTextLoader(_filepath: string, content: string): string {
@@ -36,7 +33,7 @@ async function firstExisting(dir: string): Promise<string | undefined> {
 }
 
 /**
- * Loads, inherits, merges, and validates `reviewtool.yaml` configuration.
+ * Loads, inherits, merges, and validates `argus.yaml` configuration.
  *
  * - `load(file)` — one explicit file, with its `extends:` chain resolved
  *   (relative paths, depth-first, cycle-detected; bases first, extender
@@ -54,7 +51,7 @@ async function firstExisting(dir: string): Promise<string | undefined> {
  * config is worse than a few reads).
  */
 export class ConfigLoader {
-  private readonly explorer = cosmiconfig("reviewtool", {
+  private readonly explorer = cosmiconfig("argus", {
     searchPlaces: [...CONFIG_FILE_NAMES],
     loaders: { ".yaml": rawTextLoader, ".yml": rawTextLoader },
     cache: false,
