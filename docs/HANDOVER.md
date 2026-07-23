@@ -53,7 +53,7 @@ Reference: [`docs/guide/rules.md`](./guide/rules.md) (what each flags, defaults,
 
 ## Maintainer admin items
 
-1. **Merge the P2-01 PR** (link in the tracker once opened) — then it's Phase 2, 1/6+4.
+1. **Merge the P2-01 PR** ([argus-oss#29](https://github.com/WeaversMask/argus-oss/pull/29), review packet posted, re-review approve) — then it's Phase 2, 1/6+4.
 2. Dependabot queue (npm-minor-and-patch, rimraf, types/node branches on origin).
 3. Prior unchanged items: retired-repo archive, pre-scrub bundle deletion, go-public bucket.
 
