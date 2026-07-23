@@ -12,7 +12,7 @@ Each page is written when its feature first ships, then edited and expanded duri
 | `cli.md`                                 | `argus check` and other commands                          | Phase 2 (MVP)                                                  |
 | [`configuration.md`](./configuration.md) | Config file schema and options                            | 🟡 P1-05 (format + inheritance) → grows with the CLI (Phase 2) |
 | `layer-manifest.md`                      | Declaring architecture layers and boundaries              | Phase 3                                                        |
-| `rules.md`                               | The built-in rule catalogue and profiles                  | Phase 2 → grows                                                |
+| [`rules.md`](./rules.md)                 | The built-in rule catalogue and profiles                  | 🟡 P2-01 (ten TS/JS rules) → grows with profiles + more rules  |
 | `reports.md`                             | Output formats and report types                           | Phase 8                                                        |
 | `ci.md`                                  | GitHub / GitLab / Docker integration                      | Phase 9                                                        |
 | `ide.md`                                 | LSP and VS Code extension                                 | Phase 10                                                       |
