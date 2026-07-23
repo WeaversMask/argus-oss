@@ -1,5 +1,5 @@
 import type { AstNode } from "@argus/core";
-import type { RuleContext, RuleModule } from "@argus/rule-engine";
+import type { RuleModule } from "@argus/rule-engine";
 import { FUNCTION_LIKE, NESTING, isFunctionLike } from "../grammar.js";
 import { defineRule, listenTo, pointAt, positiveIntOption } from "../support.js";
 
@@ -18,6 +18,8 @@ const SCOPE_ROOTS: readonly string[] = ["program", "module", ...FUNCTION_LIKE];
  * `else if` chains are treated as siblings (an `else if` ladder stays at
  * depth 1), matching ESLint `max-depth`, so the common ladder is not
  * mistaken for deep nesting. `try`/`catch`/`finally` bodies share one level.
+ * Brace-less bodies count the same as braced ones (`if (a) for (…) …` is depth
+ * 2, exactly like `if (a) { for (…) … }`).
  *
  * Options: `{ max?: number }` — the inclusive nesting budget.
  */
@@ -30,62 +32,66 @@ export const maxNestingDepth: RuleModule = defineRule(
   },
   (context) => {
     const max = positiveIntOption(context.options, "max", DEFAULT_MAX);
-    const analyze = (scopeRoot: AstNode): void => scanChildren(scopeRoot, 0, max, context);
-    return listenTo(SCOPE_ROOTS, analyze);
-  },
-);
 
-function report(context: RuleContext, node: AstNode, depth: number, max: number): void {
-  context.report({
-    message: `Block nesting depth ${depth} exceeds the maximum of ${max}.`,
-    position: pointAt(context.file, node.position.startLine, node.position.startColumn),
-  });
-}
+    const report = (node: AstNode, depth: number): void => {
+      context.report({
+        message: `Block nesting depth ${depth} exceeds the maximum of ${max}.`,
+        position: pointAt(context.file, node.position.startLine, node.position.startColumn),
+      });
+    };
 
-/** Walks a node's children at `depth`, descending into nesting and stopping at nested scopes. */
-function scanChildren(node: AstNode, depth: number, max: number, context: RuleContext): void {
-  for (const child of node.children) {
-    if (isFunctionLike(child)) {
-      continue; // its own listener analyses it as a fresh scope
-    }
-    if (child.nodeType === "if_statement") {
-      scanIf(child, depth, max, context);
-    } else if (NESTING.has(child.nodeType)) {
-      const next = depth + 1;
-      if (next > max) {
-        report(context, child, next, max);
+    // `depth` is the nesting level of the context a node sits in; a nesting
+    // node lifts everything inside it to `depth + 1`.
+    const scanNode = (node: AstNode, depth: number): void => {
+      if (isFunctionLike(node)) {
+        return; // its own listener analyses it as a fresh scope
       }
-      scanChildren(child, next, max, context);
-    } else {
-      scanChildren(child, depth, max, context);
-    }
-  }
-}
+      if (node.nodeType === "if_statement") {
+        scanIf(node, depth);
+        return;
+      }
+      if (NESTING.has(node.nodeType)) {
+        const next = depth + 1;
+        if (next > max) {
+          report(node, next);
+        }
+        scanEach(node.children, next);
+        return;
+      }
+      scanEach(node.children, depth);
+    };
 
-/**
- * An `if` counts as one level; its `else if` continuation stays at the same
- * base depth (so a ladder does not accumulate), while a plain `else` block
- * shares the `if` body's level.
- */
-function scanIf(ifNode: AstNode, depth: number, max: number, context: RuleContext): void {
-  const inner = depth + 1;
-  if (inner > max) {
-    report(context, ifNode, inner, max);
-  }
-  // An `if`'s direct children are keyword/condition/consequence/else-clause —
-  // never function-like — so nested-scope skipping happens in scanChildren as
-  // it descends into those bodies, not here.
-  for (const child of ifNode.children) {
-    if (child.fieldName === "alternative") {
-      for (const clauseChild of child.children) {
-        if (clauseChild.nodeType === "if_statement") {
-          scanIf(clauseChild, depth, max, context); // else-if: sibling, same base depth
+    const scanEach = (nodes: readonly AstNode[], depth: number): void => {
+      for (const node of nodes) {
+        scanNode(node, depth);
+      }
+    };
+
+    /**
+     * An `if` counts as one level; its `else if` continuation stays at the same
+     * base depth (so a ladder does not accumulate), while a plain `else` block
+     * shares the `if` body's level.
+     */
+    const scanIf = (ifNode: AstNode, depth: number): void => {
+      const inner = depth + 1;
+      if (inner > max) {
+        report(ifNode, inner);
+      }
+      for (const child of ifNode.children) {
+        if (child.fieldName === "alternative") {
+          for (const clauseChild of child.children) {
+            if (clauseChild.nodeType === "if_statement") {
+              scanIf(clauseChild, depth); // else-if: sibling, same base depth
+            } else {
+              scanNode(clauseChild, inner); // else block body
+            }
+          }
         } else {
-          scanChildren(clauseChild, inner, max, context); // else block body
+          scanNode(child, inner); // condition + consequence (braced or not)
         }
       }
-    } else {
-      scanChildren(child, inner, max, context); // condition + consequence
-    }
-  }
-}
+    };
+
+    return listenTo(SCOPE_ROOTS, (scopeRoot) => scanEach(scopeRoot.children, 0));
+  },
+);

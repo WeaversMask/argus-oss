@@ -19,8 +19,11 @@ const REQUIRES_DOC: ReadonlyMap<string, string> = new Map([
  * package imports — where a one-line intent comment pays for itself. It looks
  * only at `export`ed declarations at module top level and requires the comment
  * to be the immediately preceding sibling; a line comment (`//`) does not
- * satisfy it. Exported `const`s, type aliases, and enums are intentionally
- * out of scope to avoid noise on trivial declarations.
+ * satisfy it. TypeScript **overload signatures** (`function_signature`) are
+ * transparent: a documented overload set carries its JSDoc above the first
+ * signature, so the implementation is considered documented if a JSDoc precedes
+ * the signature run (review finding). Exported `const`s, type aliases, and
+ * enums are intentionally out of scope to avoid noise on trivial declarations.
  */
 export const requireJsdoc: RuleModule = defineRule(
   {
@@ -31,20 +34,20 @@ export const requireJsdoc: RuleModule = defineRule(
   },
   (context) => ({
     program: (node) => {
-      let previous: AstNode | undefined;
-      for (const child of node.children) {
+      const siblings = node.children;
+      siblings.forEach((child, index) => {
         const declaration = exportedDeclaration(child);
-        if (declaration !== undefined) {
-          const label = REQUIRES_DOC.get(declaration.nodeType);
-          if (label !== undefined && !(previous !== undefined && isJsDoc(previous))) {
-            context.report({
-              message: `Exported ${label} should have a JSDoc comment.`,
-              position: namePosition(declaration),
-            });
-          }
+        if (declaration === undefined) {
+          return;
         }
-        previous = child;
-      }
+        const label = REQUIRES_DOC.get(declaration.nodeType);
+        if (label !== undefined && !hasPrecedingJsDoc(siblings, index)) {
+          context.report({
+            message: `Exported ${label} should have a JSDoc comment.`,
+            position: namePosition(declaration),
+          });
+        }
+      });
     },
   }),
 );
@@ -55,4 +58,36 @@ function exportedDeclaration(node: AstNode): AstNode | undefined {
     return undefined;
   }
   return node.children.find((child) => REQUIRES_DOC.has(child.nodeType));
+}
+
+/** Whether a JSDoc block precedes `siblings[index]`, skipping over overload signatures. */
+function hasPrecedingJsDoc(siblings: readonly AstNode[], index: number): boolean {
+  let cursor = index - 1;
+  while (cursor >= 0) {
+    const sibling = siblings[cursor];
+    if (sibling === undefined || !isOverloadSignature(sibling)) {
+      break;
+    }
+    cursor -= 1;
+  }
+  const preceding = cursor >= 0 ? siblings[cursor] : undefined;
+  return preceding !== undefined && isJsDoc(preceding);
+}
+
+/**
+ * A TypeScript overload signature (`function foo(): T;`), exported or not.
+ *
+ * Matched by node type, not by function identity: two adjacent overload groups
+ * where the first has no implementation could let the second's impl inherit the
+ * first's JSDoc — but a signature run with no implementation is a compile error,
+ * so this is unreachable in valid TypeScript (review nit, accepted).
+ */
+function isOverloadSignature(node: AstNode): boolean {
+  if (node.nodeType === "function_signature") {
+    return true;
+  }
+  return (
+    node.nodeType === "export_statement" &&
+    node.children.some((child) => child.nodeType === "function_signature")
+  );
 }

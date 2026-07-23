@@ -107,7 +107,11 @@ function importSource(importStatement: AstNode): string | undefined {
 }
 
 function groupOf(source: string): 0 | 1 | 2 {
-  if (source.startsWith("node:") || NODE_BUILTINS.has(source)) {
+  // A builtin submodule may be imported unprefixed (`fs/promises`,
+  // `stream/web`): classify by the first path segment too, not just the
+  // whole specifier (review finding).
+  const root = source.split("/")[0] ?? source;
+  if (source.startsWith("node:") || NODE_BUILTINS.has(source) || NODE_BUILTINS.has(root)) {
     return BUILTIN;
   }
   if (source.startsWith(".")) {

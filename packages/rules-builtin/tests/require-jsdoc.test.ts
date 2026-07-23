@@ -23,4 +23,14 @@ describe("require-jsdoc specifics", () => {
   it("does not require docs on exported const or type aliases", async () => {
     expect(await runRule(requireJsdoc, `export const x = 1;\nexport type T = string;`)).toEqual([]);
   });
+
+  it("treats a documented overload set as documented (doc above the signatures)", async () => {
+    const documented = `/** Parses. */\nexport function p(a: string): string;\nexport function p(a: number): number;\nexport function p(a: unknown): unknown { return a; }`;
+    expect(await runRule(requireJsdoc, documented)).toEqual([]);
+  });
+
+  it("flags an undocumented overload set once, on the implementation", async () => {
+    const undocumented = `export function p(a: string): string;\nexport function p(a: number): number;\nexport function p(a: unknown): unknown { return a; }`;
+    expect(await runRule(requireJsdoc, undocumented)).toHaveLength(1);
+  });
 });

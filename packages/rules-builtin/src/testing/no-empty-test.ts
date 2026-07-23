@@ -13,7 +13,9 @@ const TEST_FUNCTIONS: ReadonlySet<string> = new Set(["it", "test"]);
  * A body counts as empty when it contains only comments and punctuation (so a
  * `// TODO` placeholder is still flagged). A pending test with no callback
  * (`it("todo")`) is left alone — that is an explicit, visible skip, not a
- * silent no-op. Namespaced forms (`it.skip`, `it.only`) are not matched.
+ * silent no-op. Only the bare `it(...)` / `test(...)` call forms are matched;
+ * member/computed forms — `it.skip`, `it.only`, `it.each([...])(...)` — are
+ * not, since their callee is not a plain identifier.
  */
 export const noEmptyTest: RuleModule = defineRule(
   {

@@ -8,7 +8,7 @@ Every rule is identified by a `category/name` id, reports at a default severity 
 
 ### `quality/cyclomatic-complexity`
 
-Flags functions whose McCabe cyclomatic complexity — `1 + decision points` — exceeds the budget. Decision points are `if`, `for`/`for…of`/`for…in`, `while`, `do`, each `switch` `case` (not `default`), `catch`, the ternary `?:`, and each short-circuiting logical operator (`&&`, `||`, `??`). Counted per function; nested functions are scored on their own.
+Flags functions whose McCabe cyclomatic complexity — `1 + decision points` — exceeds the budget. Decision points are `if`, `for`/`for…of`/`for…in`, `while`, `do`, each `switch` `case` (not `default`), `catch`, the ternary `?:`, and each short-circuiting logical operator — `&&`, `||`, `??` and their assignment forms `&&=`, `||=`, `??=`. Optional chaining (`?.`) is not counted. Counted per function; nested functions are scored on their own.
 
 - **Options:** `max` (default `10`) — inclusive complexity budget.
 
@@ -32,17 +32,17 @@ Flags block nesting deeper than the budget within a function or module scope. Ea
 
 ### `quality/no-dead-code`
 
-Flags statements that can never run because an earlier statement in the same block ends control flow (`return`, `throw`, `break`, `continue`). Deliberately shallow and sound: a `return` nested in an `if` does not condemn the code after that `if`; trailing comments and hoisted `function` declarations are fine.
+Flags statements that can never run because an earlier statement in the same block — or `switch` case — ends control flow (`return`, `throw`, `break`, `continue`). Deliberately shallow and sound: a `return` nested in an `if` does not condemn the code after that `if`; trailing comments and hoisted `function` declarations are fine.
 
 ## Style
 
 ### `style/naming-convention`
 
-Flags declarations that break the standard casing conventions: **types** (`class`, `interface`, `type`, `enum`) must be PascalCase; **functions** must be camelCase; **variables** must be camelCase or `UPPER_SNAKE_CASE`. Only plain-identifier declaration sites are checked — destructuring patterns, parameters, methods, and imported names are left alone. Leading underscores are allowed.
+Flags declarations that break the standard casing conventions: **types** (`class`, `interface`, `type`, `enum`) must be PascalCase; **functions** — both `function` declarations and `const`s assigned a function/arrow — may be camelCase or PascalCase (PascalCase covers components, factories, and constructor-like functions); **other variables** must be camelCase or `UPPER_SNAKE_CASE`. Only plain-identifier declaration sites are checked — destructuring patterns, parameters, methods, and imported names are left alone. Leading underscores are allowed.
 
 ### `style/import-order`
 
-Flags top-level imports out of group order. The required order is node builtins (`node:*` or a known builtin) → external packages (bare specifiers) → relative imports (`./`, `../`). Group-level only, not full alphabetical sorting; `export … from` re-exports are ignored.
+Flags top-level imports out of group order. The required order is node builtins (`node:*`, a known builtin, or an unprefixed builtin submodule like `fs/promises`) → external packages (bare specifiers) → relative imports (`./`, `../`). Group-level only, not full alphabetical sorting; `export … from` re-exports are ignored.
 
 ### `style/no-wildcard-imports`
 
@@ -58,7 +58,7 @@ Flags exported functions, classes, and interfaces that lack a JSDoc block (`/** 
 
 ### `testing/no-empty-test`
 
-Flags `it(...)` / `test(...)` calls whose callback body is empty — a test that asserts nothing yet reports as passing. A comment-only body counts as empty; a pending test with no callback (`it("todo")`) is left alone. Namespaced forms (`it.skip`, `it.only`) are not matched.
+Flags `it(...)` / `test(...)` calls whose callback body is empty — a test that asserts nothing yet reports as passing. A comment-only body counts as empty; a pending test with no callback (`it("todo")`) is left alone. Only the bare call forms are matched; member/computed forms (`it.skip`, `it.only`, `it.each([...])(...)`) are not.
 
 ---
 

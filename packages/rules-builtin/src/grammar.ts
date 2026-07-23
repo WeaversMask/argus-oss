@@ -71,15 +71,26 @@ export const DECISION: ReadonlySet<string> = new Set([
 ]);
 
 const LOGICAL_OPERATORS: ReadonlySet<string> = new Set(["&&", "||", "??"]);
+const LOGICAL_ASSIGNMENTS: ReadonlySet<string> = new Set(["&&=", "||=", "??="]);
 
-/** A `binary_expression` is a decision point when it short-circuits (`&&`, `||`, `??`). */
+/**
+ * A short-circuiting expression that adds a branch: a `binary_expression` with
+ * a logical operator (`&&`, `||`, `??`) or a logical assignment (`&&=`, `||=`,
+ * `??=`, which parse as `augmented_assignment_expression`). Optional chaining
+ * (`?.`) is deliberately not counted (scope decision — documented on the rule).
+ */
 export function isLogicalDecision(node: AstNode): boolean {
-  if (node.nodeType !== "binary_expression") {
-    return false;
+  if (node.nodeType === "binary_expression") {
+    return node.children.some(
+      (child) => child.fieldName === "operator" && LOGICAL_OPERATORS.has(child.nodeType),
+    );
   }
-  return node.children.some(
-    (child) => child.fieldName === "operator" && LOGICAL_OPERATORS.has(child.nodeType),
-  );
+  if (node.nodeType === "augmented_assignment_expression") {
+    return node.children.some(
+      (child) => child.fieldName === "operator" && LOGICAL_ASSIGNMENTS.has(child.nodeType),
+    );
+  }
+  return false;
 }
 
 /** Statements that end control flow — code after them in the same block is unreachable. */

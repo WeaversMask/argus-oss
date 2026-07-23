@@ -26,4 +26,15 @@ describe("no-dead-code specifics", () => {
     const source = `function f() {\n  return g();\n  function g() { return 1; }\n}`;
     expect(await runRule(noDeadCode, source)).toEqual([]);
   });
+
+  it("detects dead code inside a switch case (no wrapping block)", async () => {
+    const source = `function f(x: number) { switch (x) { case 1: return 1; console.log("dead"); default: return 0; } }`;
+    const violations = await runRule(noDeadCode, source);
+    expect(violations).toHaveLength(1);
+  });
+
+  it("does not flag a normal switch where each case ends in return", async () => {
+    const source = `function f(x: number) { switch (x) { case 1: return 1; case 2: return 2; default: return 0; } }`;
+    expect(await runRule(noDeadCode, source)).toEqual([]);
+  });
 });

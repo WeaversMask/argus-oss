@@ -13,6 +13,10 @@ import { defineRule, pointAt } from "../support.js";
  * terminator are fine; hoisted `function` declarations are skipped (they are
  * reachable regardless of position). Only the first unreachable statement is
  * reported — it marks where the dead region begins.
+ *
+ * `switch` cases are covered too: their statements hang directly off the
+ * `case`/`default` node (no wrapping `statement_block`), so the case's body —
+ * everything after the `:` — is scanned the same way (review finding).
  */
 export const noDeadCode: RuleModule = defineRule(
   {
@@ -22,14 +26,14 @@ export const noDeadCode: RuleModule = defineRule(
     defaultSeverity: "warning",
   },
   (context) => {
-    const check = (block: AstNode): void => {
-      const statements = block.children.filter((child) => !isTrivia(child));
-      const terminator = statements.findIndex((s) => TERMINATORS.has(s.nodeType));
+    const checkStatements = (statements: readonly AstNode[]): void => {
+      const real = statements.filter((child) => !isTrivia(child));
+      const terminator = real.findIndex((s) => TERMINATORS.has(s.nodeType));
       if (terminator === -1) {
         return;
       }
-      for (let i = terminator + 1; i < statements.length; i += 1) {
-        const dead = statements[i];
+      for (let i = terminator + 1; i < real.length; i += 1) {
+        const dead = real[i];
         if (dead === undefined || dead.nodeType === "function_declaration") {
           continue; // hoisted declarations remain reachable
         }
@@ -40,7 +44,20 @@ export const noDeadCode: RuleModule = defineRule(
         return;
       }
     };
-    // `statement_block` for TS/JS, `block` for Python.
-    return { statement_block: check, block: check };
+    const checkBlock = (block: AstNode): void => checkStatements(block.children);
+    const checkCase = (caseNode: AstNode): void => {
+      // A `switch_case`/`switch_default`'s statements follow the `:` token;
+      // everything up to and including it is the label, not runnable code.
+      const colon = caseNode.children.findIndex((child) => child.nodeType === ":");
+      checkStatements(colon === -1 ? [] : caseNode.children.slice(colon + 1));
+    };
+    // `statement_block` for TS/JS, `block` for Python; switch cases hold their
+    // statements directly.
+    return {
+      statement_block: checkBlock,
+      block: checkBlock,
+      switch_case: checkCase,
+      switch_default: checkCase,
+    };
   },
 );

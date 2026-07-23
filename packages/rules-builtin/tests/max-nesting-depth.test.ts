@@ -33,6 +33,15 @@ describe("max-nesting-depth specifics", () => {
     expect(await runRule(maxNestingDepth, source, { options: { max: 2 } })).toEqual([]);
   });
 
+  it("counts brace-less nested bodies the same as braced ones", async () => {
+    const braced = `function f(a: boolean, b: number[]) { if (a) { for (const x of b) { if (x>0) { if (x>1) { return x; } } } } }`;
+    const braceless = `function f(a: boolean, b: number[]) { if (a) for (const x of b) { if (x>0) { if (x>1) { return x; } } } }`;
+    const bracedViols = await runRule(maxNestingDepth, braced, { options: { max: 3 } });
+    const bracelessViols = await runRule(maxNestingDepth, braceless, { options: { max: 3 } });
+    expect(bracelessViols.length).toBe(bracedViols.length);
+    expect(bracelessViols.length).toBeGreaterThan(0);
+  });
+
   it("reports the exceeded depth in the message", async () => {
     const source = `function f(a: boolean) { if (a) { if (a) { if (a) {} } } }`;
     const violations = await runRule(maxNestingDepth, source, { options: { max: 2 } });

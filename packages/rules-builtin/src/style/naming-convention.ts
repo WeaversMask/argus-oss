@@ -1,12 +1,16 @@
 import type { AstNode } from "@argus/core";
 import type { RuleContext, RuleModule } from "@argus/rule-engine";
-import { childByField } from "../grammar.js";
+import { FUNCTION_LIKE, childByField } from "../grammar.js";
 import { defineRule } from "../support.js";
 
 // Leading underscores (a common "internal/unused" marker) are allowed on any style.
 const CAMEL_CASE = /^_*[a-z][A-Za-z0-9]*$/;
 const PASCAL_CASE = /^_*[A-Z][A-Za-z0-9]*$/;
 const UPPER_SNAKE_CASE = /^_*[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
+
+const isCamel = (name: string): boolean => CAMEL_CASE.test(name);
+const isPascal = (name: string): boolean => PASCAL_CASE.test(name);
+const isUpperSnake = (name: string): boolean => UPPER_SNAKE_CASE.test(name);
 
 /** Declaration node types whose `name` must be PascalCase (types). */
 const TYPE_DECLARATIONS: ReadonlySet<string> = new Set([
@@ -16,7 +20,7 @@ const TYPE_DECLARATIONS: ReadonlySet<string> = new Set([
   "enum_declaration",
 ]);
 
-/** Declaration node types whose `name` must be camelCase (functions). */
+/** Declaration node types that name a function. */
 const FUNCTION_DECLARATIONS: ReadonlySet<string> = new Set([
   "function_declaration",
   "generator_function_declaration",
@@ -27,9 +31,11 @@ const FUNCTION_DECLARATIONS: ReadonlySet<string> = new Set([
  * conventions:
  *
  * - **Types** (`class`, `interface`, `type`, `enum`) → PascalCase.
- * - **Functions** (declarations) → camelCase.
- * - **Variables** (`const`/`let`/`var`, simple identifiers only) → camelCase
- *   or UPPER_SNAKE_CASE (the conventional constant form).
+ * - **Functions** — both `function` declarations and `const`s initialised to a
+ *   function/arrow — → camelCase **or** PascalCase (PascalCase signals a
+ *   component, factory, or constructor-like function; both are idiomatic).
+ * - **Non-function variables** (`const`/`let`/`var`, simple identifiers only)
+ *   → camelCase or UPPER_SNAKE_CASE (the conventional constant form).
  *
  * Only declaration sites with a plain identifier name are checked —
  * destructuring patterns, parameters, methods, and imported bindings are left
@@ -40,7 +46,7 @@ export const namingConvention: RuleModule = defineRule(
     id: "style/naming-convention",
     name: "naming-convention",
     description:
-      "Enforce PascalCase for types, camelCase for functions, and camel/UPPER for variables.",
+      "Enforce PascalCase for types, camel/PascalCase for functions, and camel/UPPER for variables.",
     defaultSeverity: "warning",
   },
   (context) => {
@@ -48,10 +54,17 @@ export const namingConvention: RuleModule = defineRule(
       variable_declarator: (node) => checkVariable(node, context),
     };
     for (const type of TYPE_DECLARATIONS) {
-      listeners[type] = (node) => checkName(node, context, PASCAL_CASE, "PascalCase", "Type");
+      listeners[type] = (node) => checkName(node, context, isPascal, "PascalCase", "Type");
     }
     for (const type of FUNCTION_DECLARATIONS) {
-      listeners[type] = (node) => checkName(node, context, CAMEL_CASE, "camelCase", "Function");
+      listeners[type] = (node) =>
+        checkName(
+          node,
+          context,
+          (name) => isCamel(name) || isPascal(name),
+          "camelCase or PascalCase",
+          "Function",
+        );
     }
     return listeners;
   },
@@ -60,7 +73,7 @@ export const namingConvention: RuleModule = defineRule(
 function checkName(
   node: AstNode,
   context: RuleContext,
-  pattern: RegExp,
+  accepts: (name: string) => boolean,
   styleLabel: string,
   kindLabel: string,
 ): void {
@@ -68,7 +81,7 @@ function checkName(
   if (name === undefined || !isPlainIdentifier(name)) {
     return;
   }
-  if (!pattern.test(name.text)) {
+  if (!accepts(name.text)) {
     context.report({
       message: `${kindLabel} "${name.text}" should be ${styleLabel}.`,
       position: name.position,
@@ -81,7 +94,20 @@ function checkVariable(node: AstNode, context: RuleContext): void {
   if (name === undefined || !isPlainIdentifier(name)) {
     return; // destructuring patterns are not checked
   }
-  if (!CAMEL_CASE.test(name.text) && !UPPER_SNAKE_CASE.test(name.text)) {
+  // A const/let initialised to a function is named like a function
+  // (camel or Pascal), not a data variable — otherwise PascalCase arrow
+  // components/factories would be false-flagged (review finding).
+  const value = childByField(node, "value");
+  if (value !== undefined && FUNCTION_LIKE.has(value.nodeType)) {
+    if (!isCamel(name.text) && !isPascal(name.text)) {
+      context.report({
+        message: `Function "${name.text}" should be camelCase or PascalCase.`,
+        position: name.position,
+      });
+    }
+    return;
+  }
+  if (!isCamel(name.text) && !isUpperSnake(name.text)) {
     context.report({
       message: `Variable "${name.text}" should be camelCase or UPPER_CASE.`,
       position: name.position,

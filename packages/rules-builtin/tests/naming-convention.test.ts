@@ -31,4 +31,21 @@ describe("naming-convention specifics", () => {
     expect(await runRule(namingConvention, `export default function () {}`)).toEqual([]);
     expect(await runRule(namingConvention, `export default class {}`)).toEqual([]);
   });
+
+  it("allows PascalCase for functions and function-valued consts (components/factories)", async () => {
+    expect(await runRule(namingConvention, `export const Button = () => null;`)).toEqual([]);
+    expect(await runRule(namingConvention, `export function Widget() { return null; }`)).toEqual(
+      [],
+    );
+    expect(await runRule(namingConvention, `const doThing = function () {};`)).toEqual([]);
+  });
+
+  it("still flags snake_case functions and function-valued consts", async () => {
+    expect((await runRule(namingConvention, `function do_thing() {}`))[0]?.message).toMatch(
+      /Function .* camelCase or PascalCase/,
+    );
+    expect((await runRule(namingConvention, `const do_thing = () => {};`))[0]?.message).toMatch(
+      /Function .* camelCase or PascalCase/,
+    );
+  });
 });

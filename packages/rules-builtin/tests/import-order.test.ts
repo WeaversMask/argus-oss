@@ -27,4 +27,12 @@ describe("import-order specifics", () => {
     const source = `import lodash from "lodash";\nimport { join } from "node:path";\n`;
     expect(await runRule(importOrder, source)).toHaveLength(1);
   });
+
+  it("classifies an unprefixed builtin submodule (fs/promises) as a builtin", async () => {
+    const source = `import react from "react";\nimport { readFile } from "fs/promises";\n`;
+    expect(await runRule(importOrder, source)).toHaveLength(1);
+    // A scoped/submodule external is still external:
+    const ok = `import x from "@scope/pkg/sub";\nimport { a } from "./local";\n`;
+    expect(await runRule(importOrder, ok)).toEqual([]);
+  });
 });

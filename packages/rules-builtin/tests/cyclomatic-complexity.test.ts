@@ -24,6 +24,13 @@ describe("cyclomatic-complexity specifics", () => {
     expect(violations[0]?.message).toMatch(/complexity 4/);
   });
 
+  it("counts logical-assignment operators as branches", async () => {
+    // 1 + (??=, ||=, &&=) = 4 > 3
+    const source = `function f(a: any, b: any) { a ??= b; a ||= b; a &&= b; return a; }`;
+    const violations = await runRule(cyclomaticComplexity, source, { options: { max: 3 } });
+    expect(violations[0]?.message).toMatch(/complexity 4/);
+  });
+
   it("counts switch cases but not the default", async () => {
     // 1 + 3 cases = 4 > 3; default adds nothing.
     const source = `function f(a: number) { switch (a) { case 1: return 1; case 2: return 2; case 3: return 3; default: return 0; } }`;

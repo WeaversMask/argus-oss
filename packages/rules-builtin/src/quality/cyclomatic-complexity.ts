@@ -12,9 +12,10 @@ const DEFAULT_MAX = 10;
  *
  * Decision points are `if`, `for`/`for…of`/`for…in`, `while`, `do`, each
  * `switch` `case` (not `default`), `catch`, the ternary `?:`, and each
- * short-circuiting logical operator (`&&`, `||`, `??`). Complexity is counted
- * per function, stopping at nested function boundaries so each function is
- * scored on its own control flow.
+ * short-circuiting logical operator — `&&`, `||`, `??` and their assignment
+ * forms `&&=`, `||=`, `??=`. Optional chaining (`?.`) is not counted (scope
+ * decision). Complexity is counted per function, stopping at nested function
+ * boundaries so each function is scored on its own control flow.
  *
  * Options: `{ max?: number }` — the inclusive complexity budget per function.
  */
