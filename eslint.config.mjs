@@ -21,6 +21,11 @@ export default tseslint.config(
       // Session-local agent infrastructure (untracked); worktrees under it
       // hold full repo copies.
       ".claude/**",
+      // Built-in rule fixtures (P2-01) are parsed as *data* by the tree-sitter
+      // adapter, not compiled: deliberately unconventional source, references
+      // to non-existent modules, and bare test globals. They are excluded from
+      // every package tsconfig, so typed linting cannot resolve them either.
+      "packages/rules-builtin/tests/fixtures/**",
     ],
   },
 

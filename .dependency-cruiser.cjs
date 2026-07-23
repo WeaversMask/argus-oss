@@ -116,6 +116,19 @@ module.exports = {
       },
     },
     {
+      name: "rules-builtin-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/rules-builtin exports only '.' — imports from outside the " +
+        "package must land on src/index.ts. Anything else is a deep import " +
+        "into internals.",
+      from: { pathNot: "^packages/rules-builtin/" },
+      to: {
+        path: "^packages/rules-builtin/",
+        pathNot: "^packages/rules-builtin/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

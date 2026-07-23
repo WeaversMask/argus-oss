@@ -13,7 +13,12 @@ const skipped = new Set(
 
 const tasks = {};
 if (!skipped.has("lint")) {
-  tasks["*.{js,mjs,cjs,ts,tsx,mts,cts}"] = "eslint --max-warnings=0";
+  // --no-warn-ignored: lint-staged passes staged paths explicitly, so a file
+  // matching an eslint.config.mjs ignore (e.g. rules-builtin test fixtures)
+  // would otherwise emit a "File ignored" warning that --max-warnings=0 turns
+  // into a commit failure. The flag skips deliberately-ignored files silently
+  // without weakening linting of everything else.
+  tasks["*.{js,mjs,cjs,ts,tsx,mts,cts}"] = "eslint --max-warnings=0 --no-warn-ignored";
 }
 if (!skipped.has("format")) {
   tasks["*"] = "prettier --write --ignore-unknown";

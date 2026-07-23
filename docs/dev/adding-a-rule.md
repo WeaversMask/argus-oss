@@ -1,6 +1,6 @@
 # Adding a rule
 
-> How to implement a rule against `@argus/rule-engine` (P1-04). Written with the engine; the **built-in rule conventions** (where rule packages live, `valid/`/`invalid/` fixture folders, TDD flow) arrive with the first real rule in Phase 2 and will extend this page.
+> How to implement a rule against `@argus/rule-engine` (P1-04). The first half is the engine contract (any rule, anywhere); the [**Built-in rule conventions**](#built-in-rule-conventions-argusrules-builtin) section at the end is how rules land in `@argus/rules-builtin` (P2-01) — package layout, fixture folders, TDD flow.
 
 A rule is a `RuleModule`: the static domain `Rule` (identity, docs, default severity) plus a `create` function that subscribes listeners for one file run. Registering the module is the only integration point — the engine never changes when a rule is added.
 
@@ -49,4 +49,37 @@ engine.register(noLet)._unsafeUnwrap();
 const violations = (await engine.run({ parsed, activations }))._unsafeUnwrap();
 ```
 
-Assert on messages, positions, and ordering (source order, ties by rule id). Phase 2 adds the fixture-folder convention (`valid/` and `invalid/` per rule, run before implementation lands — TDD principle).
+Assert on messages, positions, and ordering (source order, ties by rule id).
+
+## Built-in rule conventions (`@argus/rules-builtin`)
+
+The ten P2-01 rules established the pattern below. A new built-in rule needs **zero engine changes** — it's a new file, its fixtures, its test, and one line in the catalogue.
+
+### Layout
+
+```
+packages/rules-builtin/
+  src/<category>/<rule-name>.ts     # one RuleModule, rich TSDoc (feeds the rule reference)
+  src/grammar.ts                    # shared node-type vocabulary — reuse it, don't scatter magic strings
+  src/support.ts                    # defineRule, positiveIntOption, listenTo, pointAt, lineCount, namePosition
+  tests/<rule-name>.test.ts         # fixtureSuite(module, "<category>/<rule-name>", options?) + specifics
+  tests/fixtures/<category>/<rule-name>/{valid,invalid}/*.ts   # ≥5 each
+```
+
+Define the module with `defineRule({ id, name, description, defaultSeverity }, create)` and export it from `src/index.ts`, then add it to the `builtinRules` array (keep the boundary-cruiser rule and this catalogue in sync — new-package/new-rule checklist).
+
+### Fixtures are the spec (TDD)
+
+- **`valid/` → zero violations, `invalid/` → at least one.** `fixtureSuite` (in `tests/`) enforces exactly that and that each folder has ≥5 files; write the fixtures first. File **extension drives the parse language** (`.ts`→typescript, `.js`→javascript), so a rule can mix cases in one folder.
+- Fixtures run through a **real** `Engine` + `TreeSitterAstParser` via `tests/harness.ts` — `runRule(module, source, opts)` for violations, `runRuleResult(...)` when you need to assert a rule _failure_ (bad options). No mocking of own code.
+- For threshold rules (length/complexity/nesting), keep fixtures tiny by passing a small `max` in the test (`fixtureSuite(rule, path, { max: 3 })`) and pin the real default in a separate "defaults to …" case.
+- **Fixtures are data, not code:** they are excluded from tsconfig, ESLint, Prettier, and Vitest collection. Never let a formatter touch them — it changes the line counts length rules depend on.
+
+### Know the grammar before you subscribe
+
+Node types are the grammar's vocabulary, including anonymous tokens. Before writing listeners, inspect real trees — parse a representative snippet with `@argus/ast` and walk it with `visit`, or dump it (an `appendFileSync` to a scratch file sidesteps Vitest's console capture). Grammar labels differ across languages and drift across grammar versions, so verify against the pinned grammar rather than memory. Put whatever you learn into `src/grammar.ts` as a named set, not inline strings.
+
+### Options and property tests
+
+- Read options defensively: `positiveIntOption(context.options, "max", default)` throws a clear error on garbage → an attributed `RuleExecutionError`, not a wrong finding.
+- Add a **property test** (`tests/properties.test.ts`, `fast-check`) wherever the rule states a law — a threshold (`reports iff metric > max`), or an invariant (an `else if` ladder of any length never inflates nesting depth).

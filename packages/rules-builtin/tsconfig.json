@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["node"],
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo"
+  },
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
+  // tests/fixtures holds rule input *data* (parsed at run time by the tree-sitter
+  // adapter): deliberately unconventional source, references to non-existent
+  // modules, and bare test globals — none of it is program code to type-check.
+  "exclude": ["node_modules", "dist", "coverage", ".turbo", "tests/fixtures"]
+}
