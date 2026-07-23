@@ -1,63 +1,64 @@
-# Handover — Phase 1 complete (P1-06)
+# Handover — P2-01 (first built-in rules)
 
-**From:** claude-fable-5
-**To:** next picker (first P2 session)
-**Date:** 2026-07-19
-**Phase:** P1 — Domain Core ✅ 6/6 → **P2 — MVP** (Milestone M1 Showcase-Ready at its end)
-**Last task completed:** P1-06 — Domain services + D-7 rename (PR pending merge)
+**From:** claude-opus-4-8
+**To:** next picker (Phase 2 continues)
+**Date:** 2026-07-23
+**Phase:** P2 — MVP (1/6+4) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** P2-01 — `@argus/rules-builtin` (ten TS/JS rules) — **PR pending merge**
 
 ---
 
-## Phase 1 exit criteria — verified
+## What just landed
 
-1. **Domain model complete and frozen** ✓ — entities/value objects/errors stable since P1-01a; P1-06 added services without touching the model.
-2. **Rule engine handles 100 fixture rules × 10 files without errors** ✓ — Runner stress test, `packages/rule-engine/tests/runner.test.ts` (20k violations).
-3. **All ports have in-memory fakes** ✓ — ten fakes in `@argus/testing` (P1-02).
-4. **Phase handover with glossary, rule-authoring guide, tree-sitter gotchas** ✓ — glossary below; rule authoring: [`dev/adding-a-rule.md`](./dev/adding-a-rule.md); tree-sitter version pinning: [`dev/adding-a-language.md`](./dev/adding-a-language.md) + [ADR-0005](./adr/0005-ast-adapter-wasm-tree-sitter.md) + `@argus/ast` README (grammar ABI window, smoke-test canary).
+`@argus/rules-builtin` — the sixth real package, first library of `RuleModule`s against the P1-04 engine. Ten rules, exported individually and as a frozen `builtinRules` array:
 
-## Domain glossary (ubiquitous language — use these words exactly)
+- **quality:** `cyclomatic-complexity`, `max-file-length`, `max-function-length`, `max-nesting-depth`, `no-dead-code`
+- **style:** `naming-convention`, `import-order`, `no-wildcard-imports`
+- **docs:** `require-jsdoc` · **testing:** `no-empty-test`
 
-- **Scan** — one analysis run; a discriminated union `queued → running → completed | failed` with compile-safe transitions. **ScanResult** — a completed scan's aggregate.
-- **Finding** — a located observation from an adapter, pre-domain-judgement. **Violation** — a confirmed rule breach (id, rule, severity, message, `Position`) — findings become violations.
-- **Rule** — the static definition (id, name, description, default severity). **RuleActivation** — a rule switched on at a severity (or `"off"`) with opaque options. **RuleProfile** — a named activation set. **RuleModule** — a rule's implementation against the engine (`create(context) → listeners`).
-- **Layer / LayerManifest / LayerBoundary** — declared architecture: named layers with glob patterns, and which layers each may import. **LayerConformance** — per-layer compliance figures (P1-06).
-- **Suppression** — a justified, possibly-expiring decision to ignore a rule for matching paths; `reason` mandatory.
-- **Project / Metrics / Severity (`info<warning<error<critical`) / Position (1-based, end-exclusive, UTF-16 columns — ADR-0004) / Timestamp (branded epoch-ms, always injected)**.
-- **Brands everywhere:** `RuleId`, `FilePath`, `LayerName`, ids — never bare strings. Factories return `Result<T, ValidationError>` collecting all issues; outputs frozen.
+Reference: [`docs/guide/rules.md`](./guide/rules.md) (what each flags, defaults, options). Package internals + coverage exceptions: [`packages/rules-builtin/README.md`](../packages/rules-builtin/README.md). How to add another rule: the extended [`docs/dev/adding-a-rule.md`](./dev/adding-a-rule.md).
 
-## The five packages (all green, 346 tests, 99.0/96.8/100 aggregate)
+## What P2-02 (CLI) needs to know — you are unblocked to make real findings
 
-`core` (model + ports + services, 100%) · `testing` (fakes for all ten ports) · `ast` (tree-sitter wasm behind `AstParserPort`) · `rule-engine` (`RuleRunnerPort`: one walk per file, benchmark-gated) · `config` (`argus.yaml` → `ResolvedConfig`, line-mapped errors).
+1. **Register the catalogue, activate a subset.** `import { builtinRules } from "@argus/rules-builtin"` → `engine.register(rule)` for each. `builtinRules` is the catalogue, **not** the active set — config decides activations (severity + options per `ruleId`). The `suppressions:`/rule-activation config wiring is still deferred (P1-05 notes); the CLI/orchestrator decides how config maps to `RuleActivation[]`.
+2. **`check` wiring (unchanged from P1 handover, now with real rules):** config (`ConfigLoader.search`) → parse (`TreeSitterAstParser`, **one instance per process** — grammar wasm is unfreeable) → `Engine.run` per file (registered rules) → `Runner` aggregates → `matchingSuppression` filters (inject `now`) → `classifyLayer`/`scoreConformance` for reporting.
+3. **`argus explain <rule-id>`** has real content now: `rule.name`, `.description`, `.defaultSeverity` off each `RuleModule`; the id vocabulary is the ten `category/name` ids.
+4. **`apps/cli` is the first non-`packages/` member.** `pnpm-workspace.yaml` already includes `apps/*`. Write a **fresh cruiser rule** (`apps/cli` public entry) — the per-package-rule pattern; negative-test it (see below). Add the app to root `vitest.config.ts` projects, Docker mkdir + compose volume (new-package checklist).
 
-## What P2 needs to know
+## Gotchas this task discovered (carry forward for any rule/fixture package)
 
-1. **P2-01 rules are `RuleModule`s** — recipe exists ([`dev/adding-a-rule.md`](./dev/adding-a-rule.md)); sync-only listeners, anonymous node types dispatch, `context.report({message, position})`. TDD: ≥5 valid + 5 invalid fixtures per rule **before** implementation. Property tests where the rule states a law.
-2. **Wiring order for `check`:** config (`ConfigLoader.search`) → parse (`TreeSitterAstParser`, **one instance per process** — grammar wasm is unfreeable) → engine per file → `Runner` aggregates → `matchingSuppression` filters (inject `now`) → `classifyLayer`/`scoreConformance` for reporting. Every piece exists; P2 composes them.
-3. **`ignore` globs:** use core's `matchGlob` (exported) — don't add a glob dependency.
-4. **Deferred into P2:** `suppressions:` config section (needs id/`createdAt` design — see P1-05 packet notes); orchestrator decides what config `ignore`/`languages` mean at scan time.
-5. **Dogfooding starts at P2's end** — CI runs Argus on Argus; every PR then needs zero new self-violations. The M1 showcase tail (DOC-02/03/04, OPS-05) closes the phase; **going public stays maintainer-only**.
-6. **Perf budget:** `check` <30s on 50k lines, benchmarked per PR (phase note). The committed-baseline pattern from P1-04 (`tests/perf/baseline.ts`) is the template.
-7. **New-package checklist** (per new package: rules-builtin, orchestrator, apps/cli…): vitest root `projects` entry · per-package cruiser rule + negative test · compose volume + Dockerfile mkdir · license gate/notices · README. `apps/*` will need cruiser rules written fresh (first non-`packages/` workspace member — check `pnpm-workspace.yaml` includes `apps/*`!).
+- **Fixtures are data, not code — exclude them from four tools or gates break:** Vitest collection (some fixtures are named `*.test.ts`), the package `tsconfig` (invalid TS / missing-module refs), ESLint typed linting (project-service can't resolve them), and Prettier (reformatting changes the line counts length rules assert on). Each exclusion is commented at its site; `.prettierignore`, `eslint.config.mjs`, `tsconfig.json`, and `vitest.config.ts` all carry a `tests/fixtures` entry.
+- **lint-staged + ESLint flat-config:** an explicitly-passed ignored file emits a "File ignored" warning that `--max-warnings=0` turns into a **commit failure**. Fixed globally by adding `--no-warn-ignored` to the lint-staged eslint task — reuse, don't rediscover.
+- **Grammar vocab drifts and differs across languages.** Verify node types against the _pinned_ grammar (dump a real tree with `@argus/ast` — an `appendFileSync` to a scratch file dodges Vitest's console capture), don't trust memory. Keep the concepts in `src/grammar.ts`, not inline strings.
+- **Position end-lines are `+1` end-exclusive** (`convert.ts`): a function's line span is `endLine - startLine + 1` (nodes end at `}`, no trailing newline), but a **file's** length must use `lineCount(root.text)` (the root end can sit past a trailing newline).
+- **Scope metrics without parent links:** subscribe to function-like nodes (+ `program`/`module`) and recurse the subtree, stopping at nested functions — clean scope partitioning. `AstNode` has no parent pointer (deferred, P1-02).
 
-## Evergreen gotchas (carried forward)
+## Rule-authoring pattern (now established — see the recipe for the full version)
 
-- Root gates before every push; filtered runs bypass the task graph.
-- prettier reflows Markdown tables and cannot parse deliberately-broken fixtures (`.prettierignore` them).
-- commitlint: header ≤100 chars — a failed commit leaves files staged; don't let the next commit sweep them.
-- pnpm 11 scaffolds `allowBuilds` placeholders into `pnpm-workspace.yaml` when a new dep has install scripts — replace with an explicit decision.
-- `gh pr edit` fails on this machine (projectCards GraphQL deprecation) — PATCH via `gh api` instead.
-- Weekly Stryker now mutates `core/services` + everything else; property tests shrink slowly under mutation — watch the Tuesday wall time.
+`defineRule({ id, name, description, defaultSeverity }, create)` → export from `src/index.ts` → add to `builtinRules`. Fixtures in `tests/fixtures/<cat>/<rule>/{valid,invalid}/` (≥5 each, extension drives language) run through a **real** Engine + parser via `tests/harness.ts` (`runRule` / `runRuleResult`); `fixtureSuite` enforces valid→0 / invalid→≥1. Threshold rules keep fixtures tiny with a small `max` option in the test and pin defaults separately. Property-test any stated law (`tests/properties.test.ts`, fast-check). Read options with `positiveIntOption` (bad option → attributed failure, not wrong finding).
+
+## Evergreen (carried forward)
+
+- Root gates before every push (`pnpm lint && typecheck && build && test`); filtered runs bypass turbo's graph.
+- prettier reflows Markdown tables — `pnpm exec prettier --write <files>` before staging.
+- commitlint header ≤100 chars; a failed commit leaves files staged.
+- `gh pr edit` fails here (projectCards GraphQL) — PATCH via `gh api`.
+- **Bash CWD drifts** when a `cd` fails mid-session — prefer absolute paths / `cd /Users/martinrodriguez/argus` first.
+- Never `--no-verify`; scoped `SKIP=<gate>` with written justification only.
+
+## Open decisions / scope calls to revisit
+
+- **Language scope of the built-in rules is TS/JS.** Python parses but these ten rules are TS/JS-tuned/fixtured; `src/grammar.ts` is written broad so Python coverage is additive, not a redesign. Maintainer may want Python rules queued as a follow-up.
+- Open decisions D-1 (turbo remote cache), D-5 (core build step at first publish), D-6 (in-PR nit re-review) unchanged — see IMPLEMENTATION.md.
 
 ## Maintainer admin items
 
-1. **Merge P1-06** (PR link in tracker) — completes Phase 1.
-2. D-1: Turbo remote cache (last open decision).
-3. Dependabot queue ([#21](https://github.com/WeaversMask/argus-oss/pull/21) + branches).
-4. `nvm alias default 22` — confirm and drop.
-5. Retired-repo archive · pre-scrub bundle deletion · go-public bucket (`NPM_TOKEN`, LICENSE, private-vuln-reporting) — unchanged.
+1. **Merge the P2-01 PR** (link in the tracker once opened) — then it's Phase 2, 1/6+4.
+2. Dependabot queue (npm-minor-and-patch, rimraf, types/node branches on origin).
+3. Prior unchanged items: retired-repo archive, pre-scrub bundle deletion, go-public bucket.
 
 ## Sign-off
 
-Phase 1 closes with the hexagon whole: a frozen model, ten ports, a real parser, a benchmarked engine, a strict config loader, and pure services to judge what they find — 346 tests standing watch. Phase 2 makes it a tool: point it at code, print the truth, then point it at itself.
+The engine has real work to do now: ten checks that read a parsed tree and tell the truth about it, each proven against source it will actually see. Point a CLI at them next and Argus starts finding things — including, soon, in its own code.
 
-— claude-fable-5
+— claude-opus-4-8
