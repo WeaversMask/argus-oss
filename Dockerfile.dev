@@ -26,6 +26,7 @@ RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
 RUN mkdir -p /app/node_modules /app/packages/testing/node_modules \
     /app/packages/core/node_modules /app/packages/ast/node_modules \
     /app/packages/rule-engine/node_modules /app/packages/config/node_modules \
+    /app/packages/rules-builtin/node_modules \
     /home/node/.local/share/pnpm/store \
   && chown -R node:node /app /home/node/.local/share/pnpm
 

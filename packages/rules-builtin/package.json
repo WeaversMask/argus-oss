@@ -1,0 +1,36 @@
+{
+  "name": "@argus/rules-builtin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Argus built-in rules — the first RuleModule consumers of the engine: quality, style, docs, and testing checks for TypeScript and JavaScript.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf coverage .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@argus/core": "workspace:*",
+    "@argus/rule-engine": "workspace:*",
+    "neverthrow": "8.2.0"
+  },
+  "devDependencies": {
+    "@argus/ast": "workspace:*",
+    "@argus/testing": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.9",
+    "fast-check": "4.9.0",
+    "rimraf": "^5.0.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

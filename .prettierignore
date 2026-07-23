@@ -8,3 +8,6 @@ pnpm-lock.yaml
 *.min.js
 # Deliberately malformed fixture — prettier cannot parse invalid YAML
 packages/config/tests/fixtures/invalid/bad-syntax.yaml
+# Built-in rule fixtures (P2-01) are rule input data: reformatting them would
+# change line counts and structure that length/nesting fixtures assert on.
+packages/rules-builtin/tests/fixtures/
