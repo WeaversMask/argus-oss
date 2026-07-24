@@ -1,6 +1,6 @@
 # Argus — Architecture
 
-> The map of how Argus fits together. Start here to understand the system, then read a package's own `README.md` for its internals. This document grows with the codebase; it currently reflects **Phase 1 (Domain Core)**, so most of the planned graph is still ahead.
+> The map of how Argus fits together. Start here to understand the system, then read a package's own `README.md` for its internals. This document grows with the codebase; it currently reflects **Phase 2 (MVP)** — Argus is runnable, but most of the planned graph is still ahead.
 
 ## The shape
 
@@ -12,11 +12,11 @@ Argus is a **pnpm-workspaces monorepo** (Turborepo for build orchestration) orga
 
 The full intended tree and the forbidden-import rules that enforce this live in [`plan/01-repo-structure.md`](./plan/01-repo-structure.md). The reasoning behind the layering is in [`plan/00-principles.md`](./plan/00-principles.md).
 
-**The boundaries are mechanically enforced** (OPS-04): [`.dependency-cruiser.cjs`](../.dependency-cruiser.cjs) runs in CI (`pnpm boundaries`) and fails the build if `packages/core/src` imports anything but `neverthrow` (Node builtins included), if any import crosses a package boundary other than through the target's public `exports` entry points (one `*-public-entry-only` rule per package, mirroring its `exports` map exactly), or if the one-way, type-only-in-src `testing → core` edge is violated. When a package's public surface changes — or a package is born — its `exports` map and its per-package rule change together. Phase-2 dogfooding will reinforce, not replace, these rules.
+**The boundaries are mechanically enforced** (OPS-04): [`.dependency-cruiser.cjs`](../.dependency-cruiser.cjs) runs in CI (`pnpm boundaries`) and fails the build if `packages/core/src` imports anything but `neverthrow` (Node builtins included), if any import crosses a package boundary other than through the target's public `exports` entry points (one `*-public-entry-only` rule per package, mirroring its `exports` map exactly), or if the one-way, type-only-in-src `testing → core` edge is violated. Since P2-02 the cruise also covers `apps/` and enforces the inward-flow direction: no `packages/*` module may import anything under `apps/*` (`packages-never-import-apps`). Apps need no public-entry rule of their own — nothing imports them — but their own imports are already governed by each package's `*-public-entry-only` rule, which fires for any importer outside that package. When a package's public surface changes — or a package is born — its `exports` map and its per-package rule change together. Phase-2 dogfooding will reinforce, not replace, these rules.
 
 ## What exists today
 
-Six packages are real; the rest of the tree in `01-repo-structure.md` is planned.
+Six packages and one app are real; the rest of the tree in `01-repo-structure.md` is planned.
 
 | Package                                                       | Role                                                                                                                                                                                                                                   | README                                                                    |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
@@ -26,6 +26,7 @@ Six packages are real; the rest of the tree in `01-repo-structure.md` is planned
 | [`@argus/rule-engine`](../packages/rule-engine/README.md)     | The hot path behind `RuleRunnerPort`: one AST walk per file, node-type dispatch to registered rule modules, frozen rule contexts, deterministic violations; `Runner` aggregates across files. Depends on core only.                    | [`packages/rule-engine/README.md`](../packages/rule-engine/README.md)     |
 | [`@argus/config`](../packages/config/README.md)               | The config system: zod-validated `argus.yaml`, cosmiconfig discovery, `extends:` chains, hierarchical merging (nearest wins), errors with exact YAML line/column. The config-loading edge of the hexagon.                              | [`packages/config/README.md`](../packages/config/README.md)               |
 | [`@argus/rules-builtin`](../packages/rules-builtin/README.md) | The first real `RuleModule` consumers of the engine: ten quality/style/docs/testing checks for TS/JS ([rule reference](./guide/rules.md)). Fixture-driven TDD against a real parser + engine. What makes `argus check` find things.    | [`packages/rules-builtin/README.md`](../packages/rules-builtin/README.md) |
+| [`@argus/cli`](../apps/cli/README.md)                         | **The first app** (`apps/cli`): `argus check \| init \| explain` ([CLI guide](./guide/cli.md)). Owns no analysis logic — it wires config, parser, engine, and rules into a pipeline and maps outcomes onto exit codes 0/1/2.           | [`apps/cli/README.md`](../apps/cli/README.md)                             |
 
 The **ten port interfaces** live in `packages/core/src/ports/` (P1-02) — the hexagonal boundary — and `@argus/testing` ships an in-memory fake for every one. `@argus/ast` (P1-03) is the first adapter to implement one for real; `@argus/rules-builtin` (P2-01) is the first library of checks written against `@argus/rule-engine`; the remaining adapters, persistence, and apps arrive from Phase 2 onward.
 

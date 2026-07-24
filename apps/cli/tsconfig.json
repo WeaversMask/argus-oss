@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo"
+  },
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
+  // bin/ and loader/ are plain `.mjs` runtime shims (the re-exec wrapper and
+  // the `.js`→`.ts` resolve hook that let Node run the buildless TS workspace,
+  // P2-02); they are linted as JS, not type-checked here.
+  "exclude": ["node_modules", "dist", "coverage", ".turbo", "bin", "loader"]
+}

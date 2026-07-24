@@ -16,7 +16,7 @@
     "test:packages": "turbo run test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "boundaries": "depcruise packages --config .dependency-cruiser.cjs",
+    "boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
     "mutation": "stryker run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

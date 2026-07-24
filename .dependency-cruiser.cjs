@@ -145,6 +145,20 @@ module.exports = {
       },
     },
     {
+      name: "packages-never-import-apps",
+      severity: "error",
+      comment:
+        "Dependency rule (00-principles): imports flow inward and apps are the " +
+        "outermost layer, so no `packages/*` module may import anything under " +
+        "`apps/*` — domain and adapters never reach up into an application. " +
+        "The reverse direction (apps importing packages) needs no new rule: " +
+        "each package's *-public-entry-only rule already fires for any importer " +
+        "outside that package, apps/cli included, now that `boundaries` cruises " +
+        "apps.",
+      from: { path: "^packages/" },
+      to: { path: "^apps/" },
+    },
+    {
       name: "core-never-imports-testing",
       severity: "error",
       comment:
@@ -178,7 +192,9 @@ module.exports = {
     // node_modules/<pkg>/dist/... — i.e. silently drop the very external
     // edges the core rules exist to catch (found by negative test NEG-2:
     // core importing vitest sailed through until this was anchored).
-    exclude: { path: ["^packages/[^/]+/(coverage|dist)/", "^packages/[^/]+/\\.turbo/"] },
+    exclude: {
+      path: ["^(packages|apps)/[^/]+/(coverage|dist)/", "^(packages|apps)/[^/]+/\\.turbo/"],
+    },
     // Type-only imports are real boundary edges — tsc erases them, so cruise
     // the pre-compilation view (also what tags them `type-only` for rules).
     tsPreCompilationDeps: true,
