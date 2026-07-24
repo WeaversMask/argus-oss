@@ -33,6 +33,8 @@ src/index.ts
 
 Findings are grouped by file, ordered by position within each file, and followed by a summary counting each severity that actually occurred.
 
+**Paths are relative to your project root** — the nearest directory at or above the scan path containing an `argus.yaml` (or your current directory if there is none). Findings are reported that way, and `ignore:` globs are matched that way, so a root config's `ignore: ["packages/*/generated/**"]` keeps excluding the same files whether you run `argus check .` from the repo root or from inside `packages/foo`.
+
 **Which files are scanned.** Every file under the path whose extension maps to an active language: `.ts`/`.mts`/`.cts` (TypeScript), `.js`/`.mjs`/`.cjs` (JavaScript), `.py` (Python). `.tsx`/`.jsx` are **not** scanned — Argus wires the TypeScript and JavaScript grammars, not the JSX dialects. `node_modules`, `.git`, `dist`, `build`, `coverage`, `.turbo`, and `.stryker-tmp` are always skipped, as is anything matching an `ignore:` glob in your config. Symlinks are not followed.
 
 > Python parses, but the ten built-in rules are TS/JS-tuned, so `.py` files currently produce no findings.

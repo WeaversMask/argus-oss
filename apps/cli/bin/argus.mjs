@@ -38,6 +38,7 @@ if (child.error !== undefined) {
   process.stderr.write(`argus: failed to start: ${child.error.message}\n`);
   process.exit(2);
 }
-// A child killed by a signal has status === null; report failure rather than
-// masquerading as a clean exit.
-process.exit(child.signal !== null ? 1 : (child.status ?? 1));
+// A child killed by a signal has status === null. That is an aborted,
+// incomplete run — exit 2 (operational error), never 1, which would claim the
+// scan finished and found violations.
+process.exit(child.signal !== null ? 2 : (child.status ?? 2));

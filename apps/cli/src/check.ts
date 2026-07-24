@@ -14,6 +14,7 @@ import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
 import { formatReport } from "./format.js";
 import type { ScanFailure } from "./format.js";
 import type { CliIO } from "./io.js";
+import { findProjectRoot } from "./project-root.js";
 
 /** Files parsed successfully, plus the ones that could not be read or parsed. */
 interface ParseOutcome {
@@ -95,9 +96,8 @@ async function planScan(rawPath: string, io: CliIO): Promise<ScanPlan | number> 
     return EXIT_ERROR;
   }
 
-  const configResult = await new ConfigLoader().search(
-    rootIsDirectory ? rootPath : path.dirname(rootPath),
-  );
+  const searchFrom = rootIsDirectory ? rootPath : path.dirname(rootPath);
+  const configResult = await new ConfigLoader().search(searchFrom);
   if (configResult.isErr()) {
     reportConfigError(configResult.error, io);
     return EXIT_ERROR;
@@ -109,8 +109,14 @@ async function planScan(rawPath: string, io: CliIO): Promise<ScanPlan | number> 
     return EXIT_ERROR;
   }
 
+  // Paths are expressed relative to the project root (the config's own
+  // directory), not the invocation directory — otherwise a root config's
+  // `ignore:` globs would silently stop matching when the user runs argus
+  // from a subdirectory. See findProjectRoot.
+  const projectRoot = await findProjectRoot(searchFrom, io.cwd);
+
   const discovery = await discoverFiles(rootPath, {
-    cwd: io.cwd,
+    cwd: projectRoot,
     languages: config?.languages ?? LANGUAGES,
     ignore: config?.ignore ?? [],
   });

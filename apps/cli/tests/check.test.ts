@@ -121,6 +121,34 @@ describe("runCheck", () => {
     expect(io.out()).toContain("could not be analysed");
   });
 
+  it("applies root-config ignore globs when invoked from a subdirectory", async () => {
+    // Regression (independent review, #31): ignore globs were matched against
+    // paths relative to the INVOCATION directory, so a root config's
+    // "packages/*/generated/**" silently stopped excluding anything once the
+    // user ran argus from inside packages/foo. Paths now anchor to the
+    // project root (the config's own directory).
+    write("argus.yaml", 'ignore:\n  - "packages/*/generated/**"\n');
+    write("packages/foo/generated/bad.ts", UNDOCUMENTED_FN);
+    write("packages/foo/src/clean.ts", CLEAN);
+
+    const fromRoot = captureIO(dir);
+    expect(await runCheck(".", fromRoot)).toBe(0);
+
+    const fromSubdir = captureIO(path.join(dir, "packages/foo"));
+    expect(await runCheck(".", fromSubdir)).toBe(0);
+    expect(fromSubdir.out()).toContain("No violations found");
+    expect(fromSubdir.out()).not.toContain("bad.ts");
+  });
+
+  it("reports findings with project-root-relative paths from a subdirectory", async () => {
+    write("argus.yaml", "ignore: []\n");
+    write("packages/foo/src/bad.ts", UNDOCUMENTED_FN);
+
+    const io = captureIO(path.join(dir, "packages/foo"));
+    expect(await runCheck(".", io)).toBe(1);
+    expect(io.out()).toContain("packages/foo/src/bad.ts");
+  });
+
   it("skips files matched by a config ignore glob", async () => {
     write("argus.yaml", "ignore:\n  - 'ignored/**'\n");
     write("ignored/bad.ts", UNDOCUMENTED_FN);
