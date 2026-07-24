@@ -47,6 +47,13 @@ allowBuilds:
 #          the old license-checker ← glob ← minimatch chain.
 # qs:      GHSA-q8mj-m7cp-5q26 (moderate, remotely triggerable DoS in
 #          qs.stringify, <6.15.2); via @stryker-mutator/core ← typed-rest-client.
+# postcss: HIGH — path traversal via previous-source-map auto-loading
+#          (sourceMappingURL) leading to arbitrary .map file disclosure,
+#          <=8.5.17. Reached only through vite ← @vitest/mocker ← vitest, i.e.
+#          the dev/test toolchain; Argus ships no CSS pipeline and never runs
+#          postcss on untrusted input. Advisory published after the P2-01
+#          merge, so it began failing the audit gate on main and on every open
+#          PR without any dependency change on our side.
 # fast-uri + brace-expansion are the HIGH advisories that trip the CI
 # `pnpm audit --audit-level=high` gate; js-yaml + qs are moderates cleared for a
 # fully clean audit (consistent with the existing moderate pins above).
@@ -57,3 +64,4 @@ overrides:
   "brace-expansion@<1.1.16": 1.1.16
   "brace-expansion@>=2.0.0 <2.1.2": 2.1.2
   "qs@>=6.11.1 <6.15.2": 6.15.2
+  "postcss@<8.5.18": 8.5.18
