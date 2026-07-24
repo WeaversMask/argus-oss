@@ -82,7 +82,7 @@ Also fixed from the same review: a signal-killed child exited 1 (claiming "viola
 
 ## Maintainer admin items
 
-1. **Merge the P2-02 PR** (review packet posted) — then Phase 2 is 2/6+4.
+1. **Merge [#32](https://github.com/WeaversMask/argus-oss/pull/32) first, then [#31](https://github.com/WeaversMask/argus-oss/pull/31).** #32 is a one-line `postcss` override closing a HIGH path-traversal advisory published mid-session; it fails the audit gate on `main` and every open PR, unrelated to any of our changes (10/10 green). #31 is P2-02 itself — 9/10 green, the only red being that same audit gate, so it needs an update from `main` after #32 lands. Then Phase 2 is 2/6+4.
 2. Dependabot queue (npm-minor-and-patch, rimraf, types/node branches on origin).
 3. Prior unchanged: retired-repo archive, pre-scrub bundle deletion, go-public bucket.
 
