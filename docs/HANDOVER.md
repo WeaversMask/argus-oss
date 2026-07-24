@@ -42,6 +42,14 @@ This is the phase's headline capability, so here is the real data rather than a 
 
 **So the dogfooding-wiring task is mostly one design decision: what goes in the repo-root `argus.yaml` `ignore:` list.** Fixtures certainly. Whether test helpers must carry JSDoc is a genuine policy call — take it to the maintainer rather than silently switching the rule off. A CI job running Argus on Argus is the other half (phase exit criterion).
 
+## The review caught a real bug — worth knowing what it was
+
+The independent review (Sonnet, cross-family) returned **REQUEST CHANGES** on a HIGH finding, and it was right. `ignore:` globs were matched against paths relative to the **invocation directory**, but `ConfigLoader.search` walks _upward_ — so a root config saying `ignore: ["packages/*/generated/**"]` silently stopped excluding anything the moment you ran `argus` from inside `packages/foo`. Reproduced, then fixed by [`src/project-root.ts`](../apps/cli/src/project-root.ts): the nearest `argus.yaml` above the scan path anchors both glob matching and displayed paths, so a scan means the same thing from any directory. Two regression tests cover it.
+
+**The reusable lesson:** `@argus/config` returns a _merged_ config and never says which file it came from. Any consumer needing config-relative semantics has to re-derive the root (this one mirrors the walk via the public `CONFIG_FILE_NAMES`). If a second consumer needs it, that's the signal to widen the config API instead of duplicating the walk.
+
+Also fixed from the same review: a signal-killed child exited 1 (claiming "violations found") instead of 2; and `tests/bin.test.ts` now spawns the **real executable** — the re-exec wrapper and resolve hook had no automated coverage at all, because every other test drives `run(argv, io)` in-process.
+
 ## Gotchas this task discovered
 
 1. **`pnpm boundaries` only cruised `packages`** — an `apps/` tree would have been invisible to the architecture gate. Now `depcruise apps packages`, plus a `packages-never-import-apps` rule (negative-tested: it fires). Apps need no `*-public-entry-only` rule of their own; each package's existing rule already governs apps as importers.
@@ -61,7 +69,7 @@ This is the phase's headline capability, so here is the real data rather than a 
 
 ## State of the system
 
-- ✅ Tests: **572 passing** (58 files), 0 failing. Aggregate coverage 97.9% lines / 93.9% branches
+- ✅ Tests: **579 passing** (59 files), 0 failing. Aggregate coverage 97.9% lines / 94.0% branches
 - ✅ Lint, typecheck, build, boundaries: clean at root
 - ✅ License gate: 568 packages, commander added (MIT), notices regenerated
 - ✅ Self-scan of the new code: 0 violations
