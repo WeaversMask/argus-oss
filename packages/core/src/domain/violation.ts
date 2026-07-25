@@ -18,6 +18,7 @@ export interface Violation {
   readonly layer?: LayerName;
 }
 
+/** Smart constructor: validates a {@link Violation} and returns a frozen copy. */
 export function violation(input: Violation): Result<Violation, ValidationError> {
   const validator = new Validator("Violation");
   validator.nonBlankString("message", input.message);

@@ -69,6 +69,10 @@ storage/
 .work/
 .scratch/
 .notes/
+# Claude Code harness state — settings, session data, and worktrees it creates
+# for isolated sub-agents. Never repo content; a stray `git add -A` must not
+# stage it (review finding, dogfooding-wiring task).
+.claude/
 
 # ── Repo-local binaries (installed by scripts/install-*.sh) ─────────────────
 .bin/

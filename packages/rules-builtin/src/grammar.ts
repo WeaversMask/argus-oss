@@ -33,6 +33,7 @@ export const FUNCTION_LIKE: ReadonlySet<string> = new Set([
   "function_definition",
 ]);
 
+/** True when `node` introduces a function scope (see {@link FUNCTION_LIKE}). */
 export function isFunctionLike(node: AstNode): boolean {
   return FUNCTION_LIKE.has(node.nodeType);
 }
@@ -108,6 +109,7 @@ export const TERMINATORS: ReadonlySet<string> = new Set([
  */
 export const TRIVIA: ReadonlySet<string> = new Set(["comment", "{", "}", ";", "(", ")", ","]);
 
+/** True when `node` carries no runtime behaviour (see {@link TRIVIA}). */
 export function isTrivia(node: AstNode): boolean {
   return TRIVIA.has(node.nodeType);
 }

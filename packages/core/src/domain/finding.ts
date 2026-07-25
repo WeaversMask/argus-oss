@@ -22,6 +22,7 @@ export interface Finding {
   readonly metadata: Readonly<Record<string, unknown>>;
 }
 
+/** Unvalidated input to {@link finding} — `metadata` optional before defaulting to `{}`. */
 export interface FindingInput {
   readonly tool: string;
   readonly externalRuleId: string;
@@ -31,6 +32,7 @@ export interface FindingInput {
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
+/** Smart constructor: validates a {@link FindingInput} and returns a frozen {@link Finding}. */
 export function finding(input: FindingInput): Result<Finding, ValidationError> {
   const validator = new Validator("Finding");
   validator.nonBlankString("tool", input.tool);

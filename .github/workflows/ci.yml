@@ -428,3 +428,65 @@ jobs:
 
       - name: Check architecture boundaries (dependency-cruiser)
         run: pnpm boundaries
+
+  # Dogfooding (Phase 2 exit criterion): CI of Argus runs Argus on Argus.
+  # Repo-root argus.yaml ignores test files/fixtures (maintainer ruling
+  # 2026-07-25) — everything else is real source, held to the same bar every
+  # user's project is. No `pnpm build`: the workspace is buildless (P2-02),
+  # so `bin/argus.mjs` runs straight from a fresh install.
+  #
+  # The JSON document is redirected to a file, never piped. A pipe's exit
+  # code is the last command in the pipeline, not argus's — the exact
+  # anti-pattern the P2-04 review caught in the guide's own flagship jq
+  # recipe (a scan where every file failed to analyse still read as
+  # success). This job trusts argus's own exit code instead: GitHub Actions
+  # runs `run:` steps under `set -e`, so 0 passes, 1 (violations) or 2 (scan
+  # never started) fails the step — no jq, no `$?` bookkeeping (jq is used
+  # once below, only to sanity-check the document isn't from a vacuous scan,
+  # and its own exit code is what's checked). Not yet a branch-protection
+  # required check until the maintainer adds it (same admin bucket as
+  # `boundaries`/`license`/`review-gate`, P0-03) — until then this gate
+  # reports but does not block.
+  dogfood:
+    name: Dogfood (argus check argus)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: argus check . --format json
+        run: node apps/cli/bin/argus.mjs check . --format json > argus-report.json
+
+      # A path that matches nothing is a *successful* zero-file scan (P2-04
+      # decision, so `--format json` never hands a consumer an empty stream
+      # from a scan that never ran) — so exit 0 alone cannot distinguish "135
+      # clean files" from "argus.yaml's ignore list ate everything". Floored
+      # well under the repo's current ~135 tracked, scannable files so it has
+      # room to shrink but still catches a vacuous scan (review finding).
+      - name: Assert the scan was not vacuous
+        run: jq -e '.summary.filesScanned > 100' argus-report.json > /dev/null
+
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          # run_attempt alongside run_id: v4 rejects a duplicate artifact name
+          # within a run, which a re-run of just this job would otherwise hit
+          # (pre-existing pattern in the `test` job's `coverage-` artifact
+          # above, not fixed here — out of scope for this task).
+          name: argus-self-scan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: argus-report.json
+          if-no-files-found: warn
+          retention-days: 14

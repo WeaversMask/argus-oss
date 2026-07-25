@@ -127,6 +127,19 @@ function isAllowed(expr) {
 // of each resolved package; everything else in those node_modules is a symlink
 // to a sibling entry. Workspace packages (first-party) live outside .pnpm and
 // are deliberately not scanned — this gate covers third-party code only.
+function isPhysicalPackage(p) {
+  return !lstatSync(p).isSymbolicLink() && existsSync(join(p, "package.json"));
+}
+
+// A `@scope` dir is itself a symlink only when the whole scope resolves
+// elsewhere (rare); its scoped packages are the ordinary case.
+function scopedPackageDirs(scopePath) {
+  if (lstatSync(scopePath).isSymbolicLink()) return [];
+  return readdirSync(scopePath)
+    .map((scoped) => join(scopePath, scoped))
+    .filter(isPhysicalPackage);
+}
+
 function physicalPackageDirs(installRoot) {
   const storeDir = join(installRoot, "node_modules", ".pnpm");
   if (!existsSync(storeDir)) {
@@ -136,19 +149,13 @@ function physicalPackageDirs(installRoot) {
     );
   }
   const dirs = [];
-  const isPhysicalPackage = (p) =>
-    !lstatSync(p).isSymbolicLink() && existsSync(join(p, "package.json"));
   for (const entry of readdirSync(storeDir)) {
     const nm = join(storeDir, entry, "node_modules");
     if (!existsSync(nm)) continue;
     for (const child of readdirSync(nm)) {
       const childPath = join(nm, child);
       if (child.startsWith("@")) {
-        if (lstatSync(childPath).isSymbolicLink()) continue;
-        for (const scoped of readdirSync(childPath)) {
-          const scopedPath = join(childPath, scoped);
-          if (isPhysicalPackage(scopedPath)) dirs.push(scopedPath);
-        }
+        dirs.push(...scopedPackageDirs(childPath));
       } else if (isPhysicalPackage(childPath)) {
         dirs.push(childPath);
       }

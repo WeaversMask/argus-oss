@@ -59,3 +59,11 @@ Once Argus can scan TypeScript, every CI run scans the Argus codebase with itsel
 - Architecture violations (Phase 3 onwards) block immediately — no ratchet
 
 This is the strictest possible test: the tool's own quality bar applied to itself.
+
+**Current implementation (dogfooding-wiring task):** the `dogfood` CI job runs
+`argus check .` (repo-root `argus.yaml` excludes test files/fixtures) and
+requires **zero violations, zero failures** — a ratchet at count 0 satisfies
+the property above trivially, so no separate baseline-tracking mechanism
+exists yet. A nonzero ratchet (compare PR count against `main`'s) is a later
+task if the zero bar is ever knowingly relaxed. Not yet a branch-protection
+required check (maintainer admin step, same bucket as `boundaries`/`license`).

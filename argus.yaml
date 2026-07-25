@@ -1,0 +1,18 @@
+# Argus's own configuration — dogfooding: CI runs Argus on Argus (Phase 2
+# exit criterion). No `rules:` section — every built-in rule stays on at its
+# default severity, same posture a fresh `argus check` gets on any project.
+# See docs/guide/configuration.md for the full schema.
+
+ignore:
+  # Test files, their helpers, and fixtures (including rule fixtures that are
+  # deliberately invalid data) are exempt from Argus's own quality bar —
+  # maintainer ruling 2026-07-25 (test files). `@argus/testing`'s own
+  # `src/fixtures/` (test doubles it exports for other packages' tests, e.g.
+  # a fake secret) is a deliberate exception to this glob: it ships from
+  # `src/`, not a `tests/` dir, and is held to the same bar as any other
+  # production export.
+  - "**/tests/**"
+  # Claude Code harness state (settings, session data, worktrees it creates
+  # for sub-agents) — never repo content, never present in CI's checkout, but
+  # can sit alongside a local clone and must not pollute a local self-scan.
+  - ".claude/**"

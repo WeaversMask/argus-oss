@@ -19,6 +19,10 @@ export interface ScanResult {
   readonly countsBySeverity: Readonly<Record<Severity, number>>;
 }
 
+/**
+ * Smart constructor: validates `filesScanned` (non-negative) and every
+ * violation, and derives {@link ScanResult.countsBySeverity} from them.
+ */
 export function scanResult(input: {
   readonly violations: readonly Violation[];
   readonly filesScanned: number;
@@ -56,15 +60,18 @@ export interface ScanBase {
   readonly queuedAt: Timestamp;
 }
 
+/** A scan that has been queued but has not started running. */
 export interface QueuedScan extends ScanBase {
   readonly status: "queued";
 }
 
+/** A scan currently executing. */
 export interface RunningScan extends ScanBase {
   readonly status: "running";
   readonly startedAt: Timestamp;
 }
 
+/** A scan that ran to completion and carries a {@link ScanResult}. */
 export interface CompletedScan extends ScanBase {
   readonly status: "completed";
   readonly startedAt: Timestamp;
@@ -72,6 +79,7 @@ export interface CompletedScan extends ScanBase {
   readonly result: ScanResult;
 }
 
+/** A scan that did not complete — failed before or during execution. */
 export interface FailedScan extends ScanBase {
   readonly status: "failed";
   /** Absent when the scan failed before it ever started. */
@@ -95,6 +103,7 @@ export function queueScan(input: ScanBase): QueuedScan {
   });
 }
 
+/** Transitions a {@link QueuedScan} to {@link RunningScan}; rejects a `startedAt` before `queuedAt`. */
 export function startScan(
   scan: QueuedScan,
   startedAt: Timestamp,
@@ -105,6 +114,7 @@ export function startScan(
   return ok(Object.freeze({ ...scan, status: "running" as const, startedAt }));
 }
 
+/** Transitions a {@link RunningScan} to {@link CompletedScan}, re-validating `result` through {@link scanResult}. */
 export function completeScan(
   scan: RunningScan,
   finishedAt: Timestamp,
@@ -128,6 +138,7 @@ export function completeScan(
   );
 }
 
+/** Transitions a {@link QueuedScan} or {@link RunningScan} to {@link FailedScan}; rejects a `finishedAt` before the scan's last timestamp. */
 export function failScan(
   scan: QueuedScan | RunningScan,
   finishedAt: Timestamp,

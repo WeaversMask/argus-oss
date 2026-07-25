@@ -10,6 +10,7 @@ import { Validator } from "./validation.js";
  */
 export type FilePath = Brand<string, "FilePath">;
 
+/** Validates and brands a raw path string as a {@link FilePath}. */
 export function filePath(value: string): Result<FilePath, ValidationError> {
   const validator = new Validator("FilePath");
   if (value.length === 0 || value !== value.trim() || value.includes("\0")) {

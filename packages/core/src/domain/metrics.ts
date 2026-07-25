@@ -20,6 +20,7 @@ export interface Metrics {
 
 const HALSTEAD_FIELDS = ["vocabulary", "length", "volume", "difficulty", "effort"] as const;
 
+/** Smart constructor: validates a {@link Metrics} bundle (non-negative values, cyclomatic ≥ 1) and returns a frozen copy. */
 export function metrics(input: Metrics): Result<Metrics, ValidationError> {
   const validator = new Validator("Metrics");
   // Cyclomatic complexity has a floor of 1 by definition (one linear path).

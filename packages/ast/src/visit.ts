@@ -6,6 +6,7 @@ import type { AstNode } from "@argus/core";
  */
 export type VisitControl = "skip" | "stop";
 
+/** Callbacks passed to {@link visit}, fired in pre-order (`enter`) and post-order (`exit`). */
 export interface Visitor {
   /** Called before a node's children, in source (pre-)order. */
   readonly enter?: (node: AstNode) => VisitControl | void;

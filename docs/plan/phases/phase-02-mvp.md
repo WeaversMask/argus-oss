@@ -149,7 +149,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 
 - [ ] **MVP demo recorded:** `pnpm install -g @argus/cli && argus check .` produces findings on a real-world TS project
 - [ ] 10 rules in production with full fixture coverage
-- [ ] CI of Argus itself runs Argus on Argus — dogfooding starts here
+- [x] CI of Argus itself runs Argus on Argus — dogfooding starts here
 - [ ] **Milestone M1 — Showcase-Ready reached:** DOC-02/DOC-03/DOC-04/OPS-05 shipped and the [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2) criteria all hold
 - [ ] Phase handover written with rule authoring tutorial and performance benchmarks against typical codebases — **plus the maintainer's continuation decision recorded** (pause at M1 or proceed to Phase 3)
 

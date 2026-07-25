@@ -127,19 +127,8 @@ export class ConfigLoader {
     return toResolvedConfig(merged);
   }
 
-  /** Reads + validates one file and folds in its `extends:` bases, depth-first. */
-  private async resolveChain(
-    absoluteFile: string,
-    stack: readonly string[],
-  ): Promise<Result<RawConfig, ConfigError>> {
-    if (stack.includes(absoluteFile)) {
-      const cycle = [...stack.slice(stack.indexOf(absoluteFile)), absoluteFile];
-      return err(
-        new ConfigError("Configuration extends cycle", [
-          { file: absoluteFile, path: "extends", message: `cycle: ${cycle.join(" → ")}` },
-        ]),
-      );
-    }
+  /** Reads `absoluteFile` and validates its text, wrapping IO failures as a `ConfigError`. */
+  private async readAndValidate(absoluteFile: string): Promise<Result<RawConfig, ConfigError>> {
     let text: string;
     try {
       text = await readFile(absoluteFile, "utf8");
@@ -154,7 +143,23 @@ export class ConfigLoader {
         ]),
       );
     }
-    const validated = validateConfigText(absoluteFile, text);
+    return validateConfigText(absoluteFile, text);
+  }
+
+  /** Reads + validates one file and folds in its `extends:` bases, depth-first. */
+  private async resolveChain(
+    absoluteFile: string,
+    stack: readonly string[],
+  ): Promise<Result<RawConfig, ConfigError>> {
+    if (stack.includes(absoluteFile)) {
+      const cycle = [...stack.slice(stack.indexOf(absoluteFile)), absoluteFile];
+      return err(
+        new ConfigError("Configuration extends cycle", [
+          { file: absoluteFile, path: "extends", message: `cycle: ${cycle.join(" → ")}` },
+        ]),
+      );
+    }
+    const validated = await this.readAndValidate(absoluteFile);
     if (validated.isErr()) {
       return validated;
     }

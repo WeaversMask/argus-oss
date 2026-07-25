@@ -11,6 +11,7 @@ import { Validator } from "./validation.js";
  */
 export type Timestamp = Brand<number, "Timestamp">;
 
+/** Validates and brands a non-negative epoch-millisecond value as a {@link Timestamp}. */
 export function timestamp(epochMs: number): Result<Timestamp, ValidationError> {
   const validator = new Validator("Timestamp");
   validator.integerAtLeast("epochMs", epochMs, 0);

@@ -7,6 +7,7 @@ export type LayerName = Brand<string, "LayerName">;
 
 const LAYER_NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
+/** Validates and brands a raw string as a {@link LayerName} (kebab-case). */
 export function layerName(value: string): Result<LayerName, ValidationError> {
   const validator = new Validator("LayerName");
   validator.matches(
@@ -26,6 +27,7 @@ export interface Layer {
   readonly patterns: readonly string[];
 }
 
+/** Smart constructor: validates a {@link Layer} and returns a frozen, defensively-copied instance. */
 export function layer(input: Layer): Result<Layer, ValidationError> {
   const validator = new Validator("Layer");
   validator.nonBlankString("description", input.description);
@@ -60,6 +62,11 @@ export interface LayerManifest {
   readonly boundaries: readonly LayerBoundary[];
 }
 
+/**
+ * Smart constructor: validates a {@link LayerManifest} — layer names unique,
+ * boundaries referencing only declared layers with no duplicate source or
+ * target — and returns a frozen, defensively-copied instance.
+ */
 export function layerManifest(input: LayerManifest): Result<LayerManifest, ValidationError> {
   const validator = new Validator("LayerManifest");
   if (input.layers.length === 0) {
