@@ -11,6 +11,7 @@ export interface Project {
   readonly rootPath: FilePath;
 }
 
+/** Smart constructor: validates a {@link Project} and returns a frozen copy. */
 export function project(input: Project): Result<Project, ValidationError> {
   const validator = new Validator("Project");
   validator.nonBlankString("name", input.name);

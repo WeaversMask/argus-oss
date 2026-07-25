@@ -9,6 +9,7 @@ export type RuleId = Brand<string, "RuleId">;
 /** Kebab-case with optional `/`-separated category segments, e.g. `"architecture/no-god-objects"`. */
 const RULE_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$/;
 
+/** Validates and brands a raw string as a {@link RuleId}. */
 export function ruleId(value: string): Result<RuleId, ValidationError> {
   const validator = new Validator("RuleId");
   validator.matches(
@@ -29,6 +30,7 @@ export interface Rule {
   readonly docsUrl?: string;
 }
 
+/** Smart constructor: validates a {@link Rule} and returns a frozen copy. */
 export function rule(input: Rule): Result<Rule, ValidationError> {
   const validator = new Validator("Rule");
   validator.nonBlankString("name", input.name);
@@ -55,6 +57,7 @@ export interface RuleActivation {
   readonly options: Readonly<Record<string, unknown>>;
 }
 
+/** Unvalidated input to {@link ruleProfile} — `options` optional before defaulting to `{}`. */
 export interface RuleActivationInput {
   readonly ruleId: RuleId;
   readonly severity: Severity | "off";
@@ -68,12 +71,14 @@ export interface RuleProfile {
   readonly activations: readonly RuleActivation[];
 }
 
+/** Unvalidated input to {@link ruleProfile} — activations as {@link RuleActivationInput}. */
 export interface RuleProfileInput {
   readonly name: string;
   readonly description: string;
   readonly activations: readonly RuleActivationInput[];
 }
 
+/** Smart constructor: validates a {@link RuleProfileInput} — no duplicate rule ids — and returns a frozen {@link RuleProfile}. */
 export function ruleProfile(input: RuleProfileInput): Result<RuleProfile, ValidationError> {
   const validator = new Validator("RuleProfile");
   validator.nonBlankString("name", input.name);

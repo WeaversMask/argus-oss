@@ -19,6 +19,7 @@ export interface Position {
   readonly endColumn: number;
 }
 
+/** Smart constructor: validates a {@link Position} (1-based, end not preceding start) and returns a frozen copy. */
 export function position(input: Position): Result<Position, ValidationError> {
   const validator = new Validator("Position");
   validator.integerAtLeast("startLine", input.startLine, 1);

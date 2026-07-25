@@ -20,6 +20,7 @@ export interface Suppression {
   readonly expiresAt?: Timestamp;
 }
 
+/** Smart constructor: validates a {@link Suppression} — non-blank pattern/reason, `expiresAt` after `createdAt` — and returns a frozen copy. */
 export function suppression(input: Suppression): Result<Suppression, ValidationError> {
   const validator = new Validator("Suppression");
   validator.nonBlankString("pathPattern", input.pathPattern);

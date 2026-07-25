@@ -8,6 +8,7 @@ import { convertTree } from "./convert.js";
 import { AstDocument } from "./document.js";
 import { grammarWasmPath } from "./languages.js";
 
+/** Constructor options for {@link TreeSitterAstParser}. */
 export interface TreeSitterAstParserOptions {
   /**
    * Per-language override for the grammar wasm file. Defaults to the
