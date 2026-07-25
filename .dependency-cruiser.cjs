@@ -129,6 +129,19 @@ module.exports = {
       },
     },
     {
+      name: "api-contracts-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/api-contracts exports only '.' — imports from outside the " +
+        "package must land on src/index.ts. Anything else is a deep import " +
+        "into internals.",
+      from: { pathNot: "^packages/api-contracts/" },
+      to: {
+        path: "^packages/api-contracts/",
+        pathNot: "^packages/api-contracts/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

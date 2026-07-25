@@ -16,6 +16,7 @@
     "clean": "rimraf coverage .turbo node_modules/.cache"
   },
   "dependencies": {
+    "@argus/api-contracts": "workspace:*",
     "@argus/ast": "workspace:*",
     "@argus/config": "workspace:*",
     "@argus/core": "workspace:*",
