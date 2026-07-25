@@ -11,11 +11,11 @@ import { resolveActivations } from "./activations.js";
 import { discoverFiles } from "./discover.js";
 import type { DiscoveredFile } from "./discover.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
-import { shouldUseColour } from "./formatters/colour.js";
-import { formatConsoleReport } from "./formatters/console.js";
+import { renderReport } from "./formatters/render.js";
+import type { OutputFormat } from "./formatters/render.js";
 import type { CliIO } from "./io.js";
 import { findProjectRoot } from "./project-root.js";
-import type { ScanFailure } from "./report.js";
+import type { ScanFailure, ScanReport } from "./report.js";
 
 /** Files parsed successfully, plus the ones that could not be read or parsed. */
 interface ParseOutcome {
@@ -33,6 +33,8 @@ interface ScanPlan {
 export interface CheckOptions {
   /** `false` when `--no-color` was passed; `true` leaves the decision to the environment. */
   readonly colour: boolean;
+  /** What `--format` selected. Console output for humans, JSON for everything else. */
+  readonly format: OutputFormat;
 }
 
 /**
@@ -75,11 +77,10 @@ export async function runCheck(rawPath: string, options: CheckOptions, io: CliIO
     for (const failure of failures) {
       io.stderr(`argus: failed to analyse ${failure.file}: ${failure.message}\n`);
     }
-    io.stdout(
-      formatConsoleReport(
-        { violations: summary.violations, failures, filesScanned: plan.files.length },
-        { colour: shouldUseColour({ env: io.env, isTTY: io.isTTY, allowed: options.colour }) },
-      ),
+    emit(
+      { violations: summary.violations, failures, filesScanned: plan.files.length },
+      options,
+      io,
     );
 
     if (failures.length > 0) {
@@ -135,11 +136,31 @@ async function planScan(rawPath: string, io: CliIO): Promise<ScanPlan | number> 
     return EXIT_ERROR;
   }
   if (discovery.value.length === 0) {
+    // Not an error: a path with nothing scannable under it is a successful
+    // scan of zero files. The plan continues with an empty file list rather
+    // than returning early, so stdout still carries a report — a `--format
+    // json` consumer must never receive an empty stream from a scan that
+    // succeeded.
     io.stderr(`argus: no matching source files under ${rawPath}\n`);
-    return EXIT_OK;
   }
 
   return { files: discovery.value, activations };
+}
+
+/**
+ * Writes the report to stdout in the requested format. Failures are also
+ * announced line by line on stderr, so stdout stays a single parseable
+ * document under `--format json`.
+ */
+function emit(report: ScanReport, options: CheckOptions, io: CliIO): void {
+  io.stdout(
+    renderReport(report, {
+      format: options.format,
+      colour: options.colour,
+      env: io.env,
+      isTTY: io.isTTY,
+    }),
+  );
 }
 
 /** `true`/`false` for an existing path, `undefined` when it does not exist. */

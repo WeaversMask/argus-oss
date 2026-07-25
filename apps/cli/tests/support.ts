@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { filePath, position, ruleId, violation, violationId } from "@argus/core";
+import { filePath, layerName, position, ruleId, violation, violationId } from "@argus/core";
 import type { Severity, Violation } from "@argus/core";
 import type { CliIO } from "../src/io.js";
 
@@ -49,6 +49,17 @@ export interface ViolationSpec {
   readonly severity: Severity;
   readonly rule: string;
   readonly message: string;
+  /** Range end, when a test cares that it survives. Defaults to `column + 1` on `line`. */
+  readonly endLine?: number;
+  readonly endColumn?: number;
+  /** Set when a test needs a classified file; omitted violations carry no layer. */
+  readonly layer?: string;
+  /**
+   * Overrides the derived id. Needed only to reproduce what the engine does
+   * when one rule reports twice at the same position: same coordinates, ids
+   * distinguished by an ordinal.
+   */
+  readonly id?: string;
 }
 
 /**
@@ -61,15 +72,18 @@ export function makeViolation(spec: ViolationSpec): Violation {
     file,
     startLine: spec.line,
     startColumn: spec.column,
-    endLine: spec.line,
-    endColumn: spec.column + 1,
+    endLine: spec.endLine ?? spec.line,
+    endColumn: spec.endColumn ?? spec.column + 1,
   })._unsafeUnwrap();
   return violation({
-    id: violationId(`${spec.file}:${spec.line}:${spec.column}:${spec.rule}`)._unsafeUnwrap(),
+    id: violationId(
+      spec.id ?? `${spec.file}:${spec.line}:${spec.column}:${spec.rule}`,
+    )._unsafeUnwrap(),
     ruleId: ruleId(spec.rule)._unsafeUnwrap(),
     severity: spec.severity,
     message: spec.message,
     position: pos,
+    ...(spec.layer !== undefined ? { layer: layerName(spec.layer)._unsafeUnwrap() } : {}),
   })._unsafeUnwrap();
 }
 

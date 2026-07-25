@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { scanReportSchema } from "@argus/api-contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "../src/main.js";
 import { CLI_VERSION } from "../src/version.js";
@@ -70,6 +71,37 @@ describe("run", () => {
     const io = captureIO(dir);
     expect(await run(["check", "."], io)).toBe(1);
     expect(io.out()).toContain("docs/require-jsdoc");
+  });
+
+  it("routes --format json to the machine-readable formatter", async () => {
+    const full = path.join(dir, "src/bad.ts");
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, "export function foo() {\n  return 1;\n}\n");
+
+    const io = captureIO(dir);
+    expect(await run(["check", ".", "--format", "json"], io)).toBe(1);
+    const payload = scanReportSchema.parse(JSON.parse(io.out()));
+    expect(payload.violations[0]?.ruleId).toBe("docs/require-jsdoc");
+  });
+
+  it("stays plain JSON on a terminal that would otherwise be coloured", async () => {
+    const full = path.join(dir, "src/bad.ts");
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, "export function foo() {\n  return 1;\n}\n");
+
+    // FORCE_COLOR=1 turns colour on for the console formatter; the machine
+    // format has no colour setting to override.
+    const io = captureIO(dir, { isTTY: true, env: { FORCE_COLOR: "1" } });
+    expect(await run(["check", ".", "--format", "json"], io)).toBe(1);
+    expect(io.out()).not.toMatch(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "u"));
+    expect(() => scanReportSchema.parse(JSON.parse(io.out()))).not.toThrow();
+  });
+
+  it("exits 2 on an unknown --format value", async () => {
+    const io = captureIO(dir);
+    expect(await run(["check", ".", "--format", "yaml"], io)).toBe(2);
+    expect(io.err()).toContain("--format");
+    expect(io.out()).toBe("");
   });
 
   it("colours check output on a terminal, and --no-color turns it off", async () => {

@@ -1,6 +1,6 @@
 # The `argus` command line
 
-> Shipped in P2-02, colour output added in P2-03. Covers the three MVP commands, the exit-code contract, and how colour is decided. JSON output (P2-04), diff-only scanning (P2-05), and `argus fix` (P2-06) arrive later in Phase 2 and will be documented here as they land.
+> Shipped in P2-02, colour output added in P2-03, JSON output in P2-04. Covers the three MVP commands, both output formats, and the exit-code contract. Diff-only scanning (P2-05) and `argus fix` (P2-06) arrive later in Phase 2 and will be documented here as they land.
 
 ## Running it
 
@@ -62,6 +62,63 @@ They are listed in precedence order: the first one that applies decides. `FORCE_
 
 Errors on stderr are never coloured — stdout and stderr can be redirected independently, so a colour decision made for one would be wrong for the other.
 
+### Machine-readable output — `--format json`
+
+`--format json` (short: `-f json`) prints one JSON document instead of the human report, for `jq`, CI annotations, dashboards, or anything else that has to read findings rather than display them:
+
+```bash
+node apps/cli/bin/argus.mjs check ./src --format json
+```
+
+```json
+{
+  "contractVersion": 1,
+  "tool": { "name": "argus", "version": "0.0.0" },
+  "summary": {
+    "filesScanned": 27,
+    "violations": 2,
+    "failures": 0,
+    "bySeverity": { "info": 0, "warning": 2, "error": 0, "critical": 0 }
+  },
+  "violations": [
+    {
+      "id": "src%2Findex.ts:docs/require-jsdoc:12:1:0",
+      "ruleId": "docs/require-jsdoc",
+      "severity": "warning",
+      "message": "Exported function should have a JSDoc comment.",
+      "file": "src/index.ts",
+      "position": { "startLine": 12, "startColumn": 1, "endLine": 12, "endColumn": 24 }
+    }
+  ],
+  "failures": []
+}
+```
+
+What you can rely on:
+
+- **The shape is a published contract.** It is defined as a zod schema in `@argus/api-contracts` and every document Argus emits is validated against it in the test suite. `contractVersion` changes only on a breaking change — reject a version you do not know rather than guessing.
+- **stdout is only ever the document.** Diagnostics, including the per-file notes about files that could not be analysed, go to stderr, so `argus check . --format json | jq` never chokes. This holds even for a scan that matched no files: you get a valid document with `"filesScanned": 0`.
+- **JSON is never coloured**, whatever `FORCE_COLOR` says.
+- **The output is deterministic.** Violations are sorted by file, then start line, then start column, then rule id, so two scans of unchanged sources produce byte-identical output and a CI diff shows only real changes.
+- **`failures` is part of the report.** An empty `violations` array with a non-empty `failures` array means a _partial_ scan, not a clean one — check both, or check the exit code.
+- **Positions are 1-based and end-exclusive** (the LSP/SARIF/tree-sitter convention): a same-line range is `endColumn - startColumn` wide. `layer` appears on a violation only when the project classifies layers (Phase 3).
+
+Some pipelines to start from:
+
+```bash
+# Fail a CI step on errors only, ignoring warnings
+argus check . -f json | jq -e '[.violations[] | select(.severity == "error")] | length == 0'
+
+# The ten rules firing most often
+argus check . -f json | jq -r '.violations[].ruleId' | sort | uniq -c | sort -rn | head
+
+# Everything in one file, as line:col + message
+argus check . -f json | jq -r '.violations[] | select(.file == "src/index.ts")
+  | "\(.position.startLine):\(.position.startColumn) \(.message)"'
+```
+
+Exit codes are unchanged by the format: the document is what Argus found, the exit code is its verdict.
+
 ## `argus init`
 
 Writes a starter `argus.yaml` in the current directory, listing every built-in rule at its default severity so the catalogue is visible in the file itself:
@@ -109,4 +166,4 @@ If some files could not be analysed, `check` reports each one on stderr, notes t
 | `-v`, `--version` | Print the Argus version                |
 | `--help`          | Print usage; works on every subcommand |
 
-`check` additionally takes `--no-color` (see [Colour](#colour) above).
+`check` additionally takes `--no-color` (see [Colour](#colour) above) and `-f, --format <console|json>` (see [Machine-readable output](#machine-readable-output--format-json)). Both belong to the subcommand, so they go after `check`; an unrecognised format is a usage error (exit `2`), never a silent fallback.

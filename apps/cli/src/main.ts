@@ -1,6 +1,8 @@
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { runCheck } from "./check.js";
 import { EXIT_ERROR, EXIT_OK } from "./exit-codes.js";
+import { DEFAULT_OUTPUT_FORMAT, OUTPUT_FORMATS } from "./formatters/render.js";
+import type { OutputFormat } from "./formatters/render.js";
 import { runExplain } from "./explain.js";
 import { runInit } from "./init.js";
 import type { CliIO } from "./io.js";
@@ -9,6 +11,14 @@ import { CLI_VERSION } from "./version.js";
 /** Mutable slot an async command action writes its exit code into. */
 interface Outcome {
   code: number;
+}
+
+/** The flags commander hands `check`'s action. */
+interface CheckFlags {
+  /** commander's `--no-color` convention: `true` unless the flag was passed. */
+  readonly color: boolean;
+  /** Constrained by `.choices()`, so no runtime validation is needed here. */
+  readonly format: OutputFormat;
 }
 
 /** commander error codes that are successful terminations, not failures. */
@@ -69,17 +79,7 @@ function buildProgram(io: CliIO, outcome: Outcome): Command {
     })
     .exitOverride();
 
-  program
-    .command("check")
-    .description("Scan a path and report rule violations")
-    .argument("[path]", "file or directory to scan", ".")
-    // commander turns a lone `--no-x` into an option defaulting to true, so
-    // `color` is true unless the flag is present. Colour is then still subject
-    // to NO_COLOR/FORCE_COLOR/TERM and whether stdout is a terminal.
-    .option("--no-color", "disable coloured output")
-    .action(async (target: string, options: { readonly color: boolean }) => {
-      outcome.code = await runCheck(target, { colour: options.color }, io);
-    });
+  addCheckCommand(program, io, outcome);
 
   program
     .command("init")
@@ -97,4 +97,33 @@ function buildProgram(io: CliIO, outcome: Outcome): Command {
     });
 
   return program;
+}
+
+/**
+ * Declares `check` and its flags — the one command with enough surface to build
+ * apart. It is attached through `program.command()` rather than built standalone
+ * and `addCommand`ed: `command()` copies the program's inherited settings, and
+ * without them a usage error on this subcommand would call `process.exit`
+ * directly instead of routing through `exitOverride` and the 0/1/2 contract.
+ */
+function addCheckCommand(program: Command, io: CliIO, outcome: Outcome): void {
+  program
+    .command("check")
+    .description("Scan a path and report rule violations")
+    .argument("[path]", "file or directory to scan", ".")
+    // commander turns a lone `--no-x` into an option defaulting to true, so
+    // `color` is true unless the flag is present. Colour is then still subject
+    // to NO_COLOR/FORCE_COLOR/TERM and whether stdout is a terminal.
+    .option("--no-color", "disable coloured output")
+    // `.choices()` makes an unknown format a CommanderError, i.e. exit 2 —
+    // a typo must fail loudly rather than fall back to the human format and
+    // hand a CI job unparseable text.
+    .addOption(
+      new Option("-f, --format <format>", "output format")
+        .choices([...OUTPUT_FORMATS])
+        .default(DEFAULT_OUTPUT_FORMAT),
+    )
+    .action(async (target: string, options: CheckFlags) => {
+      outcome.code = await runCheck(target, { colour: options.color, format: options.format }, io);
+    });
 }
