@@ -20,8 +20,8 @@ const INDENT = 2;
  * tests. Two properties downstream tooling depends on:
  *
  * - **Deterministic.** Violations are sorted by file, then position, then rule
- *   id, so re-scanning unchanged sources produces byte-identical output and a
- *   CI diff shows only what really changed.
+ *   id, then violation id, so re-scanning unchanged sources produces
+ *   byte-identical output and a CI diff shows only what really changed.
  * - **Honest about failures.** Files that could not be analysed travel in the
  *   payload, so `violations: []` alone never reads as a clean scan.
  */
@@ -73,9 +73,11 @@ function toViolationPayload(violation: Violation): ViolationPayload {
 }
 
 /**
- * Total order over violations: file, start line, start column, then rule id.
- * Code-unit comparison rather than locale collation — the same scan must
- * serialise identically on every machine.
+ * Total order over violations: file, start line, start column, rule id, then
+ * violation id. The id is what makes it *total* — one rule can report twice at
+ * one position (the engine separates those by an ordinal), so the earlier keys
+ * leave ties. Code-unit comparison rather than locale collation: the same scan
+ * must serialise identically on every machine.
  */
 function compareViolations(a: Violation, b: Violation): number {
   return (

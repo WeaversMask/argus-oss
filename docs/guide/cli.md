@@ -70,24 +70,26 @@ Errors on stderr are never coloured — stdout and stderr can be redirected inde
 node apps/cli/bin/argus.mjs check ./src --format json
 ```
 
+A real emission, from a two-file `src/` with one undocumented export:
+
 ```json
 {
   "contractVersion": 1,
   "tool": { "name": "argus", "version": "0.0.0" },
   "summary": {
-    "filesScanned": 27,
-    "violations": 2,
+    "filesScanned": 2,
+    "violations": 1,
     "failures": 0,
-    "bySeverity": { "info": 0, "warning": 2, "error": 0, "critical": 0 }
+    "bySeverity": { "info": 0, "warning": 1, "error": 0, "critical": 0 }
   },
   "violations": [
     {
-      "id": "src%2Findex.ts:docs/require-jsdoc:12:1:0",
+      "id": "src%2Findex.ts#docs/require-jsdoc@1.17-1.27#0",
       "ruleId": "docs/require-jsdoc",
       "severity": "warning",
       "message": "Exported function should have a JSDoc comment.",
       "file": "src/index.ts",
-      "position": { "startLine": 12, "startColumn": 1, "endLine": 12, "endColumn": 24 }
+      "position": { "startLine": 1, "startColumn": 17, "endLine": 1, "endColumn": 27 }
     }
   ],
   "failures": []
@@ -97,17 +99,20 @@ node apps/cli/bin/argus.mjs check ./src --format json
 What you can rely on:
 
 - **The shape is a published contract.** It is defined as a zod schema in `@argus/api-contracts` and every document Argus emits is validated against it in the test suite. `contractVersion` changes only on a breaking change — reject a version you do not know rather than guessing.
-- **stdout is only ever the document.** Diagnostics, including the per-file notes about files that could not be analysed, go to stderr, so `argus check . --format json | jq` never chokes. This holds even for a scan that matched no files: you get a valid document with `"filesScanned": 0`.
+- **stdout is only ever the document.** Diagnostics, including the per-file notes about files that could not be analysed, go to stderr, so `argus check . --format json | jq` never chokes. This holds even for a scan that matched no files: you get a valid document with `"filesScanned": 0`. The one case with **no** document is a scan that never started — bad usage, invalid config, a missing path, an unknown rule id. Those exit `2` with empty stdout and the reason on stderr.
 - **JSON is never coloured**, whatever `FORCE_COLOR` says.
-- **The output is deterministic.** Violations are sorted by file, then start line, then start column, then rule id, so two scans of unchanged sources produce byte-identical output and a CI diff shows only real changes.
-- **`failures` is part of the report.** An empty `violations` array with a non-empty `failures` array means a _partial_ scan, not a clean one — check both, or check the exit code.
-- **Positions are 1-based and end-exclusive** (the LSP/SARIF/tree-sitter convention): a same-line range is `endColumn - startColumn` wide. `layer` appears on a violation only when the project classifies layers (Phase 3).
+- **The output is deterministic.** Violations are sorted by file, then start line, then start column, then rule id, then violation id, so two scans of unchanged sources produce byte-identical output and a CI diff shows only real changes.
+- **`failures` is part of the report, and `filesScanned` counts files _selected_ for scanning** — failures included, not just the ones that parsed. An empty `violations` array with a non-empty `failures` array is a _partial_ scan, not a clean one.
+- **Positions are 1-based and end-exclusive** (the LSP/SARIF/tree-sitter convention): a same-line range is `endColumn - startColumn` wide. `layer` appears on a violation only when the project classifies layers (Phase 3). The `id` is stable within one scan, not a durable identifier across scans.
 
 Some pipelines to start from:
 
 ```bash
-# Fail a CI step on errors only, ignoring warnings
-argus check . -f json | jq -e '[.violations[] | select(.severity == "error")] | length == 0'
+# Fail a CI step on errors only, ignoring warnings — and never pass a scan
+# that could not analyse everything. Dropping the `.failures == []` check
+# would report success on a run where nothing was analysed at all.
+argus check . -f json |
+  jq -e '.failures == [] and ([.violations[] | select(.severity == "error")] | length == 0)'
 
 # The ten rules firing most often
 argus check . -f json | jq -r '.violations[].ruleId' | sort | uniq -c | sort -rn | head
@@ -116,6 +121,8 @@ argus check . -f json | jq -r '.violations[].ruleId' | sort | uniq -c | sort -rn
 argus check . -f json | jq -r '.violations[] | select(.file == "src/index.ts")
   | "\(.position.startLine):\(.position.startColumn) \(.message)"'
 ```
+
+A pipe hides Argus's own exit code (`$?` belongs to the last command in the pipeline), which is why the first pipeline re-derives its verdict from the document. If you would rather trust the exit code, redirect to a file first and check `$?` before reading it.
 
 Exit codes are unchanged by the format: the document is what Argus found, the exit code is its verdict.
 

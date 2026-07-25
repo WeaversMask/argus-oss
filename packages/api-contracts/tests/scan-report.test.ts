@@ -10,7 +10,9 @@ import type { ScanReportPayload, ViolationPayload } from "../src/index.js";
 
 function aViolation(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const violation: ViolationPayload = {
-    id: "src%2Fa.ts:quality/max-file-length:1:1:0",
+    // Shaped like a real emission — the engine's deterministic id is
+    // `<uri-encoded file>#<rule>@<startLine>.<startCol>-<endLine>.<endCol>#<ordinal>`.
+    id: "src%2Fa.ts#quality/max-file-length@1.1-1.1#0",
     ruleId: "quality/max-file-length",
     severity: "warning",
     message: "File has 420 lines, maximum is 300",

@@ -24,7 +24,7 @@ It holds no logic either — no serialisation, no formatting, no I/O. It is a de
 | `SCAN_REPORT_CONTRACT_VERSION`  | const         | The version every payload carries (`1`)                                     |
 | `ScanReportPayload` and friends | inferred type | `z.infer` of each schema above — never hand-written                         |
 
-Every schema is **strict**: an unknown key is a contract violation, not something to ignore. A producer that invents a field fails its own tests instead of shipping a shape consumers cannot rely on.
+Every schema is **strict**: an unknown key is a contract violation, not something to ignore. That makes these **producer-conformance** schemas — a producer that invents a field fails its own tests instead of shipping a shape consumers cannot rely on. See Maintenance notes for what strictness means on the consuming side.
 
 ## How it fits
 
@@ -35,17 +35,30 @@ Every schema is **strict**: an unknown key is a contract violation, not somethin
 ## Usage
 
 ```ts
-import { scanReportSchema } from "@argus/api-contracts";
+import { SCAN_REPORT_CONTRACT_VERSION, scanReportSchema } from "@argus/api-contracts";
 
-const report = scanReportSchema.parse(JSON.parse(stdout));
+const document: unknown = JSON.parse(stdout);
+
+// Check the version you were handed before committing to a shape: a payload
+// from a newer Argus may carry fields this package does not know about, and
+// the schemas below are strict.
+if ((document as { contractVersion?: number }).contractVersion !== SCAN_REPORT_CONTRACT_VERSION) {
+  throw new Error("unsupported Argus scan-report version");
+}
+
+const report = scanReportSchema.parse(document);
 for (const violation of report.violations) {
   console.log(`${violation.file}:${violation.position.startLine} ${violation.ruleId}`);
 }
+
+// A scan is clean only if nothing failed to analyse, too.
+const clean = report.violations.length === 0 && report.failures.length === 0;
 ```
 
 ## Maintenance notes
 
-- **Versioning.** `SCAN_REPORT_CONTRACT_VERSION` is bumped only on a **breaking** change — a removed or retyped field, or a narrowed value set. Adding an optional field is backwards compatible and leaves the version alone. Consumers are expected to reject a version they do not know rather than guess.
-- **Two invariants the schema cannot express**, both guaranteed by the producer and documented on the schema: `violations` is sorted by file → start line → start column → rule id (so re-scanning unchanged sources gives byte-identical output), and `summary` counts agree with the arrays.
+- **Versioning, and what strictness does to it.** `SCAN_REPORT_CONTRACT_VERSION` is bumped only on a **breaking** change — a removed or retyped field, or a narrowed value set. Adding an optional field leaves the version alone, because a consumer reading the fields it already knows is unaffected. But these schemas are strict, so a consumer that _validates_ with them is pinned to the package version it installed: an additive change is breaking for that consumer until it upgrades the package. That is the deliberate trade — strictness is worth more on the producing side, where it is the only thing stopping an invented field from shipping. A consumer that must survive additions without upgrading should check `contractVersion` and parse permissively rather than reach for these schemas (see Usage).
+- **Two invariants the schema cannot express**, both guaranteed by the producer and documented on the schema: `violations` is sorted by file → start line → start column → rule id → violation id (so re-scanning unchanged sources gives byte-identical output; the id is what makes the order _total_, since one rule can report twice at one position), and `summary` counts agree with the arrays.
+- **`summary.filesScanned` counts files _selected_ for scanning, failures included** — it is not a count of successfully analysed files. Anything computing a rate from it should subtract `failures.length`.
 - **`failures` is part of the report, never a side channel.** A payload with an empty `violations` array and a non-empty `failures` array is a _partial_ scan, not a clean one — a consumer that only reads `violations` will report a green build on a scan that never ran.
 - Private workspace package; not published. See [D-8](../../docs/IMPLEMENTATION.md) for the packaging decision.

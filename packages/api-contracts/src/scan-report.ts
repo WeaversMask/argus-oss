@@ -4,9 +4,17 @@ import { z } from "zod";
  * Version of the scan-report contract, carried in every payload.
  *
  * Bumped only on a **breaking** change — a removed or retyped field, or a
- * narrowed value set. Adding an optional field is backwards compatible and
- * leaves the version alone. Consumers should reject a payload whose version
- * they do not know rather than guess at the shape.
+ * narrowed value set. Adding an optional field leaves the version alone: an
+ * older consumer reading the fields it already knows is unaffected.
+ *
+ * **What that means with strict schemas** (review finding): the schemas here
+ * are *producer conformance* — they exist so a producer that invents a field
+ * fails its own tests. A consumer that validates with them is pinned to the
+ * package version it installed, so an additive change is breaking *for that
+ * consumer* until it upgrades. A consumer that wants to survive additions
+ * without upgrading should read `contractVersion` first and treat unknown
+ * keys as data it does not need — not parse strictly. Either way, reject a
+ * version you do not know rather than guessing at the shape.
  */
 export const SCAN_REPORT_CONTRACT_VERSION = 1;
 
@@ -92,6 +100,11 @@ export type SeverityCountsPayload = z.infer<typeof severityCountsSchema>;
 
 /** Totals, so a consumer can report the headline without walking the arrays. */
 export const scanSummarySchema = z.strictObject({
+  /**
+   * Files selected for scanning — **including** any listed in `failures`.
+   * It is not a count of successfully analysed files, so "clean" needs
+   * `failures` to be empty as well.
+   */
   filesScanned: z.int().min(0),
   violations: z.int().min(0),
   failures: z.int().min(0),
@@ -108,8 +121,10 @@ export type ScanSummaryPayload = z.infer<typeof scanSummarySchema>;
  * shipping a shape consumers cannot rely on.
  *
  * **Ordering is part of the contract.** `violations` is sorted by file, then
- * start line, then start column, then rule id — two scans of unchanged sources
- * produce byte-identical JSON, which is what makes the output diffable in CI.
+ * start line, then start column, then rule id, then violation id — two scans of
+ * unchanged sources produce byte-identical JSON, which is what makes the output
+ * diffable in CI. The id is the last key rather than decoration: one rule can
+ * report twice at one position, so the first four do not order every pair.
  */
 export const scanReportSchema = z.strictObject({
   contractVersion: z.literal(SCAN_REPORT_CONTRACT_VERSION),

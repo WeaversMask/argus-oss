@@ -220,6 +220,60 @@ describe("formatJsonReport", () => {
     ]);
   });
 
+  it("emits exactly these bytes — key order, indentation, trailing newline", () => {
+    // The determinism promise is about bytes, and everything the assertions
+    // above go through (JSON.parse) is blind to formatting. This is the one
+    // test a CI differ would actually notice breaking (review finding).
+    const violation = makeViolation({
+      id: "src%2Fa.ts#docs/require-jsdoc@1.17-1.27#0",
+      file: "src/a.ts",
+      line: 1,
+      column: 17,
+      endColumn: 27,
+      severity: "warning",
+      rule: "docs/require-jsdoc",
+      message: "Exported function should have a JSDoc comment.",
+    });
+
+    expect(formatJsonReport(reportOf({ violations: [violation], filesScanned: 2 }))).toBe(
+      `{
+  "contractVersion": 1,
+  "tool": {
+    "name": "argus",
+    "version": "${CLI_VERSION}"
+  },
+  "summary": {
+    "filesScanned": 2,
+    "violations": 1,
+    "failures": 0,
+    "bySeverity": {
+      "info": 0,
+      "warning": 1,
+      "error": 0,
+      "critical": 0
+    }
+  },
+  "violations": [
+    {
+      "id": "src%2Fa.ts#docs/require-jsdoc@1.17-1.27#0",
+      "ruleId": "docs/require-jsdoc",
+      "severity": "warning",
+      "message": "Exported function should have a JSDoc comment.",
+      "file": "src/a.ts",
+      "position": {
+        "startLine": 1,
+        "startColumn": 17,
+        "endLine": 1,
+        "endColumn": 27
+      }
+    }
+  ],
+  "failures": []
+}
+`,
+    );
+  });
+
   it("is deterministic: input order cannot change the bytes", () => {
     const violations = [
       makeViolation({

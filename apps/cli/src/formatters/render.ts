@@ -35,10 +35,27 @@ export interface RenderOptions {
  * no JSON-shaped exception inside it.
  */
 export function renderReport(report: ScanReport, options: RenderOptions): string {
-  if (options.format === "json") {
-    return formatJsonReport(report);
+  switch (options.format) {
+    case "json":
+      return formatJsonReport(report);
+    case "console":
+      return formatConsoleReport(report, {
+        colour: shouldUseColour({
+          env: options.env,
+          isTTY: options.isTTY,
+          allowed: options.colour,
+        }),
+      });
+    default:
+      // Exhaustiveness: a name added to OUTPUT_FORMATS is accepted by
+      // `--format` the moment it is listed, so forgetting the branch here has
+      // to be a compile error. Without this, the missing case would silently
+      // render the human report into a machine's pipeline — the failure
+      // `.choices()` exists to prevent, one step removed (review finding).
+      return unreachable(options.format);
   }
-  return formatConsoleReport(report, {
-    colour: shouldUseColour({ env: options.env, isTTY: options.isTTY, allowed: options.colour }),
-  });
+}
+
+function unreachable(format: never): never {
+  throw new Error(`unhandled output format: ${String(format)}`);
 }
