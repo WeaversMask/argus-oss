@@ -14,9 +14,10 @@ export interface ColourContext {
  * Decides whether to emit ANSI escapes, most specific signal first:
  *
  * 1. `--no-color` on the command line wins over everything.
- * 2. `FORCE_COLOR` (set, non-empty, not `0`) forces colour on — the escape
- *    hatch for pipes (`argus check . | less -R`) and for a shell profile that
- *    sets `NO_COLOR` globally.
+ * 2. `FORCE_COLOR`, when set, decides outright: `0` forces colour off, any
+ *    other value forces it on. Both directions are the escape hatch — on for a
+ *    pipe (`argus check . | less -R`) or a shell profile that sets `NO_COLOR`
+ *    globally, off for a terminal that would otherwise get colour.
  * 3. `NO_COLOR` (set and non-empty, per no-color.org) forces colour off.
  * 4. `TERM=dumb` means the terminal cannot render escapes.
  * 5. Otherwise colour follows stdout: on for a terminal, off when redirected.
@@ -26,8 +27,10 @@ export function shouldUseColour(context: ColourContext): boolean {
     return false;
   }
   const forced = context.env["FORCE_COLOR"];
-  if (isSet(forced) && forced !== "0") {
-    return true;
+  if (isSet(forced)) {
+    // `0` means force off, as chalk, supports-color and Node's own tty
+    // detection all read it — the symmetric counterpart of forcing on.
+    return forced !== "0";
   }
   if (isSet(context.env["NO_COLOR"])) {
     return false;

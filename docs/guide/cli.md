@@ -51,11 +51,14 @@ Argus colours its output when stdout is a terminal, and turns colour off when yo
 | --------------------- | --------------------------------------------------------------------- |
 | `--no-color`          | Off, whatever else says. Highest precedence                           |
 | `FORCE_COLOR=1`       | On, even in a pipe (`argus check . \| less -R`) or under `NO_COLOR`   |
+| `FORCE_COLOR=0`       | Off, even at a terminal                                               |
 | `NO_COLOR=1`          | Off ([no-color.org](https://no-color.org); any non-empty value works) |
 | `TERM=dumb`           | Off — the terminal cannot render escapes                              |
 | _(none of the above)_ | On for a terminal, off when redirected                                |
 
-They are listed in precedence order: the first one that applies decides. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a one-off `FORCE_COLOR=1 argus check .` still works when your shell profile sets `NO_COLOR` globally.
+They are listed in precedence order: the first one that applies decides. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a one-off `FORCE_COLOR=1 argus check .` still works when your shell profile sets `NO_COLOR` globally; setting it to `0` forces the opposite, matching how the rest of the ecosystem reads that variable. An empty value counts as unset for both variables.
+
+`--no-color` belongs to `check`, so it goes after the command name — `argus check . --no-color`, not `argus --no-color check .` (that is an unknown-option error, exit `2`).
 
 Errors on stderr are never coloured — stdout and stderr can be redirected independently, so a colour decision made for one would be wrong for the other.
 

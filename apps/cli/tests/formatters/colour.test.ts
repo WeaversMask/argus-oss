@@ -32,10 +32,17 @@ describe("shouldUseColour", () => {
     expect(shouldUseColour({ env: { FORCE_COLOR: "1", NO_COLOR: "1" }, isTTY: false })).toBe(true);
   });
 
-  it("ignores FORCE_COLOR when it is empty or explicitly 0", () => {
+  it("treats FORCE_COLOR=0 as an explicit force-off, even at a terminal", () => {
+    expect(shouldUseColour({ env: { FORCE_COLOR: "0" }, isTTY: true })).toBe(false);
+    expect(
+      shouldUseColour({ env: { FORCE_COLOR: "0", TERM: "xterm-256color" }, isTTY: true }),
+    ).toBe(false);
+  });
+
+  it("ignores an empty FORCE_COLOR, falling through to the weaker signals", () => {
     expect(shouldUseColour({ env: { FORCE_COLOR: "" }, isTTY: false })).toBe(false);
-    expect(shouldUseColour({ env: { FORCE_COLOR: "0" }, isTTY: true })).toBe(true);
-    expect(shouldUseColour({ env: { FORCE_COLOR: "0", NO_COLOR: "1" }, isTTY: true })).toBe(false);
+    expect(shouldUseColour({ env: { FORCE_COLOR: "" }, isTTY: true })).toBe(true);
+    expect(shouldUseColour({ env: { FORCE_COLOR: "", NO_COLOR: "1" }, isTTY: true })).toBe(false);
   });
 
   it("respects a terminal that cannot render escapes", () => {

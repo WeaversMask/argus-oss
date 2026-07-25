@@ -59,8 +59,10 @@ formatConsoleReport()      this app         → stdout text, then an exit code
 
 [`src/formatters/colour.ts`](./src/formatters/colour.ts) owns two things:
 
-- **The decision.** `shouldUseColour({ env, isTTY, allowed })`, most specific signal first: `--no-color` → `FORCE_COLOR` (non-empty, not `0`) → `NO_COLOR` (non-empty, per [no-color.org](https://no-color.org)) → `TERM=dumb` → whether stdout is a terminal. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a per-invocation override beats a shell-profile default.
+- **The decision.** `shouldUseColour({ env, isTTY, allowed })`, most specific signal first: `--no-color` → `FORCE_COLOR` (when set, it decides both ways: `0` off, anything else on) → `NO_COLOR` (non-empty, per [no-color.org](https://no-color.org)) → `TERM=dumb` → whether stdout is a terminal. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a per-invocation override beats a shell-profile default. `--no-color` is declared on `check` rather than on the program, so it follows the command name.
 - **The palette.** `stylesFor(colour)` returns _roles_ (`path`, `location`, `ruleId`, `severity`, `clean`, `failure`), each either an ANSI wrapper or the identity function — so the layout code never branches on whether colour is on. Only base SGR colours are used (cyan/yellow/red/bold-red, bold, dim, green): terminals remap those to their own theme, whereas 256-colour and truecolor values look right on one background and wrong on the other. **Colour is never the sole carrier of meaning** — the severity word is always printed, so `NO_COLOR` output loses nothing.
+
+One assumption worth knowing before rule messages ever become user-supplied (custom rules, message templates): a finding is one line because `Violation.message` cannot contain a newline in practice — core validates it only as a non-blank string, and every built-in rule interpolates regex-constrained identifiers or literals. If that changes, the message needs escaping here.
 
 Colour is decided from `CliIO` (`env`, `isTTY`), never read from `process` inside a command; `captureIO` in tests defaults to an empty environment and a non-terminal stdout, so no test inherits the developer's shell. stderr diagnostics stay plain — colour follows stdout, and the two streams can be redirected independently.
 

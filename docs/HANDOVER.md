@@ -1,93 +1,67 @@
-# Handover — P2-02 (CLI scaffolding)
+# Handover — P2-03 (console output formatter)
 
 **From:** claude-opus-5
 **To:** next picker (Phase 2 continues)
-**Date:** 2026-07-24
-**Phase:** P2 — MVP (2/6+4) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** P2-02 — `@argus/cli` (`check`/`init`/`explain`) — **PR pending merge**
+**Date:** 2026-07-25
+**Phase:** P2 — MVP (3/6+4) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** P2-03 — colour console formatter — **PR pending merge**
 
 ---
 
 ## Context
 
-**Argus runs now.** `node apps/cli/bin/argus.mjs check .` walks a real tree, parses it, runs the ten P2-01 rules, prints findings, and exits 0/1/2. Everything before this was libraries; this is the first task whose output a human can point at a codebase and use — and the first that could dogfood, which it did (see below).
+`argus check` now looks like a real tool: findings are colour-coded by severity, grouped under a bold file header, one per line as `line:col  severity  message  rule-id`, with a counts summary. P2-02's `src/format.ts` placeholder is gone — replaced by `src/report.ts` (the shape), `src/formatters/console.ts` (layout), and `src/formatters/colour.ts` (the colour decision + palette).
 
-`apps/cli` is the first `apps/*` member. It owns **no analysis logic**: it wires `@argus/config` → `@argus/ast` → `@argus/rule-engine` + `@argus/rules-builtin` and maps outcomes to exit codes. Read [`apps/cli/README.md`](../apps/cli/README.md) for internals and [`docs/guide/cli.md`](./guide/cli.md) for the user-facing surface.
+Nothing about the pipeline, the exit-code contract, or the failures reporting changed. **P2-04 (JSON output) is the next task and this diff was built for it:** put `formatters/json.ts` beside `console.ts`, serialise the same `ScanReport`, and note that `@argus/api-contracts` still does not exist — creating it is part of P2-04 (full new-package checklist; `zod` is already vetted from P1-05).
 
-## The one decision that shapes everything here: how the CLI runs
+## What P2-04 inherits
 
-The workspace is **buildless** — packages export raw `.ts` and import internals with `.js` bundler specifiers. So `node anything.ts` cannot load a single `@argus/*` module: Node neither remaps `.js`→`.ts` **nor** accepts the domain's TS parameter properties (`constructor(private readonly x)`) in strip-only mode. Both were verified empirically, not assumed.
+1. **`ScanReport` (`src/report.ts`) is the formatter contract** — `violations`, `failures`, `filesScanned`. Keep `failures` in the JSON output too: a formatter that drops it lets a partial scan read as clean, and the exit-code contract (`2` for any unanalysable file) depends on it being honest.
+2. **Choosing a formatter is not wired yet.** There is no `--format` flag — `check` calls `formatConsoleReport` directly (`src/check.ts`). P2-04 adds the flag; `run(argv, io)` in `src/main.ts` is still the seam, and `--no-color` is the worked example of adding one (declared on the `check` subcommand, read as `options.color`, passed into `runCheck` as `CheckOptions`).
+3. **JSON must not be coloured, ever** — including when `FORCE_COLOR=1`. `shouldUseColour` is only consulted by the console formatter; keep it that way rather than adding a JSON-specific exception inside it.
+4. **`CliIO` now carries `env` and `isTTY`.** Read ambient state from there, never from `process` inside a command — that is what keeps `src/cli.ts` branch-free and the decision unit-testable. `captureIO(cwd, { env, isTTY })` in `tests/support.ts` defaults to an empty env and a non-terminal stdout, so no test inherits your shell.
 
-**The maintainer ruled: zero-dependency hook** (over adding `tsx`, over a bundler). So [`bin/argus.mjs`](../apps/cli/bin/argus.mjs) re-execs node with `--experimental-transform-types --disable-warning=ExperimentalWarning --import loader/register.mjs`, where [`loader/hooks.mjs`](../apps/cli/loader/hooks.mjs) is a ~15-line resolve hook redirecting relative `.js` to its `.ts` sibling. Exit code and stdio pass through verbatim.
+## Design decisions worth not re-litigating
 
-**Consequences you inherit:**
-
-- Adding a runtime dep to the CLI is still cheap; adding a _build step_ would let you delete the wrapper. That trade is open, not settled.
-- `npm i -g @argus/cli` does **not** work yet — bundling is deliberately deferred. DOC-02's demo needs a story for this (running from a clone is fine for a recording).
-- **Tests bypass all of it.** Vitest resolves TS itself, so never reach for the loader in a test.
-
-## What P2-03/P2-04 (the next tasks) need to know
-
-1. **`run(argv, io)` in [`src/main.ts`](../apps/cli/src/main.ts) is the seam.** Every command is a pure function of args + an injected `CliIO` (`stdout`/`stderr`/`cwd`). Add a flag there; test it with `captureIO` from [`tests/support.ts`](../apps/cli/tests/support.ts). No test spawns a process or patches a global stream — keep it that way.
-2. **[`src/format.ts`](../apps/cli/src/format.ts) is a deliberate placeholder.** Plain text, no colour, no symbols — it exists so the exit-code contract is observable. P2-03 should replace/extend it (`NO_COLOR`, severity colours) and P2-04 add `formatters/json.ts`. `ScanReport` (`violations` + `failures` + `filesScanned`) is the shape to format; keep failures in it — the summary must keep telling the truth about unanalysed files.
-3. **P2-04 names `@argus/api-contracts` for its zod schema. That package does not exist.** Creating it is part of P2-04 — run the full new-package checklist (below), and note `zod` is already vetted (P1-05).
-4. **commander is intercepted, not trusted to exit.** `exitOverride()` + `configureOutput` route everything through `CliIO`; help/version map to 0, other `CommanderError`s to 2. Bare `argus` calls `outputHelp()` explicitly — a commander _default action_ makes an unknown command report "too many arguments" instead, which is why it isn't one.
-
-## Dogfooding: what the first self-scan actually said
-
-This is the phase's headline capability, so here is the real data rather than a claim:
-
-- **`argus check apps/cli/src` → 0 violations.** But not on the first run: it flagged my own `runCheck` (103 lines, cyclomatic complexity 20) and `discoverFiles` (61 lines). Both were decomposed in response — the tool's first real finding was against its own author's code, and the fix is in the diff.
-- **`argus check packages` → 179 warnings.** Do **not** read this as 179 defects. Overwhelmingly two clusters: (a) `packages/rules-builtin/tests/fixtures/**`, which are deliberately-invalid _data_ files (already excluded from tsconfig/ESLint/Prettier/Vitest for the same reason), and (b) `docs/require-jsdoc` on test helpers.
-
-**So the dogfooding-wiring task is mostly one design decision: what goes in the repo-root `argus.yaml` `ignore:` list.** Fixtures certainly. Whether test helpers must carry JSDoc is a genuine policy call — take it to the maintainer rather than silently switching the rule off. A CI job running Argus on Argus is the other half (phase exit criterion).
-
-## The review caught a real bug — worth knowing what it was
-
-The independent review (Sonnet, cross-family) returned **REQUEST CHANGES** on a HIGH finding, and it was right. `ignore:` globs were matched against paths relative to the **invocation directory**, but `ConfigLoader.search` walks _upward_ — so a root config saying `ignore: ["packages/*/generated/**"]` silently stopped excluding anything the moment you ran `argus` from inside `packages/foo`. Reproduced, then fixed by [`src/project-root.ts`](../apps/cli/src/project-root.ts): the nearest `argus.yaml` above the scan path anchors both glob matching and displayed paths, so a scan means the same thing from any directory. Two regression tests cover it.
-
-**The reusable lesson:** `@argus/config` returns a _merged_ config and never says which file it came from. Any consumer needing config-relative semantics has to re-derive the root (this one mirrors the walk via the public `CONFIG_FILE_NAMES`). If a second consumer needs it, that's the signal to widen the config API instead of duplicating the walk.
-
-Also fixed from the same review: a signal-killed child exited 1 (claiming "violations found") instead of 2; and `tests/bin.test.ts` now spawns the **real executable** — the re-exec wrapper and resolve hook had no automated coverage at all, because every other test drives `run(argv, io)` in-process.
+- **Base SGR colours only** (cyan `info`, yellow `warning`, red `error`, bold-red `critical`; bold paths, dim metadata, green clean line). Terminals remap those to their own theme, so the output reads on light **and** dark backgrounds; 256-colour/truecolor values look right on exactly one and wrong on the other.
+- **Colour is decoration, never information.** The severity word is always printed. A test asserts the coloured render equals the plain one once escapes are stripped — that invariant is worth keeping as new output lands.
+- **`stylesFor(colour)` returns roles that are either ANSI wrappers or the identity function**, so layout code contains no `if (colour)` at all. This is why `src/formatters/` sits at 100% branch coverage.
+- **Padding is applied to visible text before styling.** Escapes have zero width; pad after styling and every column silently misaligns.
 
 ## Gotchas this task discovered
 
-1. **`pnpm boundaries` only cruised `packages`** — an `apps/` tree would have been invisible to the architecture gate. Now `depcruise apps packages`, plus a `packages-never-import-apps` rule (negative-tested: it fires). Apps need no `*-public-entry-only` rule of their own; each package's existing rule already governs apps as importers.
-2. **Pre-existing cruiser blind spot, filed not fixed:** a _bare-specifier_ deep import (`@argus/rule-engine/src/engine.js`) is `couldNotResolve` to dependency-cruiser, so **no rule fires** — verified. The same import written relatively _is_ caught. Impact is low (Node and tsc both reject it anyway), and closing it needs a `no-unresolvable` rule **plus** a fixtures exclusion (30 fixture hits otherwise) — out of scope for a CLI task, worth a small config PR.
-3. **`$?` after a pipe is the pipe's exit code.** `argus check x | tail` reported 0 while argus had exited 1. Cost me a false "bug" moment; verify exit codes with a redirect, not a pipe.
-4. **`.work/` is gitignored** — task notes stay local and never reach the PR. Don't try to `git add` them.
-5. **Node's strip-only mode is not "TypeScript support".** Parameter properties, enums, namespaces all need `--experimental-transform-types`. Worth knowing before anyone tries `node --run` on another package.
+1. **Writing a literal ESC character into source is easy to do by accident** and invisible in review. `colour.ts` uses the `\u001B` escape; the tests build it with `String.fromCharCode(27)`. Check with `cat -v` if you touch either.
+2. **`FORCE_COLOR=0` means force _off_.** My first version only treated it as "not a force-on" and let it fall through to the TTY check, so at a terminal it did nothing — the independent review caught it. The ladder is now `--no-color` → `FORCE_COLOR` (set: `0` off, else on) → `NO_COLOR` (non-empty) → `TERM=dumb` → `isTTY`, matching chalk/supports-color/Node's own tty detection.
+3. **Subprocess tests inherit your shell's colour variables.** `tests/bin.test.ts` now pins `NO_COLOR`/`FORCE_COLOR` to `""` (empty reads as unset) in the child env, and it is the **only** evidence for the `env`/`isTTY` wiring in `src/cli.ts`, which is excluded from instrumented coverage. Do not delete those tests without removing the exclusion.
+4. **commander's `--no-color` on a subcommand is positional** — `argus check . --no-color` works, `argus --no-color check .` is an unknown-option error (exit 2). Documented in the guide; a future global-flag pass could change it.
+5. **`$?` after a pipe is the pipe's exit code** (carried forward from P2-02 — verify exit codes with a redirect, not a pipe).
 
 ## Evergreen (carried forward)
 
-- Root gates before every push (`pnpm lint && typecheck && build && test`); filtered runs bypass turbo's graph.
+- Root gates before every push (`pnpm lint && typecheck && build && test`); filtered runs bypass turbo's graph. `pnpm boundaries` too.
 - prettier reflows Markdown tables — `pnpm exec prettier --write <files>` before staging.
 - commitlint header ≤100 chars; a failed commit leaves files staged.
 - `gh pr edit` fails here (projectCards GraphQL) — PATCH via `gh api`.
+- The CI review-pass gate reads the PR body frozen at trigger time — post review evidence as a comment and re-run the job.
 - **Bash CWD drifts** when a `cd` fails mid-session — prefer absolute paths.
 - Never `--no-verify`; scoped `SKIP=<gate>` with written justification only.
 
 ## State of the system
 
-- ✅ Tests: **579 passing** (59 files), 0 failing. Aggregate coverage 97.9% lines / 94.0% branches
-- ✅ Lint, typecheck, build, boundaries: clean at root
-- ✅ License gate: 568 packages, commander added (MIT), notices regenerated
-- ✅ Self-scan of the new code: 0 violations
+- ✅ Tests: **598 passing** (60 files), 0 failing. Aggregate coverage 98.0% lines / 94.4% branches
+- ✅ Lint, typecheck, build, boundaries clean at root; `@argus/cli` 94.9/85.3, `src/formatters/` 100/100
+- ✅ Self-scan: `argus check apps/cli/src` → 0 violations (15 files)
+- ✅ Merged since the last handover: **#31** (P2-02), **#32** (postcss override), **#34** (`fix(ops)`) — the last one closed P2-02's filed cruiser blind spot with a `no-unresolvable` rule and added the fifth Coverage Exception category to `quality-gates.md`. That gotcha is **retired**, not carried forward.
 
 ## Open decisions / scope calls
 
-- **Test-helper JSDoc policy** (above) — needs a maintainer call during dogfooding wiring.
-- **CLI packaging**: the loader wrapper vs. a build step, forced whenever a global install matters (interacts with D-5, core's build step at first publish).
+- **Test-helper JSDoc policy** — still needs a maintainer call during dogfooding wiring (unchanged from P2-02).
+- **CLI packaging**: the loader wrapper vs. a build step, forced whenever a global install matters (interacts with D-5).
+- **A `--format` flag design** is P2-04's call: `--format json` vs `--json`, and whether `--no-color` should become a global flag at the same time.
 - D-1, D-5, D-6 unchanged — see IMPLEMENTATION.md.
-
-## Maintainer admin items
-
-1. **Merge [#32](https://github.com/WeaversMask/argus-oss/pull/32) first, then [#31](https://github.com/WeaversMask/argus-oss/pull/31).** #32 is a one-line `postcss` override closing a HIGH path-traversal advisory published mid-session; it fails the audit gate on `main` and every open PR, unrelated to any of our changes (10/10 green). #31 is P2-02 itself — 9/10 green, the only red being that same audit gate, so it needs an update from `main` after #32 lands. Then Phase 2 is 2/6+4.
-2. Dependabot queue (npm-minor-and-patch, rimraf, types/node branches on origin).
-3. Prior unchanged: retired-repo archive, pre-scrub bundle deletion, go-public bucket.
 
 ## Sign-off
 
-Argus scanned its own CLI, found two things wrong with it, and those two things are fixed in this diff. That is the whole thesis of the project working for the first time — point it at something next.
+Argus's own output is now the first thing a stranger will judge it by, and it is honest under every colour setting — including monochrome, where it loses nothing. Point P2-04 at the same `ScanReport` and give it a machine-readable voice.
 
 — claude-opus-5
