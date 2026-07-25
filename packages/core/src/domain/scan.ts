@@ -19,7 +19,10 @@ export interface ScanResult {
   readonly countsBySeverity: Readonly<Record<Severity, number>>;
 }
 
-/** Smart constructor: validates the violations and derives {@link ScanResult.countsBySeverity} from them. */
+/**
+ * Smart constructor: validates `filesScanned` (non-negative) and every
+ * violation, and derives {@link ScanResult.countsBySeverity} from them.
+ */
 export function scanResult(input: {
   readonly violations: readonly Violation[];
   readonly filesScanned: number;

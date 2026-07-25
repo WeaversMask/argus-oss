@@ -6,6 +6,13 @@
 ignore:
   # Test files, their helpers, and fixtures (including rule fixtures that are
   # deliberately invalid data) are exempt from Argus's own quality bar —
-  # maintainer ruling 2026-07-25. Every test/fixture path in this repo lives
-  # under a `tests/` directory, so one glob covers all of it.
+  # maintainer ruling 2026-07-25 (test files). `@argus/testing`'s own
+  # `src/fixtures/` (test doubles it exports for other packages' tests, e.g.
+  # a fake secret) is a deliberate exception to this glob: it ships from
+  # `src/`, not a `tests/` dir, and is held to the same bar as any other
+  # production export.
   - "**/tests/**"
+  # Claude Code harness state (settings, session data, worktrees it creates
+  # for sub-agents) — never repo content, never present in CI's checkout, but
+  # can sit alongside a local clone and must not pollute a local self-scan.
+  - ".claude/**"

@@ -57,7 +57,7 @@ export interface RuleActivation {
   readonly options: Readonly<Record<string, unknown>>;
 }
 
-/** Unvalidated input to {@link ruleProfile} — `options` optional before defaulting to `{}`. */
+/** One unvalidated activation within a {@link RuleProfileInput} — `options` optional before defaulting to `{}`. */
 export interface RuleActivationInput {
   readonly ruleId: RuleId;
   readonly severity: Severity | "off";

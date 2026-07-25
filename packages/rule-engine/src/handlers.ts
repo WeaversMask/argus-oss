@@ -1,3 +1,8 @@
+// The dispatch/reporting machinery behind the Engine class (engine.ts):
+// compiling rule listeners into node-type tables, running the single walk,
+// and turning captured reports into validated Violations. Split out so the
+// class itself stays a thin orchestrator over these free functions.
+
 import { err, ok } from "neverthrow";
 import type { Result } from "neverthrow";
 import { RuleExecutionError, violation, violationId } from "@argus/core";
@@ -12,14 +17,7 @@ import type {
 } from "@argus/core";
 import { deterministicViolationId } from "./violation-id.js";
 import { walk } from "./walk.js";
-import type { RuleContext, RuleListener, RuleReport } from "./types.js";
-
-/**
- * The dispatch/reporting machinery behind {@link Engine}: compiling rule
- * listeners into node-type tables, running the single walk, and turning
- * captured reports into validated `Violation`s. Split out so the class
- * itself stays a thin orchestrator over these free functions.
- */
+import type { RuleContext, RuleListener, RuleListeners, RuleReport } from "./types.js";
 
 /** A listener bound to its owning rule, so crashes are attributable. */
 export interface Handler {
@@ -121,7 +119,7 @@ function compareViolations(a: Violation, b: Violation): number {
 /** Parses and files one rule's listeners into the shared dispatch tables. */
 export function registerListeners(
   ruleId: RuleId,
-  listeners: Record<string, RuleListener>,
+  listeners: RuleListeners,
   tables: DispatchTables,
 ): Result<undefined, RuleExecutionError> {
   for (const [selector, listener] of Object.entries(listeners)) {
