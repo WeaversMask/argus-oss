@@ -46,6 +46,7 @@ The following may be excluded from coverage requirements:
 - Pure type-only files (`.d.ts`, files with only `export type` and `export interface`)
 - `index.ts` re-export barrels with no logic
 - Test fixture files
+- **Process entry points** — a file whose only job is to read `process.argv`/env, hand off to tested logic, and set an exit code — **provided it contains no branching of its own and is exercised end-to-end by tests that spawn the real executable.** Unlike the four above, this is not a "nothing to test" case: the code does run, and it matters. Instrumented coverage simply cannot cross a process boundary, so the subprocess test is **substitute evidence, not a waiver** — without it the exclusion is invalid. (Added 2026-07-25 for `apps/cli/src/cli.ts`; the P2-02 independent review flagged that the exclusion matched no listed category, and the standard was extended rather than the exclusion quietly kept.)
 
 All exclusions must be listed explicitly in the package's `vitest.config.ts` with a comment justifying each.
 

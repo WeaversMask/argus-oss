@@ -185,6 +185,26 @@ module.exports = {
         dependencyTypesNot: ["type-only"],
       },
     },
+    {
+      name: "no-unresolvable",
+      severity: "error",
+      comment:
+        "Every import must resolve. This closes a silent hole in the rules " +
+        "above (found while writing apps/cli, P2-02): those rules match on " +
+        "RESOLVED file paths, so an import that cannot be resolved matches " +
+        "nothing and the cruise reports clean. A deep import written as a " +
+        "BARE specifier — `@argus/rule-engine/src/engine.js` — is exactly " +
+        "that case: the package's `exports` map refuses the subpath, so " +
+        "dependency-cruiser records couldNotResolve and *-public-entry-only " +
+        "never fires. Written relatively the same violation IS caught. Such " +
+        "code cannot ship (node and tsc both reject it), so this is honesty " +
+        "of the report rather than a live escape hatch — but a gate that " +
+        "says 'no violations' while someone is visibly prying at a boundary " +
+        "is worse than no gate. Also catches genuine typos and imports of " +
+        "packages that were never installed.",
+      from: {},
+      to: { couldNotResolve: true },
+    },
   ],
   options: {
     doNotFollow: { path: "node_modules" },
@@ -193,7 +213,17 @@ module.exports = {
     // edges the core rules exist to catch (found by negative test NEG-2:
     // core importing vitest sailed through until this was anchored).
     exclude: {
-      path: ["^(packages|apps)/[^/]+/(coverage|dist)/", "^(packages|apps)/[^/]+/\\.turbo/"],
+      path: [
+        "^(packages|apps)/[^/]+/(coverage|dist)/",
+        "^(packages|apps)/[^/]+/\\.turbo/",
+        // Rule fixtures are input DATA parsed by the tree-sitter adapter, not
+        // program code: they deliberately import modules that do not exist
+        // (`react`, `./local`, `../b`) because that is what the rules under
+        // test have to read. Already excluded from tsconfig, ESLint, Prettier
+        // and Vitest for the same reason; without this the no-unresolvable
+        // rule below reports 30 violations that are all working as intended.
+        "^packages/[^/]+/tests/fixtures/",
+      ],
     },
     // Type-only imports are real boundary edges — tsc erases them, so cruise
     // the pre-compilation view (also what tags them `type-only` for rules).

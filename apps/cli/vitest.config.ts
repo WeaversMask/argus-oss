@@ -5,10 +5,16 @@ export default defineProjectConfig({
     name: "@argus/cli",
     coverage: {
       exclude: [
-        // src/cli.ts is the process entry point: it reads process.argv, calls
-        // run(), and sets process.exitCode. It carries no branching logic of
-        // its own and is exercised end-to-end through bin/argus.mjs, not in
-        // unit tests — run() (main.ts) and every command are covered directly.
+        // Process entry point — the fifth Coverage Exception category in
+        // docs/plan/protocols/quality-gates.md. src/cli.ts reads process.argv,
+        // calls run(), and sets process.exitCode, with no branching of its own;
+        // run() (main.ts) and every command are covered directly.
+        //
+        // That category REQUIRES substitute evidence, not just an absence of
+        // logic: tests/bin.test.ts spawns the real bin/argus.mjs and drives this
+        // file end to end (version, exit codes 0/1/2, argv with spaces,
+        // per-command help). If those tests are ever removed, this exclusion
+        // becomes invalid and src/cli.ts must return to instrumented coverage.
         "src/cli.ts",
       ],
     },
