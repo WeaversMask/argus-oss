@@ -11,4 +11,12 @@ export interface CliIO {
   readonly stderr: (text: string) => void;
   /** The directory the command runs relative to. */
   readonly cwd: string;
+  /**
+   * Process environment. Read only for presentation decisions (`NO_COLOR`,
+   * `FORCE_COLOR`, `TERM`) — it is an input, so tests state it explicitly
+   * rather than inheriting whatever the developer's shell happens to export.
+   */
+  readonly env: Readonly<Partial<Record<string, string>>>;
+  /** Whether stdout is a terminal. `false` when redirected or piped. */
+  readonly isTTY: boolean;
 }

@@ -14,5 +14,7 @@ const code = await run(process.argv.slice(2), {
     process.stderr.write(text);
   },
   cwd: process.cwd(),
+  env: process.env,
+  isTTY: process.stdout.isTTY === true,
 });
 process.exitCode = code;

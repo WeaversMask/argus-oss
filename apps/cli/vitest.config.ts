@@ -15,6 +15,8 @@ export default defineProjectConfig({
         // file end to end (version, exit codes 0/1/2, argv with spaces,
         // per-command help). If those tests are ever removed, this exclusion
         // becomes invalid and src/cli.ts must return to instrumented coverage.
+        // The same suite is the only evidence for the env/isTTY wiring this
+        // file feeds the colour decision (P2-03).
         "src/cli.ts",
       ],
     },

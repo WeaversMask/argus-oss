@@ -11,10 +11,11 @@ import { resolveActivations } from "./activations.js";
 import { discoverFiles } from "./discover.js";
 import type { DiscoveredFile } from "./discover.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
-import { formatReport } from "./format.js";
-import type { ScanFailure } from "./format.js";
+import { shouldUseColour } from "./formatters/colour.js";
+import { formatConsoleReport } from "./formatters/console.js";
 import type { CliIO } from "./io.js";
 import { findProjectRoot } from "./project-root.js";
+import type { ScanFailure } from "./report.js";
 
 /** Files parsed successfully, plus the ones that could not be read or parsed. */
 interface ParseOutcome {
@@ -26,6 +27,12 @@ interface ParseOutcome {
 interface ScanPlan {
   readonly files: readonly DiscoveredFile[];
   readonly activations: readonly RuleActivation[];
+}
+
+/** Invocation-level presentation choices for `check`. */
+export interface CheckOptions {
+  /** `false` when `--no-color` was passed; `true` leaves the decision to the environment. */
+  readonly colour: boolean;
 }
 
 /**
@@ -40,7 +47,7 @@ interface ScanPlan {
  * neither section (deferred, P2/P3-01), so there is nothing to feed
  * `matchingSuppression`/`classifyLayer` yet.
  */
-export async function runCheck(rawPath: string, io: CliIO): Promise<number> {
+export async function runCheck(rawPath: string, options: CheckOptions, io: CliIO): Promise<number> {
   const plan = await planScan(rawPath, io);
   if (typeof plan === "number") {
     return plan;
@@ -69,7 +76,10 @@ export async function runCheck(rawPath: string, io: CliIO): Promise<number> {
       io.stderr(`argus: failed to analyse ${failure.file}: ${failure.message}\n`);
     }
     io.stdout(
-      formatReport({ violations: summary.violations, failures, filesScanned: plan.files.length }),
+      formatConsoleReport(
+        { violations: summary.violations, failures, filesScanned: plan.files.length },
+        { colour: shouldUseColour({ env: io.env, isTTY: io.isTTY, allowed: options.colour }) },
+      ),
     );
 
     if (failures.length > 0) {
