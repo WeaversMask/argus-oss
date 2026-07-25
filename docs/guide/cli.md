@@ -1,6 +1,6 @@
 # The `argus` command line
 
-> Shipped in P2-02. Covers the three MVP commands and the exit-code contract. Colour output (P2-03), JSON output (P2-04), diff-only scanning (P2-05), and `argus fix` (P2-06) arrive later in Phase 2 and will be documented here as they land.
+> Shipped in P2-02, colour output added in P2-03. Covers the three MVP commands, the exit-code contract, and how colour is decided. JSON output (P2-04), diff-only scanning (P2-05), and `argus fix` (P2-06) arrive later in Phase 2 and will be documented here as they land.
 
 ## Running it
 
@@ -22,16 +22,16 @@ node apps/cli/bin/argus.mjs check ./src
 
 ```
 src/services/report.ts
-  1:1    warning  quality/max-file-length      File has 402 lines, exceeding the maximum of 300.
-  84:3   warning  quality/cyclomatic-complexity  Function has a complexity of 14, exceeding the maximum of 10.
+   1:1  warning  File has 402 lines, exceeding the maximum of 300.  quality/max-file-length
+  84:3  warning  Function has a complexity of 14, exceeding the maximum of 10.  quality/cyclomatic-complexity
 
 src/index.ts
-  12:1   warning  docs/require-jsdoc           Exported function should have a JSDoc comment.
+  12:1  warning  Exported function should have a JSDoc comment.  docs/require-jsdoc
 
 3 problems (3 warnings) across 27 files
 ```
 
-Findings are grouped by file, ordered by position within each file, and followed by a summary counting each severity that actually occurred.
+Findings are grouped by file, ordered by position within each file, and followed by a summary counting each severity that actually occurred. Each line reads `line:col`, severity, message, then the rule id — the message gets the space, and the coordinates and rule id are dimmed as the metadata they are.
 
 **Paths are relative to your project root** — the nearest directory at or above the scan path containing an `argus.yaml` (or your current directory if there is none). Findings are reported that way, and `ignore:` globs are matched that way, so a root config's `ignore: ["packages/*/generated/**"]` keeps excluding the same files whether you run `argus check .` from the repo root or from inside `packages/foo`.
 
@@ -40,6 +40,27 @@ Findings are grouped by file, ordered by position within each file, and followed
 > Python parses, but the ten built-in rules are TS/JS-tuned, so `.py` files currently produce no findings.
 
 **Which rules run.** With no config file, **every built-in rule runs at its default severity** — a fresh `argus check .` finds things immediately. Add an `argus.yaml` to change severities, pass options, or switch rules off; see [configuration.md](./configuration.md) and the [rule reference](./rules.md). A rule id in your config that Argus does not recognise is an error, not a silent no-op — it usually means a typo.
+
+### Colour
+
+Severity is colour-coded — cyan `info`, yellow `warning`, red `error`, bold red `critical` — using only the base terminal palette, so the output stays readable whether your terminal is light or dark. **Colour is decoration, never information:** the severity is always spelled out in words, so nothing is lost when colour is off.
+
+Argus colours its output when stdout is a terminal, and turns colour off when you redirect or pipe it. Override that in whichever way fits:
+
+| Signal                | Effect                                                                |
+| --------------------- | --------------------------------------------------------------------- |
+| `--no-color`          | Off, whatever else says. Highest precedence                           |
+| `FORCE_COLOR=1`       | On, even in a pipe (`argus check . \| less -R`) or under `NO_COLOR`   |
+| `FORCE_COLOR=0`       | Off, even at a terminal                                               |
+| `NO_COLOR=1`          | Off ([no-color.org](https://no-color.org); any non-empty value works) |
+| `TERM=dumb`           | Off — the terminal cannot render escapes                              |
+| _(none of the above)_ | On for a terminal, off when redirected                                |
+
+They are listed in precedence order: the first one that applies decides. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a one-off `FORCE_COLOR=1 argus check .` still works when your shell profile sets `NO_COLOR` globally; setting it to `0` forces the opposite, matching how the rest of the ecosystem reads that variable. An empty value counts as unset for both variables.
+
+`--no-color` belongs to `check`, so it goes after the command name — `argus check . --no-color`, not `argus --no-color check .` (that is an unknown-option error, exit `2`).
+
+Errors on stderr are never coloured — stdout and stderr can be redirected independently, so a colour decision made for one would be wrong for the other.
 
 ## `argus init`
 
@@ -87,3 +108,5 @@ If some files could not be analysed, `check` reports each one on stderr, notes t
 | ----------------- | -------------------------------------- |
 | `-v`, `--version` | Print the Argus version                |
 | `--help`          | Print usage; works on every subcommand |
+
+`check` additionally takes `--no-color` (see [Colour](#colour) above).

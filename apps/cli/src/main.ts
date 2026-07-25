@@ -73,8 +73,12 @@ function buildProgram(io: CliIO, outcome: Outcome): Command {
     .command("check")
     .description("Scan a path and report rule violations")
     .argument("[path]", "file or directory to scan", ".")
-    .action(async (target: string) => {
-      outcome.code = await runCheck(target, io);
+    // commander turns a lone `--no-x` into an option defaulting to true, so
+    // `color` is true unless the flag is present. Colour is then still subject
+    // to NO_COLOR/FORCE_COLOR/TERM and whether stdout is a terminal.
+    .option("--no-color", "disable coloured output")
+    .action(async (target: string, options: { readonly color: boolean }) => {
+      outcome.code = await runCheck(target, { colour: options.color }, io);
     });
 
   program

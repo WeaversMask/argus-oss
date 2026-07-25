@@ -10,13 +10,14 @@ It is the first `apps/*` workspace member. Nothing imports it (`packages-never-i
 
 ## Commands
 
-| Command                 | Does                                                                     |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `argus check [path]`    | Scans a file or directory (default `.`) and reports violations           |
-| `argus init`            | Writes a starter `argus.yaml` listing every built-in rule at its default |
-| `argus explain <rule>`  | Prints a rule's name, default severity, docs link, and full description  |
-| `argus --version`, `-v` | Prints the CLI version (read from this package's `package.json`)         |
-| `argus --help`          | Usage; also available per command (`argus check --help`)                 |
+| Command                  | Does                                                                     |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `argus check [path]`     | Scans a file or directory (default `.`) and reports violations           |
+| `argus check --no-color` | Same, with ANSI escapes suppressed regardless of terminal                |
+| `argus init`             | Writes a starter `argus.yaml` listing every built-in rule at its default |
+| `argus explain <rule>`   | Prints a rule's name, default severity, docs link, and full description  |
+| `argus --version`, `-v`  | Prints the CLI version (read from this package's `package.json`)         |
+| `argus --help`           | Usage; also available per command (`argus check --help`)                 |
 
 ### Exit codes
 
@@ -43,12 +44,27 @@ TreeSitterAstParser.parse() @argus/ast      → ParsedFile per file (one parser 
         ↓
 Engine + Runner.runAll()   @argus/rule-engine → violations + per-file failures
         ↓
-formatReport()             this app         → stdout text, then an exit code
+formatConsoleReport()      this app         → stdout text, then an exit code
 ```
 
 **Default rule posture:** with no config, every rule in `builtinRules` runs at its own `defaultSeverity`, so a fresh `argus check .` finds things immediately. Config overrides severity and options per rule id, including `off` (kept in the activation list so what was explicitly disabled stays visible; the engine skips it). A configured id matching no built-in rule is a hard error, never a silent no-op.
 
-**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05), the colour console formatter (P2-03), and JSON output (P2-04) are separate follow-ups; `formatReport` is the plain baseline that makes the exit-code contract observable.
+**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05) and JSON output (P2-04) are separate follow-ups.
+
+## Output: the formatters
+
+[`src/report.ts`](./src/report.ts) holds the shape every formatter renders — `violations`, `failures`, `filesScanned`. `failures` travels _inside_ the report on purpose: a formatter that drops it would let a partial scan read as a clean one.
+
+[`src/formatters/console.ts`](./src/formatters/console.ts) renders one finding per line — `line:col  severity  message  rule-id` — grouped under a file header, with locations right-aligned per file and the severity column padded to the widest severity actually present. Padding is applied to the visible text _before_ styling, so escapes can never distort alignment (a test asserts the coloured render equals the plain one once escapes are stripped).
+
+[`src/formatters/colour.ts`](./src/formatters/colour.ts) owns two things:
+
+- **The decision.** `shouldUseColour({ env, isTTY, allowed })`, most specific signal first: `--no-color` → `FORCE_COLOR` (when set, it decides both ways: `0` off, anything else on) → `NO_COLOR` (non-empty, per [no-color.org](https://no-color.org)) → `TERM=dumb` → whether stdout is a terminal. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a per-invocation override beats a shell-profile default. `--no-color` is declared on `check` rather than on the program, so it follows the command name.
+- **The palette.** `stylesFor(colour)` returns _roles_ (`path`, `location`, `ruleId`, `severity`, `clean`, `failure`), each either an ANSI wrapper or the identity function — so the layout code never branches on whether colour is on. Only base SGR colours are used (cyan/yellow/red/bold-red, bold, dim, green): terminals remap those to their own theme, whereas 256-colour and truecolor values look right on one background and wrong on the other. **Colour is never the sole carrier of meaning** — the severity word is always printed, so `NO_COLOR` output loses nothing.
+
+One assumption worth knowing before rule messages ever become user-supplied (custom rules, message templates): a finding is one line because `Violation.message` cannot contain a newline in practice — core validates it only as a non-blank string, and every built-in rule interpolates regex-constrained identifiers or literals. If that changes, the message needs escaping here.
+
+Colour is decided from `CliIO` (`env`, `isTTY`), never read from `process` inside a command; `captureIO` in tests defaults to an empty environment and a non-terminal stdout, so no test inherits the developer's shell. stderr diagnostics stay plain — colour follows stdout, and the two streams can be redirected independently.
 
 ## How it runs: the `bin` wrapper and the loader
 
@@ -72,7 +88,7 @@ Tests bypass all of this — Vitest resolves TypeScript itself, so `run()` and e
 
 ## Maintenance notes
 
-- **`run(argv, io)` is the testable seam.** Every command is a pure function of its arguments plus an injected [`CliIO`](./src/io.ts) (`stdout`/`stderr`/`cwd`); `src/cli.ts` is the only module that touches `process`, and it is branch-free. Tests pass a capturing fake — no stream interception, no subprocesses.
+- **`run(argv, io)` is the testable seam.** Every command is a pure function of its arguments plus an injected [`CliIO`](./src/io.ts) (`stdout`/`stderr`/`cwd`/`env`/`isTTY`); `src/cli.ts` is the only module that touches `process`, and it is branch-free — the colour decision lives in `formatters/colour.ts` precisely so that entry point can stay that way. Tests pass a capturing fake — no stream interception, no subprocesses.
 - **commander's process exits are intercepted** with `exitOverride()`: help and version map to `0`, every other `CommanderError` (unknown command, missing argument) to `2`. Bare `argus` prints help via an explicit `outputHelp()` rather than a default action — with a default action, commander reports an unknown command as "too many arguments".
 - **One parser instance per scan process.** Grammar wasm cannot be freed (see `@argus/ast`), so the parser is constructed once and disposed in a `finally`.
 - **Paths anchor to the project root, not the invocation directory.** [`findProjectRoot`](./src/project-root.ts) walks up for the nearest `argus.yaml`/`argus.yml` (falling back to cwd), and that root is the base for both displayed paths and `ignore:` glob matching. Without this, a root config's `ignore:` globs silently stopped matching when the user ran `argus` from a subdirectory — an independent-review finding on the P2-02 PR, now covered by regression tests. The walk mirrors `ConfigLoader.search` using the same public `CONFIG_FILE_NAMES`, because the loader returns a merged config without reporting which file it came from.

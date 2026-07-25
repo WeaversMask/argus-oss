@@ -71,4 +71,21 @@ describe("run", () => {
     expect(await run(["check", "."], io)).toBe(1);
     expect(io.out()).toContain("docs/require-jsdoc");
   });
+
+  it("colours check output on a terminal, and --no-color turns it off", async () => {
+    const full = path.join(dir, "src/bad.ts");
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, "export function foo() {\n  return 1;\n}\n");
+
+    const escapes = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "u");
+
+    const terminal = captureIO(dir, { isTTY: true });
+    expect(await run(["check", "."], terminal)).toBe(1);
+    expect(terminal.out()).toMatch(escapes);
+
+    const suppressed = captureIO(dir, { isTTY: true });
+    expect(await run(["check", ".", "--no-color"], suppressed)).toBe(1);
+    expect(suppressed.out()).not.toMatch(escapes);
+    expect(suppressed.out()).toContain("docs/require-jsdoc");
+  });
 });
