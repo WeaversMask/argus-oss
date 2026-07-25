@@ -28,6 +28,8 @@ The two remaining P2 code tasks are **P2-05** (diff mode) and **P2-06** (auto-fi
 3. **`expect.any(String)` inside `toEqual` trips `@typescript-eslint/no-unsafe-assignment`** at this lint strictness. Assert the concrete value (test-built ids are derivable) or pull the field out first.
 4. **`THIRD-PARTY-NOTICES` was stale on `main`** — still `postcss 8.5.16` after #32's override to 8.5.18. Regenerated here. A dependency _override_ changes notices even though no dependency was added; `pnpm notices` after any override edit.
 5. **Zod 4 idiom:** `z.strictObject(...)` and `z.int()` (not `z.number().int()`), matching `@argus/config`. `.refine()` on a strict object still nests fine inside another schema.
+6. **A strict schema is a producer-side guarantee, not a consumer-side one.** The review caught the contradiction: with strict objects, "adding an optional field is backwards compatible" is false for anyone who _validates_ with the schema. `@argus/api-contracts` is now explicitly producer-conformance; a consumer that must survive additions checks `contractVersion` and parses permissively. Worth remembering before Phase 6 wires an HTTP client to it.
+7. **A rule that lives only in prose is not a rule.** "api-contracts depends on zod, never on core" was stated in four documents and enforced nowhere; `api-contracts-only-zod` now enforces it. When a PR describes a decision as load-bearing, ask what fails if someone reverses it.
 
 ## Evergreen (carried forward)
 
@@ -43,8 +45,8 @@ The two remaining P2 code tasks are **P2-05** (diff mode) and **P2-06** (auto-fi
 
 ## State of the system
 
-- ✅ Tests: **651 passing** (62 files), 0 failing. Aggregate coverage 98.07% lines / 94.52% branches
-- ✅ Lint, typecheck, build, boundaries clean at root; `@argus/cli` 94.9/86.1, `@argus/api-contracts` 100%
+- ✅ Tests: **656 passing** (63 files), 0 failing. Aggregate coverage 98.08% lines / 94.53% branches
+- ✅ Lint, typecheck, build, boundaries clean at root; `@argus/cli` 94.9/86.2, `@argus/api-contracts` 100%
 - ✅ Self-scan: `argus check apps/cli/src` and `argus check packages/api-contracts/src` → 0 violations
 - ✅ License gate green (569 packages, 4 exceptions); notices regenerated
 - ✅ Merged since the last handover: **#35** (P2-03), **#36** (D-8 filed as deferred)
