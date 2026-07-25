@@ -56,6 +56,14 @@ clean-history repo:
   artifacts, so the restructure in D-5's recommendation (extract the shared
   vitest config into a leaf package, then give core a normal build edge)
   must land **before** any build step is added.
+- **Re-run the full-tree audit at `high` and triage anything it finds:**
+  `pnpm audit --audit-level=high`. Since 2026-07-25 the CI gate blocks on
+  `high` only for the **shipped** tree (`--prod`) and on `critical` for
+  everything else (SECURITY-NOTES §6). That split is safe precisely because
+  nothing publishes today — at first publish the prod/dev boundary stops being
+  cosmetic and starts deciding what ships to users. Confirm here that every
+  dependency is classified correctly and that nothing dev-scoped is reachable
+  from a published artifact.
 - `NPM_TOKEN` secret (P0-09 admin item) — set at this moment, not before.
 
 ## Already replicated on this repo (2026-07-04 migration)

@@ -102,6 +102,45 @@ Configured in `pnpm-workspace.yaml`, enforced by pnpm ≥11 (pinned via `package
 
 **Adding a package that genuinely needs install scripts** (native builds etc.): review what the script does first, then add `pkg-name: true` under `allowBuilds` with a justification comment — never blanket-allow.
 
+### 6. Audit Gate Scope (2026-07-25)
+
+The CI `audit` job runs **two** gates, because shipped code and build tooling are not the same risk:
+
+| Tree                             | Packages | Blocks a merge on |
+| -------------------------------- | -------- | ----------------- |
+| Shipped (`--prod`)               | ~30      | high + critical   |
+| Full tree (dev tooling included) | ~570     | critical only     |
+
+```bash
+pnpm audit --prod --audit-level=high   # what reaches a user
+pnpm audit --audit-level=critical      # what can take over CI
+```
+
+**Why.** Between 2026-07-22 and 2026-07-24 the npm ecosystem published **4,000+ advisories** against a prior baseline of roughly 55–70 per week. Four of them blocked unrelated PRs here in a single week (postcss, brace-expansion ×2, js-yaml). Every one was a **dev-only transitive**, every one was rated **high**, and every one was CWE-400 resource exhaustion. None was reachable in shipped code.
+
+The old single gate (`--audit-level=high` over the full tree) makes a solo maintainer hand-write a `pnpm-workspace.yaml` override every few days for denial-of-service bugs in test tooling. A gate that fires constantly on things nobody can act on decays into a gate people route around with `SKIP=` — which is a worse security outcome than a narrower gate that is always meaningful.
+
+**Why `critical` is a real floor, not a token.** A pure DoS is arithmetically incapable of reaching critical: with `C:N/I:N` in the CVSS vector, the score ceiling is **7.5** even when the bug is remote, unauthenticated, and trivial to trigger (`AV:N/AC:L/PR:N/UI:N`) — that is the exact vector of the brace-expansion advisory that blocked us. Critical requires `C:H`/`I:H`: reading secrets, forging data, executing code. So this gate ignores the DoS churn by construction while still stopping anything that could take over a CI runner — which holds `TURBO_TOKEN`, `GITHUB_TOKEN`, and eventually publish credentials.
+
+**Residual risk, accepted deliberately.** This is a **loosening**, not a free win:
+
+- A high-severity dev-tool bug that is _not_ a DoS — an information disclosure or a path traversal held under 9.0 by some prerequisite — no longer blocks a merge. Dependabot still raises it; a human decides.
+- The prod/dev boundary is cosmetic today (everything is `private: true`, nothing publishes) and becomes **load-bearing at first publish**. A dependency misclassified as dev, or one pulled into a published bundle, would sit outside the blocking gate. Guarded by a pre-publish item in the [go-public runbook](./go-public-runbook.md).
+
+**What this does _not_ weaken.** `pnpm audit` only ever knew about disclosed CVEs in legitimate packages. Defence against a genuinely _malicious_ package is `minimumReleaseAge`, `allowBuilds: false`, and the committed lockfile (§5) — untouched by this change.
+
+**Detection is separate from blocking.** Dependabot alerts are enabled and fire when an advisory publishes, tagged `runtime` vs `development`; the weekly CI cron re-resolves pinned versions. This gate decides only what stops a merge. Note that Dependabot cannot _fix_ deep transitives (it bumps direct dependencies; it cannot author a pnpm `overrides` entry), so those pins stay manual.
+
+**Negative-tested when introduced** (2026-07-25) — a gate that scanned nothing would also be green, so both were proven to fire in throwaway projects:
+
+| Planted advisory                       | `--prod --audit-level=high` | `--audit-level=critical` |
+| -------------------------------------- | --------------------------- | ------------------------ |
+| `lodash@4.17.15` as a **prod** dep     | **exit 1** (blocks)         | —                        |
+| `lodash@4.17.15` as a **dev** dep      | exit 0 (by design)          | —                        |
+| `minimist@1.2.5` (critical) as dev dep | exit 0 (by design)          | **exit 1** (blocks)      |
+
+Re-run these if the flags or pnpm's exit semantics ever change.
+
 ---
 
 ## If You Accidentally Commit a Secret

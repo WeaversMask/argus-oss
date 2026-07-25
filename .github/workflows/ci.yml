@@ -182,8 +182,12 @@ jobs:
   # Stopgap public-advisory audit (P0-07). Catches the registry-indexed CVE
   # subset of supply-chain risk; explicitly NOT the comprehensive P11-02 audit
   # (typosquats, install-script/behavioural analysis, licensing) — replace or
-  # fold into that when it ships, not before. Not a branch-protection required
-  # check (same pending admin step as the other jobs, since P0-03).
+  # fold into that when it ships, not before.
+  #
+  # Detection is NOT this job's job: Dependabot alerts are enabled and fire when
+  # an advisory publishes, tagged runtime/development. This gate decides only
+  # what BLOCKS a merge; the weekly cron above re-resolves pinned versions.
+  # Scope split documented in docs/SECURITY-NOTES.md §"Audit Gate Scope".
   audit:
     name: Dependency audit (pnpm)
     runs-on: ubuntu-latest
@@ -203,12 +207,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # --audit-level is the exit threshold on pnpm 11 (verified 2026-07-03:
-      # high advisories → exit 1 at "high", exit 0 at "critical"): fails on
-      # high/critical only, moderate-and-below surface in the log without
-      # blocking (transitive dev-dep churn would otherwise be pure noise).
-      - name: pnpm audit (fail on high/critical)
-        run: pnpm audit --audit-level=high
+      # --audit-level is the exit threshold on pnpm 11 (verified 2026-07-03,
+      # re-verified 2026-07-25: high advisories → exit 1 at "high", exit 0 at
+      # "critical"). Moderate-and-below always surface in the log without
+      # blocking.
+      #
+      # Two gates, scoped by blast radius (2026-07-25 — rationale and the
+      # residual risk accepted are recorded in docs/SECURITY-NOTES.md
+      # §"Audit Gate Scope"). Shipped code and build tooling are not the same
+      # risk: ~30 packages reach a user, ~540 only ever run here.
+      - name: pnpm audit — shipped dependencies (fail on high/critical)
+        run: pnpm audit --prod --audit-level=high
+
+      # The dev tree still blocks on critical: a critical in a build tool means
+      # the CI runner itself can be taken over (it holds TURBO_TOKEN,
+      # GITHUB_TOKEN, and later publish credentials). A *pure* DoS cannot reach
+      # critical — with C:N/I:N the CVSS ceiling is 7.5 — so this stays immune
+      # to the resource-exhaustion advisories that dominate dev-tree churn while
+      # still stopping anything that can read or execute.
+      - name: pnpm audit — full tree (fail on critical)
+        run: pnpm audit --audit-level=critical
 
   # License-compliance gate (P0-12, ADR-0002 §G): SPDX allowlist over the full
   # third-party tree via scripts/check-licenses.mjs. Dev-tooling self-audit —
