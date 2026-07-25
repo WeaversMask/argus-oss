@@ -1,6 +1,7 @@
 import { Command, CommanderError, Option } from "commander";
 import { runCheck } from "./check.js";
 import { EXIT_ERROR, EXIT_OK } from "./exit-codes.js";
+import { runFix } from "./fix.js";
 import { DEFAULT_OUTPUT_FORMAT, OUTPUT_FORMATS } from "./formatters/render.js";
 import type { OutputFormat } from "./formatters/render.js";
 import { runExplain } from "./explain.js";
@@ -19,6 +20,11 @@ interface CheckFlags {
   readonly color: boolean;
   /** Constrained by `.choices()`, so no runtime validation is needed here. */
   readonly format: OutputFormat;
+}
+
+/** The flags commander hands `fix`'s action. */
+interface FixFlags {
+  readonly dryRun: boolean;
 }
 
 /** commander error codes that are successful terminations, not failures. */
@@ -80,6 +86,7 @@ function buildProgram(io: CliIO, outcome: Outcome): Command {
     .exitOverride();
 
   addCheckCommand(program, io, outcome);
+  addFixCommand(program, io, outcome);
 
   program
     .command("init")
@@ -125,5 +132,17 @@ function addCheckCommand(program: Command, io: CliIO, outcome: Outcome): void {
     )
     .action(async (target: string, options: CheckFlags) => {
       outcome.code = await runCheck(target, { colour: options.color, format: options.format }, io);
+    });
+}
+
+/** Declares `fix` and its flags — same attachment reasoning as `addCheckCommand`. */
+function addFixCommand(program: Command, io: CliIO, outcome: Outcome): void {
+  program
+    .command("fix")
+    .description("Apply safe fixes for violations that offer one")
+    .argument("[path]", "file or directory to fix", ".")
+    .option("--dry-run", "show what would change without writing files")
+    .action(async (target: string, options: FixFlags) => {
+      outcome.code = await runFix(target, { dryRun: options.dryRun === true }, io);
     });
 }

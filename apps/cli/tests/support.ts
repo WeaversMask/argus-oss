@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { filePath, layerName, position, ruleId, violation, violationId } from "@argus/core";
-import type { Severity, Violation } from "@argus/core";
+import type { Fix, Severity, Violation } from "@argus/core";
 import type { CliIO } from "../src/io.js";
 
 /** A {@link CliIO} that records everything written, for assertions. */
@@ -60,6 +60,8 @@ export interface ViolationSpec {
    * distinguished by an ordinal.
    */
   readonly id?: string;
+  /** A fix this violation carries, when a test needs one (P2-06). */
+  readonly fix?: Fix;
 }
 
 /**
@@ -84,6 +86,7 @@ export function makeViolation(spec: ViolationSpec): Violation {
     message: spec.message,
     position: pos,
     ...(spec.layer !== undefined ? { layer: layerName(spec.layer)._unsafeUnwrap() } : {}),
+    ...(spec.fix !== undefined ? { fix: spec.fix } : {}),
   })._unsafeUnwrap();
 }
 

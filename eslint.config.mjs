@@ -92,6 +92,14 @@ export default tseslint.config(
         Buffer: "readonly",
       },
     },
+    rules: {
+      // A `.cjs` file's entire point is CommonJS — the block above declares
+      // `require` a real global for exactly this reason. Banning the import
+      // style this extension exists to allow was never intentional; it just
+      // never came up before a `.cjs` config needed to require() a sibling
+      // (dependency-cruiser-rules.cjs, P2-06).
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
 
   prettier,

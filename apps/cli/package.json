@@ -2,7 +2,7 @@
   "name": "@argus/cli",
   "version": "0.0.0",
   "private": true,
-  "description": "Argus CLI — argus check | init | explain. The first runnable surface: composes config, parser, engine, and the built-in rules into real findings.",
+  "description": "Argus CLI — argus check | fix | init | explain. The first runnable surface: composes config, parser, engine, and the built-in rules into real findings (and, since P2-06, fixes).",
   "license": "UNLICENSED",
   "type": "module",
   "bin": {
@@ -16,6 +16,7 @@
     "clean": "rimraf coverage .turbo node_modules/.cache"
   },
   "dependencies": {
+    "@argus/adapters-prettier": "workspace:*",
     "@argus/api-contracts": "workspace:*",
     "@argus/ast": "workspace:*",
     "@argus/config": "workspace:*",
@@ -23,6 +24,7 @@
     "@argus/rule-engine": "workspace:*",
     "@argus/rules-builtin": "workspace:*",
     "commander": "15.0.0",
+    "magic-string": "0.30.21",
     "neverthrow": "8.2.0"
   },
   "devDependencies": {
