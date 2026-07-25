@@ -1,6 +1,7 @@
 export type { Brand } from "./brand.js";
 export { filePath, type FilePath } from "./file-path.js";
 export { finding, type Finding, type FindingInput } from "./finding.js";
+export { fix, type Fix } from "./fix.js";
 export {
   projectId,
   scanId,

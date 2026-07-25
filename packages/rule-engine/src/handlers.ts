@@ -8,6 +8,7 @@ import type { Result } from "neverthrow";
 import { RuleExecutionError, violation, violationId } from "@argus/core";
 import type {
   AstNode,
+  Fix,
   Position,
   RuleActivation,
   RuleId,
@@ -31,6 +32,7 @@ export interface CapturedReport {
   readonly severity: Severity;
   readonly message: string;
   readonly position: Position;
+  readonly fix?: Fix;
 }
 
 /** Node-type dispatch tables compiled from every active rule's listeners. */
@@ -226,6 +228,7 @@ function buildOneViolation(
     message: captured.message,
     position: captured.position,
     ...(input.layer !== undefined ? { layer: input.layer } : {}),
+    ...(captured.fix !== undefined ? { fix: captured.fix } : {}),
   });
   if (built.isErr()) {
     return err(

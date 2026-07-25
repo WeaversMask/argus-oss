@@ -5,6 +5,8 @@ import { ruleId } from "../../src/domain/rule.js";
 import { violation, type Violation } from "../../src/domain/violation.js";
 import { someFilePath, somePosition } from "../fixtures.js";
 
+const someFix = { position: somePosition(), replacement: "fixed();" };
+
 const base: Violation = {
   id: violationId("v-42")._unsafeUnwrap(),
   ruleId: ruleId("no-deep-nesting")._unsafeUnwrap(),
@@ -24,6 +26,23 @@ describe("violation", () => {
   it("keeps the layer when the file was classified", () => {
     const withLayer = violation({ ...base, layer: layerName("domain")._unsafeUnwrap() });
     expect(withLayer._unsafeUnwrap().layer).toBe("domain");
+  });
+
+  it("accepts a violation without a fix and leaves the key absent", () => {
+    const result = violation(base)._unsafeUnwrap();
+    expect("fix" in result).toBe(false);
+  });
+
+  it("keeps the fix when the rule offered one, frozen and re-validated", () => {
+    const withFix = violation({ ...base, fix: someFix })._unsafeUnwrap();
+    expect(withFix.fix).toEqual(someFix);
+    expect(Object.isFrozen(withFix.fix)).toBe(true);
+  });
+
+  it("re-validates an embedded fix literal, reporting issues under fix.*", () => {
+    const badFix = { position: { ...someFix.position, startLine: 0 }, replacement: "x" };
+    const error = violation({ ...base, fix: badFix })._unsafeUnwrapErr();
+    expect(error.issues.map((issue) => issue.path)).toEqual(["fix.position.startLine"]);
   });
 
   it("rejects a blank message", () => {

@@ -13,9 +13,9 @@
 
 ### In Progress
 
-| Task ID | Title | Assignee | Started | ETA |
-| ------- | ----- | -------- | ------- | --- |
-| _—_     | _—_   | _—_      | _—_     | _—_ |
+| Task ID | Title           | Assignee        | Started    | ETA |
+| ------- | --------------- | --------------- | ---------- | --- |
+| P2-06   | Auto-fix engine | claude-sonnet-5 | 2026-07-25 | _—_ |
 
 ### Blocked
 

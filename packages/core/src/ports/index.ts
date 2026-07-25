@@ -6,6 +6,7 @@ export {
   type ParsedFile,
 } from "./ast-parser.js";
 export type { DependencyResolverPort, FileDependencies } from "./dependency-resolver.js";
+export type { FormatterPort } from "./formatter.js";
 export type { NotificationPort, ScanEvent } from "./notification.js";
 export type { ProgressReporterPort } from "./progress-reporter.js";
 export type { ProjectRepositoryPort } from "./project-repository.js";

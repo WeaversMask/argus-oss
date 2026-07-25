@@ -245,6 +245,32 @@ describe("violations", () => {
     }
   });
 
+  it("threads an offered fix onto the violation, and omits the key when none was offered", async () => {
+    const engine = new Engine();
+    engine
+      .register(
+        moduleOf("flag-identifiers", (context: RuleContext) => ({
+          identifier: (node) => {
+            context.report({
+              message: `flagged ${node.text}`,
+              position: node.position,
+              ...(node.text === "x" ? { fix: { position: node.position, replacement: "z" } } : {}),
+            });
+          },
+        })),
+      )
+      ._unsafeUnwrap();
+
+    const violations = (
+      await engine.run(inputOf(declarationTree(), [activationOf("flag-identifiers")]))
+    )._unsafeUnwrap();
+
+    expect(violations).toHaveLength(2);
+    const [withFix, withoutFix] = violations;
+    expect(withFix!.fix).toEqual({ position: withFix!.position, replacement: "z" });
+    expect("fix" in withoutFix!).toBe(false);
+  });
+
   it("threads the input layer onto every violation, and omits it when unclassified", async () => {
     const engine = new Engine();
     reportEverything(engine);
