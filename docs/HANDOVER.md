@@ -1,64 +1,66 @@
-# Handover — P2-04 (JSON output formatter)
+# Handover — Dogfooding wiring
 
-**From:** claude-opus-5
+**From:** claude-sonnet-5
 **To:** next picker (Phase 2 continues)
 **Date:** 2026-07-25
-**Phase:** P2 — MVP (4/6+4) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** P2-04 — `argus check --format json` + `@argus/api-contracts` — **PR pending merge**
+**Phase:** P2 — MVP (4/6+4, dogfooding wiring done) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** Dogfooding wiring — repo-root `argus.yaml` + CI `dogfood` job — **PR pending merge**
 
 ---
 
 ## Context
 
-`argus check` now speaks to machines as well as people: `--format json` emits a single document on stdout, validated against a zod schema in the **new `@argus/api-contracts` package**. That package is the first piece of the wire format the API server (Phase 6) and web UI (Phase 7) will share, which is why it holds shapes and nothing else.
+CI now runs Argus on Argus: a repo-root `argus.yaml` (`ignore: ["**/tests/**", ".claude/**"]`) plus a new `dogfood` job in `.github/workflows/ci.yml` that runs `argus check . --format json` and fails the build on any violation, failure, or vacuous scan. `argus check .` at the repo root exits 0 with 0 violations across 135 tracked files.
 
-The two remaining P2 code tasks are **P2-05** (diff mode) and **P2-06** (auto-fix, the risky one), and the phase-exit **dogfooding wiring** is now the most valuable next move — a CI job can consume `--format json` instead of scraping text, and the maintainer has already ruled the hardest half of the `ignore:` design (test files are excluded; do not re-ask).
+Getting there was not just writing the ignore list. The first whole-repo scan (no config) found 191 violations; 153 were in `tests/` (test files, helpers, deliberately-invalid rule fixtures — exactly the maintainer's ruling), but **38 were real violations on production source**: missing JSDoc on 31 exports across `core/domain`, `ast`, `rules-builtin`; oversized functions in `config/loader.ts` and `rules-builtin`'s `max-nesting-depth` rule; a nesting violation in `scripts/check-licenses.mjs`; and four violations on one function — `rule-engine`'s `Engine.runSync` (complexity 20, 156 lines, nesting 5, file 309 lines). This repo's own precedent (P2-02, P2-04: self-scan finds something real, fix it in the same task) said fix, not ignore — so all 38 got fixed before the CI job was wired, meaning the gate starts at zero rather than red.
 
-## What P2-05/P2-06 and the dogfooding task inherit
+## What P2-05/P2-06 inherit
 
-1. **Adding a format is now a documented, one-file operation** — [`docs/dev/adding-a-report-formatter.md`](./dev/adding-a-report-formatter.md). `src/formatters/render.ts` owns `OUTPUT_FORMATS`; commander derives `--format`'s `.choices()` from it, so an unknown value is a usage error (exit 2) for free. Adding a flag is still `run(argv, io)` → `CheckOptions`, with `--no-color` and `--format` as the two worked examples.
-2. **The contract package deliberately does not depend on `@argus/core`.** A consumer of the wire format has no domain layer to import. The vocabularies are kept in step by a test where the mapping lives (`apps/cli/tests/formatters/json.test.ts` asserts core's `SEVERITIES` equals the schema's enum). If you find yourself importing core into `api-contracts`, that is the decision you are reversing.
-3. **stdout purity is a contract, not a courtesy.** Diagnostics go to stderr; a scan that matches no files now emits a valid zero-file document instead of exiting early. Anything you add to `check` must keep stdout parseable under `--format json`.
-4. **`ScanReport` (`src/report.ts`) is still the one shape every formatter renders.** `--diff` (P2-05) filters what goes into it; it should not grow a second report type.
+1. **The dogfood gate is real, not cosmetic.** It requires `filesScanned > 100` (not just exit 0) because a scan that matches nothing is a _successful_ zero-file scan by P2-04's own design — exit 0 alone can't tell "135 clean files" from "the ignore list ate everything". If you touch `argus.yaml`'s `ignore:` or the discovery path, re-run `node apps/cli/bin/argus.mjs check . --format json` locally and check `.summary.filesScanned` before pushing.
+2. **`rule-engine/src/engine.ts` is now a thin class; the dispatch/reporting machinery lives in `handlers.ts`.** `Engine.runSync` = compile → walk → build, ~11 lines. If you touch rule execution, read `handlers.ts`'s `registerListeners`/`walkAndCollect`/`buildViolations` — the walk itself (`walk()` from `./walk.js`) is untouched and must stay iterative (50k-deep test in `tests/perf/`).
+3. **neverthrow gotcha:** returning an `Err<T1, E>` from a function typed `Result<T2, E>` does not typecheck, even though at runtime an `Err` only carries `E`. Rewrap with `err(x.error)` at every such boundary — `engine.ts`/`handlers.ts` have four examples now.
 
 ## Gotchas this task discovered
 
-1. **commander subcommands built standalone lose the program's settings.** Extracting `check` into `new Command("check")` + `program.addCommand(...)` silently dropped `exitOverride`/`configureOutput`, so a bad `--format` value tried to call `process.exit` instead of returning exit 2. `program.command("check")` copies inherited settings; the extraction now takes the program as a parameter. The `--format` usage test is what caught it — keep that kind of test whenever a command moves.
-2. **Dogfooding found the regression before review did.** The new flag pushed `buildProgram` past `quality/max-function-length` (53 lines). Run `node apps/cli/bin/argus.mjs check apps/cli/src` before you push anything that touches the CLI — it is 2 seconds and it fires on your own code.
-3. **`expect.any(String)` inside `toEqual` trips `@typescript-eslint/no-unsafe-assignment`** at this lint strictness. Assert the concrete value (test-built ids are derivable) or pull the field out first.
-4. **`THIRD-PARTY-NOTICES` was stale on `main`** — still `postcss 8.5.16` after #32's override to 8.5.18. Regenerated here. A dependency _override_ changes notices even though no dependency was added; `pnpm notices` after any override edit.
-5. **Zod 4 idiom:** `z.strictObject(...)` and `z.int()` (not `z.number().int()`), matching `@argus/config`. `.refine()` on a strict object still nests fine inside another schema.
-6. **A strict schema is a producer-side guarantee, not a consumer-side one.** The review caught the contradiction: with strict objects, "adding an optional field is backwards compatible" is false for anyone who _validates_ with the schema. `@argus/api-contracts` is now explicitly producer-conformance; a consumer that must survive additions checks `contractVersion` and parses permissively. Worth remembering before Phase 6 wires an HTTP client to it.
-7. **A rule that lives only in prose is not a rule.** "api-contracts depends on zod, never on core" was stated in four documents and enforced nowhere; `api-contracts-only-zod` now enforces it. When a PR describes a decision as load-bearing, ask what fails if someone reverses it.
+1. **A stray local git worktree can pollute a self-scan without anyone noticing.** `.claude/worktrees/<name>/` (a Claude Code harness artifact, not repo content) added 13 extra files to a local `argus check .` — invisible in CI's fresh checkout, but confusing locally and a real gap in the ignore list. Now excluded (`.claude/**` in `argus.yaml`, `.claude/` in `.gitignore`). If a local self-scan count looks off, check for stray worktrees/dirs before trusting the number.
+2. **The CI exit-code-trust pattern has a hole the P2-04 review's own jq lesson didn't cover:** avoiding the pipe fixes "did the scan run," not "did the scan find anything." Both checks are needed. `jq -e '.summary.filesScanned > N' report.json > /dev/null` as its own step, after redirecting (never piping) the scan to a file.
+3. **TypeScript does not check `readonly` on index-signature types for assignability** — a function typed to take `Record<string, X>` silently accepts a `Readonly<Record<string, X>>` argument with no error, so a refactor can widen away a domain type's readonly-ness without any tooling catching it. Match the domain type exactly, don't accept a wider one just because it happens to compile.
+4. **A floating JSDoc block between imports and the first export attaches to nothing** — no doc tool associates it with the following export. A file-level comment either goes above the imports as a plain `//` block, or gets folded into the first export's doc.
 
 ## Evergreen (carried forward)
 
 - Root gates before every push (`pnpm lint && typecheck && build && test`); filtered runs bypass turbo's graph. `pnpm boundaries` too.
 - New package? The checklist: root `vitest.config.ts` projects entry · per-package `*-public-entry-only` cruiser rule **+ negative test** · `Dockerfile.dev` mkdir + compose named volume · README · `pnpm license-check` / `pnpm notices`.
 - prettier reflows Markdown tables — `pnpm exec prettier --write <files>` before staging.
-- commitlint header ≤100 chars; a failed commit leaves files staged.
 - `gh pr edit` fails here (projectCards GraphQL) — PATCH via `gh api`.
 - The CI review-pass gate reads the PR body frozen at trigger time — post review evidence as a comment and re-run the job.
 - `$?` after a pipe is the pipe's exit code — verify exit codes with a redirect, not a pipe.
-- **Bash CWD drifts** when a `cd` fails mid-session — prefer absolute paths.
 - Never `--no-verify`; scoped `SKIP=<gate>` with written justification only.
 
 ## State of the system
 
-- ✅ Tests: **656 passing** (63 files), 0 failing. Aggregate coverage 98.08% lines / 94.53% branches
-- ✅ Lint, typecheck, build, boundaries clean at root; `@argus/cli` 94.9/86.2, `@argus/api-contracts` 100%
-- ✅ Self-scan: `argus check apps/cli/src` and `argus check packages/api-contracts/src` → 0 violations
-- ✅ License gate green (569 packages, 4 exceptions); notices regenerated
-- ✅ Merged since the last handover: **#35** (P2-03), **#36** (D-8 filed as deferred)
+- ✅ Tests: **656 passing** (63 files), 0 failing. Aggregate coverage 98.09% lines / 94.59% branches
+- ✅ Lint, typecheck, build, boundaries, format:check clean at root
+- ✅ Self-scan: `argus check .` (repo root) → **0 violations, 0 failures, 135 files**
+- ✅ License gate green (569 packages, 4 exceptions); notices regenerated (no diff — already current)
+- ✅ Merged since the last handover: **#37** (P2-04)
+- ✅ Independent review (Opus, cross-family + escalated for the rule-engine touch): APPROVE WITH CHANGES — 1 HIGH (vacuous-scan gate hole) + 4 MEDIUM + 6 LOW, all addressed in-branch (fix commit on top of the feature commit)
+
+## Recommended next steps
+
+Pick up **P2-06** (auto-fix engine, riskiest of the phase) or **P2-05** (diff mode) — both unblocked, no hard ordering between them. Either way:
+
+1. Re-run `node apps/cli/bin/argus.mjs check .` before pushing — the dogfood gate is real now, not aspirational.
+2. If P2-06 lands: `argus fix` will be the CLI's first mutating command; round-trip safety needs the same obsessiveness as the phase doc says. If P2-05 lands: `--diff main` extraction is new territory (`packages/orchestrator/`, a package that doesn't exist yet).
 
 ## Open decisions / scope calls
 
-- **Dogfooding `ignore:` list** — test files are ruled out by the maintainer (2026-07-25); fixtures are obvious. What remains is writing it down in a repo-root `argus.yaml` and wiring the CI job.
-- **Global vs. subcommand flags.** `--no-color` and `--format` both belong to `check`, so they must follow the command name. A global-flag pass is still unclaimed work.
+- **Ratchet vs. absolute zero.** `quality-gates.md`'s Dogfooding Gate section describes an eventual ratchet (existing-violation count can't increase); the actual gate is absolute-zero, which trivially satisfies that but isn't the same mechanism. Revisit only if the zero bar is ever knowingly relaxed.
+- **`dogfood` is not yet a branch-protection required check** — same maintainer admin step as `boundaries`/`license`/`review-gate` (P0-03 bucket).
 - D-1, D-5, D-6, D-8 unchanged — see IMPLEMENTATION.md. D-8 (CLI packaging) is deferred past Phase 2 by the maintainer.
 
 ## Sign-off
 
-Argus's findings are now a data structure with a published schema, not just text on a terminal — everything downstream in the roadmap consumes that. Point the next task at the dogfooding wiring and the CI job can read it directly.
+Argus now enforces its own quality bar in CI, at zero violations, on its own hot-path code — not just the parts it was easy to keep clean. P2-05 and P2-06 are both ready to pick up.
 
-— claude-opus-5
+— claude-sonnet-5
