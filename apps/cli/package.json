@@ -1,0 +1,35 @@
+{
+  "name": "@argus/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Argus CLI — argus check | init | explain. The first runnable surface: composes config, parser, engine, and the built-in rules into real findings.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "argus": "./bin/argus.mjs"
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "start": "node bin/argus.mjs",
+    "clean": "rimraf coverage .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@argus/ast": "workspace:*",
+    "@argus/config": "workspace:*",
+    "@argus/core": "workspace:*",
+    "@argus/rule-engine": "workspace:*",
+    "@argus/rules-builtin": "workspace:*",
+    "commander": "15.0.0",
+    "neverthrow": "8.2.0"
+  },
+  "devDependencies": {
+    "@argus/testing": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.9",
+    "rimraf": "^5.0.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

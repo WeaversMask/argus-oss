@@ -19,7 +19,7 @@ osv-scanner) are not npm dependencies and are never distributed with
 Argus — users install them separately. See README "External tools /
 Prerequisites" and ADR-0002 §A/§B.
 
-Snapshot: 2026-07-23 · pnpm 11.5.3 · darwin-arm64 · 502 packages, 14 licenses
+Snapshot: 2026-07-24 · pnpm 11.5.3 · darwin-arm64 · 502 packages, 14 licenses
 Platform-specific binary packages (e.g. lightningcss-<platform>) vary with
 the host that generated this file.
 
