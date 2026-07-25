@@ -129,6 +129,36 @@ module.exports = {
       },
     },
     {
+      name: "api-contracts-only-zod",
+      severity: "error",
+      comment:
+        "packages/api-contracts/src may import only itself and zod. The wire " +
+        "contract is meant to be adoptable ALONE — a consumer of the JSON " +
+        "format (CI script, HTTP client, browser) has no domain layer — so an " +
+        "import of @argus/core, however tidy it looks, reverses the decision " +
+        "the package exists for. The domain and the contract agree by test " +
+        "(apps/cli/tests/formatters/json.test.ts), not by dependency. " +
+        "Trailing slash per the core-only-neverthrow lesson: without it this " +
+        "is a substring match and node_modules/zod-anything slips through.",
+      from: { path: "^packages/api-contracts/src" },
+      to: {
+        pathNot: ["^packages/api-contracts/src", "node_modules/zod/"],
+      },
+    },
+    {
+      name: "api-contracts-public-entry-only",
+      severity: "error",
+      comment:
+        "@argus/api-contracts exports only '.' — imports from outside the " +
+        "package must land on src/index.ts. Anything else is a deep import " +
+        "into internals.",
+      from: { pathNot: "^packages/api-contracts/" },
+      to: {
+        path: "^packages/api-contracts/",
+        pathNot: "^packages/api-contracts/src/index\\.ts$",
+      },
+    },
+    {
       name: "no-cross-package-deep-imports",
       severity: "error",
       comment:

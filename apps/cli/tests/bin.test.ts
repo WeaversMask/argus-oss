@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { scanReportSchema } from "@argus/api-contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { tempDir } from "./support.js";
 
@@ -91,6 +92,20 @@ describe("bin/argus.mjs", () => {
 
     const suppressed = argus(["check", ".", "--no-color"], dir, { FORCE_COLOR: "1" });
     expect(suppressed.stdout).toBe(plain.stdout);
+  });
+
+  it("emits parseable JSON on stdout even when the environment forces colour", () => {
+    mkdirSync(path.join(dir, "src"), { recursive: true });
+    writeFileSync(path.join(dir, "src/bad.ts"), "export function foo() {\n  return 1;\n}\n");
+
+    // The end-to-end guarantee a `argus check . --format json | jq` pipeline
+    // depends on: one document, nothing else, whatever the shell exports.
+    const result = argus(["check", ".", "--format", "json"], dir, { FORCE_COLOR: "1" });
+    expect(result.status).toBe(1);
+    expect(result.stdout).not.toMatch(ANSI);
+
+    const payload: unknown = JSON.parse(result.stdout);
+    expect(scanReportSchema.parse(payload).violations[0]?.ruleId).toBe("docs/require-jsdoc");
   });
 
   it("renders per-command help (exit 0)", () => {

@@ -44,16 +44,20 @@ TreeSitterAstParser.parse() @argus/ast      → ParsedFile per file (one parser 
         ↓
 Engine + Runner.runAll()   @argus/rule-engine → violations + per-file failures
         ↓
-formatConsoleReport()      this app         → stdout text, then an exit code
+renderReport()             this app         → stdout text, then an exit code
 ```
 
 **Default rule posture:** with no config, every rule in `builtinRules` runs at its own `defaultSeverity`, so a fresh `argus check .` finds things immediately. Config overrides severity and options per rule id, including `off` (kept in the activation list so what was explicitly disabled stays visible; the engine skips it). A configured id matching no built-in rule is a hard error, never a silent no-op.
 
-**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05) and JSON output (P2-04) are separate follow-ups.
+**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05) is a separate follow-up.
+
+A path with nothing scannable under it is a **successful scan of zero files**, not an early exit: the notice goes to stderr and the pipeline still renders a report, so `--format json` can never hand a consumer an empty stream for a scan that succeeded.
 
 ## Output: the formatters
 
 [`src/report.ts`](./src/report.ts) holds the shape every formatter renders — `violations`, `failures`, `filesScanned`. `failures` travels _inside_ the report on purpose: a formatter that drops it would let a partial scan read as a clean one.
+
+[`src/formatters/render.ts`](./src/formatters/render.ts) is the single place a format is chosen: it owns `OUTPUT_FORMATS` (which commander turns into `--format`'s `.choices()`, so an unknown format is a usage error rather than a silent fallback) and dispatches to one formatter. Commands never see the format list.
 
 [`src/formatters/console.ts`](./src/formatters/console.ts) renders one finding per line — `line:col  severity  message  rule-id` — grouped under a file header, with locations right-aligned per file and the severity column padded to the widest severity actually present. Padding is applied to the visible text _before_ styling, so escapes can never distort alignment (a test asserts the coloured render equals the plain one once escapes are stripped).
 
@@ -61,6 +65,8 @@ formatConsoleReport()      this app         → stdout text, then an exit code
 
 - **The decision.** `shouldUseColour({ env, isTTY, allowed })`, most specific signal first: `--no-color` → `FORCE_COLOR` (when set, it decides both ways: `0` off, anything else on) → `NO_COLOR` (non-empty, per [no-color.org](https://no-color.org)) → `TERM=dumb` → whether stdout is a terminal. `FORCE_COLOR` deliberately outranks `NO_COLOR` so a per-invocation override beats a shell-profile default. `--no-color` is declared on `check` rather than on the program, so it follows the command name.
 - **The palette.** `stylesFor(colour)` returns _roles_ (`path`, `location`, `ruleId`, `severity`, `clean`, `failure`), each either an ANSI wrapper or the identity function — so the layout code never branches on whether colour is on. Only base SGR colours are used (cyan/yellow/red/bold-red, bold, dim, green): terminals remap those to their own theme, whereas 256-colour and truecolor values look right on one background and wrong on the other. **Colour is never the sole carrier of meaning** — the severity word is always printed, so `NO_COLOR` output loses nothing.
+
+[`src/formatters/json.ts`](./src/formatters/json.ts) renders the machine-readable document defined by [`@argus/api-contracts`](../../packages/api-contracts/README.md) — the same `ScanReport`, serialised to the published wire shape and validated against `scanReportSchema` in tests. Three properties are load-bearing: the file is **hoisted** out of the position onto the violation (a consumer keys by file, and repeating the path in every range is noise); violations are sorted by file → position → rule id, so unchanged sources re-serialise byte-identically; and **JSON is never coloured** — `shouldUseColour` is consulted only on the console path, which is why the colour decision needs no JSON-shaped exception inside it.
 
 One assumption worth knowing before rule messages ever become user-supplied (custom rules, message templates): a finding is one line because `Violation.message` cannot contain a newline in practice — core validates it only as a non-blank string, and every built-in rule interpolates regex-constrained identifiers or literals. If that changes, the message needs escaping here.
 
@@ -82,7 +88,7 @@ Tests bypass all of this — Vitest resolves TypeScript itself, so `run()` and e
 
 ## How it fits
 
-- **Depends on:** `@argus/core` (domain types, `matchGlob`), `@argus/config`, `@argus/ast`, `@argus/rule-engine`, `@argus/rules-builtin`, `commander` (arg parsing, MIT, zero runtime deps), `neverthrow`.
+- **Depends on:** `@argus/core` (domain types, `matchGlob`), `@argus/config`, `@argus/ast`, `@argus/rule-engine`, `@argus/rules-builtin`, `@argus/api-contracts` (the JSON wire shape), `commander` (arg parsing, MIT, zero runtime deps), `neverthrow`.
 - **Dev-depends on:** `@argus/testing` (vitest config).
 - **Consumed by:** nothing — it is the outermost layer.
 

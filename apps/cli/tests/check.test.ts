@@ -1,12 +1,16 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { scanReportSchema } from "@argus/api-contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runCheck } from "../src/check.js";
 import type { CheckOptions } from "../src/check.js";
 import { captureIO, tempDir } from "./support.js";
 
 /** What `check` gets with no flags — captureIO is not a TTY, so output is plain. */
-const DEFAULT_OPTIONS: CheckOptions = { colour: true };
+const DEFAULT_OPTIONS: CheckOptions = { colour: true, format: "console" };
+
+/** The same run, asked for machine-readable output. */
+const JSON_OPTIONS: CheckOptions = { colour: true, format: "json" };
 
 const UNDOCUMENTED_FN = "export function foo() {\n  return 1;\n}\n";
 const CLEAN = "export const value = 1;\n";
@@ -151,6 +155,49 @@ describe("runCheck", () => {
     const io = captureIO(path.join(dir, "packages/foo"));
     expect(await runCheck(".", DEFAULT_OPTIONS, io)).toBe(1);
     expect(io.out()).toContain("packages/foo/src/bad.ts");
+  });
+
+  it("emits a contract-valid document under --format json", async () => {
+    write("src/bad.ts", UNDOCUMENTED_FN);
+    write("src/clean.ts", CLEAN);
+    const io = captureIO(dir);
+
+    expect(await runCheck(".", JSON_OPTIONS, io)).toBe(1);
+
+    // Parsed and validated the way a downstream consumer would, straight off
+    // the real pipeline rather than a hand-built report.
+    const payload = scanReportSchema.parse(JSON.parse(io.out()));
+    expect(payload.summary.filesScanned).toBe(2);
+    expect(payload.violations).toHaveLength(1);
+    expect(payload.violations[0]?.ruleId).toBe("docs/require-jsdoc");
+    expect(payload.violations[0]?.file).toBe("src/bad.ts");
+  });
+
+  it("keeps stdout a single JSON document when a file could not be analysed", async () => {
+    write(
+      "argus.yaml",
+      "rules:\n  quality/max-function-length:\n    severity: warning\n    options:\n      max: 0\n",
+    );
+    write("src/a.ts", UNDOCUMENTED_FN);
+    const io = captureIO(dir);
+
+    expect(await runCheck(".", JSON_OPTIONS, io)).toBe(2);
+
+    const payload = scanReportSchema.parse(JSON.parse(io.out()));
+    expect(payload.failures).toHaveLength(1);
+    expect(payload.failures[0]?.file).toBe("src/a.ts");
+    // The human-readable note goes to stderr, so it cannot corrupt the document.
+    expect(io.err()).toContain("failed to analyse src/a.ts");
+  });
+
+  it("reports a scan of zero files as a valid empty document", async () => {
+    write("notes.md", "# notes\n");
+    const io = captureIO(dir);
+
+    expect(await runCheck(".", JSON_OPTIONS, io)).toBe(0);
+    const payload = scanReportSchema.parse(JSON.parse(io.out()));
+    expect(payload.summary.filesScanned).toBe(0);
+    expect(io.err()).toContain("no matching source files");
   });
 
   it("skips files matched by a config ignore glob", async () => {
