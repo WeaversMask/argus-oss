@@ -142,7 +142,7 @@ argus: fixed 2 violations across 1 file
 
 **A rule offers a fix only when it can _prove_ the edit is safe for that specific case.** `import-order`'s fixer declines — reporting the violation with no fix, for you to resolve by hand — when:
 
-- a **comment sits inside** the block of imports it would reorder, or abuts it on the first or last import's own line (comments are separate nodes in this grammar, so a reorder would leave the comment behind, describing a different import);
+- a **comment sits inside** the block of imports it would reorder, or **touches it with no blank line between** — on the first/last import's own line, or the line directly above or below (comments are separate nodes in this grammar, so a reorder would leave the comment behind, describing a different import). The line directly above matters most: that is where line-scoped directives live (`// eslint-disable-next-line`, `// @ts-expect-error`, `// biome-ignore`, `// prettier-ignore`), and reordering under one moves a suppression onto an import that never needed it. Put a blank line between a comment and your imports and the block becomes fixable again;
 - **two imports share a line** (nothing captures the text that belonged between them);
 - any import is **side-effect-only** (`import "./polyfill.js";`) — its whole contract is _when_ it runs relative to the others, so moving it between groups is exactly the change that breaks it;
 - a **non-import statement** interrupts the block.
@@ -225,9 +225,11 @@ Designed for CI: a non-zero exit fails the job, and `1` versus `2` distinguishes
 | ---- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `0`  | Success — no violations found. Also `--help`, `--version`, `init`, a successful `explain`, and a scan that matched no files | No violations remain (real run) / nothing would change (`--dry-run`) |
 | `1`  | Violations were found                                                                                                       | Violations remain (real run) / something would change (`--dry-run`)  |
-| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, or a file it could not parse | Same as `check` — nothing is written when a scan can't complete      |
+| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, or a file it could not parse | Every `check` case, plus a file whose fix could not be written       |
 
 If some files could not be analysed, `check` reports each one on stderr, notes the count in the summary, and exits `2` even when the files it _could_ read were clean — an incomplete scan never reports itself as a pass.
+
+**What `fix` guarantees about partial runs.** Nothing is written when the _analysis_ can't complete: every file's fixed text is computed and formatted before anything touches disk, so a parse, rule, or Prettier failure on any file means no file is modified at all. A write that fails for an environmental reason — a read-only file, a full disk — is different, and `fix` does not pretend otherwise: it reports that file on stderr (`argus: failed to write …`), writes the rest, prints the usual summary of what did land, and exits `2`. So exit `2` from `fix` means "the run is incomplete, check stderr for what was applied", never "the tree is untouched".
 
 ## Global flags
 
