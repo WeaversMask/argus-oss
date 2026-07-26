@@ -113,7 +113,7 @@ export const importOrder: RuleModule = defineRule(
         return;
       }
 
-      const blockFix = computeBlockFix(entries);
+      const blockFix = computeBlockFix(node, entries);
       for (const { entry, requiredBefore } of toReport) {
         context.report({
           message: `Import "${entry.source}" (${GROUP_LABEL[entry.group]}) must come before ${GROUP_LABEL[requiredBefore]}.`,
@@ -130,8 +130,8 @@ export const importOrder: RuleModule = defineRule(
 );
 
 /**
- * A whole-block reordering fix, when it is provably safe. Two conditions
- * gate it, both required because a rule sees only the AST (`AstNode` never
+ * A whole-block reordering fix, when it is provably safe. Four conditions
+ * gate it, all required because a rule sees only the AST (`AstNode` never
  * exposes raw source or byte offsets — P1-03 scope limit) and must
  * reconstruct inter-statement whitespace from line numbers alone:
  *
@@ -141,7 +141,19 @@ export const importOrder: RuleModule = defineRule(
  *    comment sitting between two imports would be silently stranded in its
  *    original spot if the statements moved around it. Declining here is what
  *    keeps the "never destroys comments" bar honest.
- * 2. **One import per line:** every adjacent pair must be on different
+ * 2. **No comment abutting the block on the first or last import's own
+ *    line.** Such a comment sits *outside* the `[first, last]` window
+ *    condition 1 checks, so contiguity alone lets the block reorder out from
+ *    under it — the comment is not destroyed, but it silently ends up
+ *    describing a different import, which is the same harm (independent
+ *    review, #39 HIGH-3 — reproduced both leading and trailing).
+ * 3. **No side-effect-only import** (`import "./polyfill.js";` — an
+ *    `import_statement` with a source but no `import_clause`). Its entire
+ *    contract is *when* it runs relative to the other imports, so moving it
+ *    across a group boundary is precisely the change that breaks it. The
+ *    "we only move between groups, never within" argument is inverted for
+ *    these (review #39 MEDIUM-1 — reproduced).
+ * 4. **One import per line:** every adjacent pair must be on different
  *    lines. The gap between two imports is reconstructed as
  *    `"\n".repeat(nextStartLine - prevEndLine)` — exact for one-per-line
  *    code (and it faithfully preserves existing blank-line grouping, not
@@ -154,7 +166,7 @@ export const importOrder: RuleModule = defineRule(
  * than there are imports, so gaps belong to slots in the sequence, not to
  * the statements passing through them.
  */
-function computeBlockFix(entries: readonly ImportEntry[]): Fix | undefined {
+function computeBlockFix(program: AstNode, entries: readonly ImportEntry[]): Fix | undefined {
   const first = entries[0];
   const last = entries[entries.length - 1];
   if (first === undefined || last === undefined) {
@@ -166,38 +178,85 @@ function computeBlockFix(entries: readonly ImportEntry[]): Fix | undefined {
   if (last.childIndex - first.childIndex !== entries.length - 1) {
     return undefined; // something else sits between the first and last import
   }
+  if (abuttingComment(program, first, last)) {
+    return undefined; // a comment on the block's own first/last line would be left behind
+  }
+  if (entries.some((entry) => isSideEffectOnly(entry.node))) {
+    return undefined; // reordering a bare `import "…"` changes evaluation order
+  }
+  const gapLines = measureGaps(entries, first);
+  if (gapLines === undefined) {
+    return undefined; // two imports share a line — gap isn't reconstructible
+  }
+
+  return fix({
+    position: spanning(first.node.position, last.node.position),
+    replacement: reorderedText(entries, gapLines),
+  })._unsafeUnwrap();
+}
+
+/**
+ * Blank-line counts separating each adjacent pair, or `undefined` if any pair
+ * shares a line. One shorter than `entries`: gaps belong to the slots between
+ * imports, not to the imports themselves.
+ */
+function measureGaps(entries: readonly ImportEntry[], first: ImportEntry): number[] | undefined {
   const gapLines: number[] = [];
   let previous = first;
   for (const entry of entries.slice(1)) {
     const lines = entry.node.position.startLine - previous.node.position.endLine;
     if (lines < 1) {
-      return undefined; // two imports share a line — gap isn't reconstructible
+      return undefined;
     }
     gapLines.push(lines);
     previous = entry;
   }
+  return gapLines;
+}
 
-  const sorted = [...entries].sort((a, b) => a.group - b.group);
-  const replacement = sorted
+/** The block rewritten in group order, reusing each gap in its original slot. */
+function reorderedText(entries: readonly ImportEntry[], gapLines: readonly number[]): string {
+  return [...entries]
+    .sort((a, b) => a.group - b.group)
     .map((entry, i) => {
       if (i === 0) {
         return entry.node.text;
       }
       const gap = gapLines[i - 1];
       if (gap === undefined) {
-        // Unreachable by construction: gapLines has exactly entries.length -
-        // 1 entries (one per adjacent original pair) and sorted has the same
-        // length as entries, so every i >= 1 has a corresponding gap.
+        // Unreachable by construction: gapLines has exactly entries.length - 1
+        // members (one per adjacent original pair) and the sorted list has the
+        // same length as entries, so every i >= 1 has a corresponding gap.
         throw new Error("internal: import-order fix gap/entry count mismatch");
       }
       return "\n".repeat(gap) + entry.node.text;
     })
     .join("");
+}
 
-  return fix({
-    position: spanning(first.node.position, last.node.position),
-    replacement,
-  })._unsafeUnwrap();
+/**
+ * True when a comment sits immediately before the block and ends on the first
+ * import's line, or immediately after it and starts on the last import's line
+ * — i.e. reads as annotating that specific import. Such a comment is outside
+ * the contiguity window, so the block would otherwise reorder out from under
+ * it and leave it describing a different statement.
+ */
+function abuttingComment(program: AstNode, first: ImportEntry, last: ImportEntry): boolean {
+  const before = program.children[first.childIndex - 1];
+  if (before?.nodeType === "comment" && before.position.endLine === first.node.position.startLine) {
+    return true;
+  }
+  const after = program.children[last.childIndex + 1];
+  return after?.nodeType === "comment" && after.position.startLine === last.node.position.endLine;
+}
+
+/**
+ * True for a bare `import "./x.js";` — the grammar gives it a `source` but no
+ * `import_clause` (verified against the pinned TS/JS grammars: every binding
+ * form, `import type` included, carries one).
+ */
+function isSideEffectOnly(importStatement: AstNode): boolean {
+  return !importStatement.children.some((child) => child.nodeType === "import_clause");
 }
 
 function importSource(importStatement: AstNode): string | undefined {

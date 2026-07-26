@@ -81,7 +81,7 @@ describe("run", () => {
 
     const io = captureIO(dir);
     expect(await run(["fix", "."], io)).toBe(0);
-    expect(io.out()).toContain("fixed 1 violation");
+    expect(io.err()).toContain("fixed 1 violation");
   });
 
   it("routes --format json to the machine-readable formatter", async () => {

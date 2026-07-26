@@ -2,7 +2,15 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrettierFormatter } from "@argus/adapters-prettier";
 import { TreeSitterAstParser } from "@argus/ast";
-import type { FilePath, FormatterPort, RuleRunInput, Violation } from "@argus/core";
+import type {
+  AstParserPort,
+  FilePath,
+  FormatterPort,
+  Language,
+  RuleActivation,
+  RuleRunnerPort,
+  Violation,
+} from "@argus/core";
 import { Runner } from "@argus/rule-engine";
 import type { FileRunFailure } from "@argus/rule-engine";
 import { applyFixes } from "./apply-fixes.js";
@@ -11,6 +19,7 @@ import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
 import type { CliIO } from "./io.js";
 import type { ScanFailure } from "./report.js";
 import { buildEngine, parseAll, planScan } from "./scan.js";
+import type { ParseOutcome } from "./scan.js";
 
 /** Invocation-level presentation choice for `fix`. */
 export interface FixOptions {
@@ -67,20 +76,22 @@ export async function runFix(rawPath: string, options: FixOptions, io: CliIO): P
       return EXIT_ERROR;
     }
 
-    const outcome = await fixAllFiles(
-      parsed.inputs,
-      summary.violations,
-      formatter,
-      plan.projectRoot,
-      options,
-      io,
-    );
-    if (typeof outcome === "number") {
-      return outcome;
+    // Two phases, deliberately: every edit is computed and every formatter
+    // call made BEFORE anything touches disk. Writing as we went left files
+    // already rewritten when a later file failed, contradicting the documented
+    // "nothing is written when a scan can't complete" (review #39 HIGH-2).
+    const planned = await planFixes(parsed, summary.violations, formatter, io);
+    if (planned === undefined) {
+      return EXIT_ERROR;
     }
 
-    const remaining = summary.violations.filter((v) => !outcome.resolvedIds.has(v.id)).length;
-    io.stdout(
+    const outcome = await commitFixes(planned, plan.projectRoot, options, io);
+
+    // Re-derived from the fixed text, never from "how many splices did we
+    // attempt". A fixer that produces a non-resolving edit would otherwise
+    // let exit 0 assert a clean repo it never checked (review #39 MEDIUM-5).
+    const remaining = await countRemaining(planned, summary.violations, parser, engine);
+    io.stderr(
       summaryLine(outcome.resolvedIds.size, outcome.filesChanged, remaining, options.dryRun),
     );
 
@@ -115,88 +126,127 @@ interface FixAllOutcome {
   readonly filesChanged: number;
 }
 
-/** Runs `fixFile` over every parsed input that has at least one violation. */
-async function fixAllFiles(
-  inputs: readonly RuleRunInput[],
-  violations: readonly Violation[],
-  formatter: FormatterPort,
-  projectRoot: string,
-  options: FixOptions,
-  io: CliIO,
-): Promise<FixAllOutcome | number> {
-  const violationsByFile = groupByFile(violations);
-  const resolvedIds = new Set<string>();
-  let filesChanged = 0;
-
-  for (const input of inputs) {
-    const violationsForFile = violationsByFile.get(input.parsed.file);
-    if (violationsForFile === undefined) {
-      continue;
-    }
-    const result = await fixFile(
-      input.parsed.file,
-      input.parsed.root.text,
-      violationsForFile,
-      formatter,
-      projectRoot,
-      options,
-      io,
-    );
-    if (result === undefined) {
-      return EXIT_ERROR;
-    }
-    for (const id of result.resolvedIds) {
-      resolvedIds.add(id);
-    }
-    if (result.changed) {
-      filesChanged += 1;
-    }
-  }
-
-  return { resolvedIds, filesChanged };
-}
-
-interface FileFixResult {
+/** One file whose fixed text is computed and ready to write or diff. */
+interface PlannedFix {
+  readonly file: FilePath;
+  readonly language: Language;
+  readonly before: string;
+  readonly after: string;
   readonly resolvedIds: ReadonlySet<string>;
-  readonly changed: boolean;
+  readonly activations: readonly RuleActivation[];
 }
 
 /**
- * Applies and formats one file's fixes; writes it (or diffs it, under
- * `--dry-run`) if anything actually changed. `undefined` only when Prettier
- * itself failed — the one error this function can't route around.
+ * Violations still outstanding once this run's edits are applied: every
+ * violation in a file nothing touched, plus whatever a fresh run over each
+ * fixed file's text still reports.
+ *
+ * Measured, not inferred. Counting "violations whose fix we spliced" assumes
+ * every splice resolved what it claimed to, which is exactly the assumption
+ * that let a corrupting edit report success (review #39 HIGH-1/MEDIUM-5). A
+ * file that no longer parses, or that fails its re-run, keeps its original
+ * violation count rather than silently reporting zero.
  */
-async function fixFile(
-  file: FilePath,
-  originalSource: string,
-  violationsForFile: readonly Violation[],
+async function countRemaining(
+  planned: readonly PlannedFix[],
+  violations: readonly Violation[],
+  parser: AstParserPort,
+  engine: RuleRunnerPort,
+): Promise<number> {
+  const changed = new Set(planned.map((entry) => entry.file));
+  let remaining = violations.filter((v) => !changed.has(v.position.file)).length;
+
+  for (const entry of planned) {
+    const before = violations.filter((v) => v.position.file === entry.file).length;
+    const reparsed = await parser.parse(entry.file, entry.after, entry.language);
+    if (reparsed.isErr()) {
+      remaining += before;
+      continue;
+    }
+    const rerun = await engine.run({ parsed: reparsed.value, activations: entry.activations });
+    remaining += rerun.isOk() ? rerun.value.length : before;
+  }
+
+  return remaining;
+}
+
+/**
+ * Phase one: compute every file's fixed text, touching no disk. Returns
+ * `undefined` once any file fails to format — nothing has been written at
+ * that point, so the caller can abort cleanly.
+ */
+async function planFixes(
+  parsed: ParseOutcome,
+  violations: readonly Violation[],
   formatter: FormatterPort,
+  io: CliIO,
+): Promise<PlannedFix[] | undefined> {
+  const violationsByFile = groupByFile(violations);
+  const planned: PlannedFix[] = [];
+
+  for (const input of parsed.inputs) {
+    const file = input.parsed.file;
+    const violationsForFile = violationsByFile.get(file);
+    if (violationsForFile === undefined) {
+      continue;
+    }
+    // The exact bytes read from disk — never `input.parsed.root.text`, which
+    // omits leading trivia and would shift every offset (see ParseOutcome).
+    const before = parsed.sources.get(file);
+    if (before === undefined) {
+      // Unreachable: parseAll records a source for every input it emits.
+      io.stderr(`argus: internal error: no source recorded for ${file}\n`);
+      return undefined;
+    }
+
+    const spliced = applyFixes(before, violationsForFile);
+    if (spliced.resolvedViolationIds.size === 0) {
+      continue; // nothing in this file could be fixed
+    }
+
+    const formatted = await formatter.format(spliced.result, file);
+    if (formatted.isErr()) {
+      io.stderr(`argus: failed to format ${file}: ${formatted.error.message}\n`);
+      return undefined;
+    }
+    if (formatted.value === before) {
+      continue; // fix + format round-tripped to a no-op
+    }
+
+    planned.push({
+      file,
+      language: input.parsed.language,
+      before,
+      after: formatted.value,
+      resolvedIds: spliced.resolvedViolationIds,
+      activations: input.activations,
+    });
+  }
+
+  return planned;
+}
+
+/** Phase two: write every planned fix (or, under `--dry-run`, diff it). */
+async function commitFixes(
+  planned: readonly PlannedFix[],
   projectRoot: string,
   options: FixOptions,
   io: CliIO,
-): Promise<FileFixResult | undefined> {
-  const spliced = applyFixes(originalSource, violationsForFile);
-  if (spliced.resolvedViolationIds.size === 0) {
-    return { resolvedIds: spliced.resolvedViolationIds, changed: false }; // nothing here could be fixed
+): Promise<FixAllOutcome> {
+  const resolvedIds = new Set<string>();
+
+  for (const entry of planned) {
+    if (options.dryRun) {
+      io.stdout(unifiedDiff(entry.file, entry.before, entry.after));
+    } else {
+      await writeFile(path.resolve(projectRoot, entry.file), entry.after, "utf8");
+    }
+    for (const id of entry.resolvedIds) {
+      resolvedIds.add(id);
+    }
   }
 
-  const formatted = await formatter.format(spliced.result, file);
-  if (formatted.isErr()) {
-    io.stderr(`argus: failed to format ${file}: ${formatted.error.message}\n`);
-    return undefined;
-  }
-
-  const finalSource = formatted.value;
-  if (finalSource === originalSource) {
-    return { resolvedIds: spliced.resolvedViolationIds, changed: false }; // fix + format round-tripped to a no-op
-  }
-
-  if (options.dryRun) {
-    io.stdout(unifiedDiff(file, originalSource, finalSource));
-  } else {
-    await writeFile(path.resolve(projectRoot, file), finalSource, "utf8");
-  }
-  return { resolvedIds: spliced.resolvedViolationIds, changed: true };
+  return { resolvedIds, filesChanged: planned.length };
 }
 
 function groupByFile(violations: readonly Violation[]): Map<FilePath, Violation[]> {
@@ -223,7 +273,10 @@ function summaryLine(
     fixedCount === 0
       ? "argus: no fixable violations found"
       : `argus: ${verb} ${plural(fixedCount, "violation")} across ${plural(fileCount, "file")}`;
-  const tail = remaining > 0 ? `; ${plural(remaining, "violation")} remain` : "";
+  const tail =
+    remaining > 0
+      ? `; ${plural(remaining, "violation")} ${remaining === 1 ? "remains" : "remain"}`
+      : "";
   return `${head}${tail}\n`;
 }
 

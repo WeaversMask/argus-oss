@@ -3,7 +3,7 @@ import path from "node:path";
 import { ConfigLoader } from "@argus/config";
 import type { ConfigError, ResolvedConfig } from "@argus/config";
 import { LANGUAGES, filePath } from "@argus/core";
-import type { AstParserPort, RuleActivation, RuleRunInput } from "@argus/core";
+import type { AstParserPort, FilePath, RuleActivation, RuleRunInput } from "@argus/core";
 import { Engine } from "@argus/rule-engine";
 import { builtinRules } from "@argus/rules-builtin";
 import { resolveActivations } from "./activations.js";
@@ -24,6 +24,18 @@ import type { ScanFailure } from "./report.js";
 export interface ParseOutcome {
   readonly inputs: readonly RuleRunInput[];
   readonly failures: readonly ScanFailure[];
+  /**
+   * The exact text read from disk, per file — what a mutating command must
+   * splice against.
+   *
+   * Deliberately **not** `parsed.root.text`: tree-sitter's `program` node
+   * starts at the first token, so a file beginning with a blank line, space,
+   * tab, or BOM yields a root whose text is a *truncated* copy of the source
+   * while every `Position` stays absolute. Offsets computed against that copy
+   * are silently shifted, which corrupts the file (independent review, #39
+   * HIGH-1 — reproduced: a comment deleted, an import duplicated, exit 0).
+   */
+  readonly sources: ReadonlyMap<FilePath, string>;
 }
 
 /** A scan that is ready to execute: what to scan, and with which rules. */
@@ -123,6 +135,7 @@ export async function parseAll(
 ): Promise<ParseOutcome> {
   const inputs: RuleRunInput[] = [];
   const failures: ScanFailure[] = [];
+  const sources = new Map<FilePath, string>();
 
   for (const file of files) {
     let source: string;
@@ -143,9 +156,10 @@ export async function parseAll(
       continue;
     }
     inputs.push({ parsed: parsed.value, activations });
+    sources.set(validated.value, source);
   }
 
-  return { inputs, failures };
+  return { inputs, failures, sources };
 }
 
 /** An engine with every built-in rule registered, or `undefined` after reporting a clash. */

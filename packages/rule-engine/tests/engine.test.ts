@@ -623,6 +623,38 @@ describe("containment — the run never throws", () => {
     );
   });
 
+  it("fails the run when a rule offers a fix targeting another file", async () => {
+    // A fix is the one report field written back to disk, so a cross-file
+    // range would corrupt a file the run never read (review #39 LOW-1).
+    await expectAttributedError(
+      (engine) => {
+        engine
+          .register(
+            moduleOf("bad-rule", (context: RuleContext) => ({
+              identifier: (node) => {
+                context.report({
+                  message: "fix points elsewhere",
+                  position: node.position,
+                  fix: {
+                    position: {
+                      file: someFile("src/other.ts"),
+                      startLine: 1,
+                      startColumn: 1,
+                      endLine: 1,
+                      endColumn: 2,
+                    },
+                    replacement: "x",
+                  },
+                });
+              },
+            })),
+          )
+          ._unsafeUnwrap();
+      },
+      { messagePart: 'offered a fix for "src/other.ts"' },
+    );
+  });
+
   it("fails the run on a report the Violation factory rejects (blank message)", async () => {
     await expectAttributedError(
       (engine) => {

@@ -138,9 +138,25 @@ node apps/cli/bin/argus.mjs fix ./src
 argus: fixed 2 violations across 1 file
 ```
 
-**Not every rule is fixable.** Today that's `style/import-order` alone — the other nine built-in rules need a human judgement call (renaming with every reference updated, splitting a long function, writing real documentation) that a mechanical edit cannot safely make up. A rule offers a fix only when it can _prove_ the edit is safe: `import-order`'s fixer declines whenever a comment sits inside the block of imports it would reorder (comments are separate nodes in the grammar, so reordering around one would silently strand it in the wrong place) or when two imports share a line (there is no way to reconstruct what belonged between them). Declining is not a bug — it leaves the violation for you to resolve by hand rather than risk a wrong edit. `argus explain <rule-id>` does not currently say whether a rule is fixable; for now, "does `fix` touch it" is the answer.
+**Not every rule is fixable.** Today that's `style/import-order` alone — the other nine built-in rules need a human judgement call (renaming with every reference updated, splitting a long function, writing real documentation) that a mechanical edit cannot safely make up. `argus explain <rule-id>` does not currently say whether a rule is fixable; for now, "does `fix` touch it" is the answer.
 
-**What a fix touches, and what it never does.** A file is only opened by the formatter if it had something to fix — `fix` never reformats a file just because its style differs from Prettier's; that is `prettier --write`'s job, not this command's. Comments and significant whitespace are never destroyed: fixes are computed as precise text replacements over the exact range a rule identifies, and the whole file is round-trip safe — running `fix` and then `check` again reports no violations from any rule that just got fixed.
+**A rule offers a fix only when it can _prove_ the edit is safe for that specific case.** `import-order`'s fixer declines — reporting the violation with no fix, for you to resolve by hand — when:
+
+- a **comment sits inside** the block of imports it would reorder, or abuts it on the first or last import's own line (comments are separate nodes in this grammar, so a reorder would leave the comment behind, describing a different import);
+- **two imports share a line** (nothing captures the text that belonged between them);
+- any import is **side-effect-only** (`import "./polyfill.js";`) — its whole contract is _when_ it runs relative to the others, so moving it between groups is exactly the change that breaks it;
+- a **non-import statement** interrupts the block.
+
+Declining is not a bug. Under-fixing is always preferred to a wrong edit.
+
+**What a fix touches, and what it never does.** Comments and significant whitespace are never destroyed: fixes are precise text replacements over the exact range a rule identifies, and the run is round-trip safe — `fix` re-runs the rules over its own output before reporting, so exit `0` is a measurement, not a claim.
+
+Two things to know about the blast radius, though:
+
+- **A file that gets one fix gets a full Prettier pass.** Only files `fix` actually edits are formatted — a file with nothing fixable is never touched, whatever its style. But for a file that _does_ have a fixable violation, unrelated lines will be reformatted too. On a codebase that doesn't already run Prettier, expect large diffs.
+- **That pass normalises line endings to LF** (Prettier's default). A CRLF file receiving a fix comes back as LF throughout.
+
+If neither is wanted, run `fix --dry-run` first and apply the hunks you want by hand.
 
 ### `--dry-run`
 
@@ -150,16 +166,19 @@ Shows what would change, as a unified diff, without touching any file:
 node apps/cli/bin/argus.mjs fix ./src --dry-run
 ```
 
-```
+```diff
 --- src/index.ts
 +++ src/index.ts
-@@ -1,3 +1,3 @@
+@@ -1,4 +1,4 @@
 -import { local } from "./local";
- import { readFile } from "node:fs";
+-import { readFile } from "node:fs";
++import { readFile } from "node:fs";
 +import { local } from "./local";
 
-argus: would fix 1 violation across 1 file
+ export const x = [local, readFile];
 ```
+
+**The diff goes to stdout; the `argus: would fix 1 violation across 1 file` summary goes to stderr** — so `argus fix --dry-run > changes.diff` gives you a file that `git apply` accepts, with the human summary still visible on your terminal.
 
 **`--dry-run`'s exit code answers a different question than a real run's.** This matters enough to spell out, because the two modes are not just "the same check with a flag":
 

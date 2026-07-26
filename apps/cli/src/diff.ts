@@ -17,10 +17,48 @@ export function unifiedDiff(file: string, before: string, after: string): string
     return "";
   }
 
-  const CONTEXT = 3;
-  const beforeLines = before.split("\n");
-  const afterLines = after.split("\n");
+  const beforeLines = splitLines(before);
+  const afterLines = splitLines(after);
+  const span = changedSpan(beforeLines, afterLines);
 
+  const removed = beforeLines.slice(span.prefix, beforeLines.length - span.suffix);
+  const added = afterLines.slice(span.prefix, afterLines.length - span.suffix);
+  const contextBefore = beforeLines.slice(Math.max(0, span.prefix - CONTEXT), span.prefix);
+  const contextAfter = beforeLines.slice(
+    beforeLines.length - span.suffix,
+    beforeLines.length - span.suffix + CONTEXT,
+  );
+
+  const oldStart = Math.max(0, span.prefix - CONTEXT) + 1;
+  const context = contextBefore.length + contextAfter.length;
+
+  // A hunk whose changed region runs to the end of the file must mark either
+  // side that lacks a trailing newline, or the patch cannot apply cleanly.
+  // Only reachable when `suffix === 0`; when the tail is shared context, both
+  // sides end identically and no marker is needed.
+  const atEof = span.suffix === 0;
+
+  return `${[
+    `--- ${file}`,
+    `+++ ${file}`,
+    `@@ -${oldStart},${context + removed.length} +${oldStart},${context + added.length} @@`,
+    ...contextBefore.map((line) => ` ${line}`),
+    ...removed.map((line) => `-${line}`),
+    ...(atEof && removed.length > 0 && !before.endsWith("\n") ? [NO_NEWLINE] : []),
+    ...added.map((line) => `+${line}`),
+    ...(atEof && added.length > 0 && !after.endsWith("\n") ? [NO_NEWLINE] : []),
+    ...contextAfter.map((line) => ` ${line}`),
+  ].join("\n")}\n`;
+}
+
+const CONTEXT = 3;
+const NO_NEWLINE = "\\ No newline at end of file";
+
+/** How many leading and trailing lines the two versions share. */
+function changedSpan(
+  beforeLines: readonly string[],
+  afterLines: readonly string[],
+): { readonly prefix: number; readonly suffix: number } {
   let prefix = 0;
   while (
     prefix < beforeLines.length &&
@@ -39,26 +77,20 @@ export function unifiedDiff(file: string, before: string, after: string): string
     suffix++;
   }
 
-  const removed = beforeLines.slice(prefix, beforeLines.length - suffix);
-  const added = afterLines.slice(prefix, afterLines.length - suffix);
-  const contextBefore = beforeLines.slice(Math.max(0, prefix - CONTEXT), prefix);
-  const contextAfter = beforeLines.slice(
-    beforeLines.length - suffix,
-    beforeLines.length - suffix + CONTEXT,
-  );
+  return { prefix, suffix };
+}
 
-  const oldStart = Math.max(0, prefix - CONTEXT) + 1;
-  const oldCount = contextBefore.length + removed.length + contextAfter.length;
-  const newCount = contextBefore.length + added.length + contextAfter.length;
-
-  const lines = [
-    `--- ${file}`,
-    `+++ ${file}`,
-    `@@ -${oldStart},${oldCount} +${oldStart},${newCount} @@`,
-    ...contextBefore.map((line) => ` ${line}`),
-    ...removed.map((line) => `-${line}`),
-    ...added.map((line) => `+${line}`),
-    ...contextAfter.map((line) => ` ${line}`),
-  ];
-  return `${lines.join("\n")}\n`;
+/**
+ * Source lines, without the empty string `split("\n")` leaves behind for a
+ * newline-terminated file. Counting that phantom element rendered a bare `" "`
+ * context line and inflated both hunk counts by one, so every emitted diff was
+ * an unappliable patch (independent review, #39 MEDIUM-2 — reproduced against
+ * `git apply`).
+ */
+function splitLines(text: string): string[] {
+  const lines = text.split("\n");
+  if (lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+  return lines;
 }

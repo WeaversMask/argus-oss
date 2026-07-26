@@ -53,7 +53,7 @@ describe("runFix", () => {
     const io = captureIO(dir);
 
     expect(await runFix(".", REAL, io)).toBe(0);
-    expect(io.out()).toContain("no fixable violations found");
+    expect(io.err()).toContain("no fixable violations found");
   });
 
   it("fixes a reorderable import block, writes the file, and exits 0", async () => {
@@ -64,7 +64,7 @@ describe("runFix", () => {
     expect(read("src/bad.ts")).toBe(
       'import { readFile } from "node:fs";\nimport { local } from "./local";\n\nexport const x = [local, readFile];\n',
     );
-    expect(io.out()).toContain("fixed 1 violation across 1 file");
+    expect(io.err()).toContain("fixed 1 violation across 1 file");
   });
 
   it("resolves multiple violations sharing one whole-block fix in the same file", async () => {
@@ -80,7 +80,7 @@ describe("runFix", () => {
     expect(read("src/bad.ts")).toBe(
       'import { readFile } from "node:fs";\nimport lodash from "lodash";\nimport { local } from "./local";\n\nexport const x = [local, lodash, readFile];\n',
     );
-    expect(io.out()).toContain("fixed 2 violations across 1 file");
+    expect(io.err()).toContain("fixed 2 violations across 1 file");
   });
 
   it("round-trips: fixing, then re-running check on the result, finds no import-order violations", async () => {
@@ -117,8 +117,8 @@ describe("runFix", () => {
     const io = captureIO(dir);
 
     expect(await runFix(".", REAL, io)).toBe(1);
-    expect(io.out()).toContain("no fixable violations found");
-    expect(io.out()).toContain("1 violation remain");
+    expect(io.err()).toContain("no fixable violations found");
+    expect(io.err()).toContain("1 violation remains");
     expect(read("src/long.ts")).toBe(ONE_LINE_FN);
   });
 
@@ -133,8 +133,8 @@ describe("runFix", () => {
       'import { readFile } from "node:fs";\nimport { local } from "./local";\n\nexport const x = [local, readFile];\n',
     );
     expect(read("src/long.ts")).toBe(ONE_LINE_FN);
-    expect(io.out()).toContain("fixed 1 violation across 1 file");
-    expect(io.out()).toContain("1 violation remain");
+    expect(io.err()).toContain("fixed 1 violation across 1 file");
+    expect(io.err()).toContain("1 violation remains");
   });
 
   it("exits 2 on a missing path", async () => {
@@ -161,5 +161,58 @@ describe("runFix", () => {
 
     expect(await runFix(".", REAL, io)).toBe(0);
     expect(read("src/messy.ts")).toBe(messy);
+  });
+
+  // Review #39 HIGH-1, reproduced: splicing against `parsed.root.text` instead
+  // of the bytes on disk shifted every offset for any file whose first token
+  // isn't at offset 0 — deleting a comment, duplicating an import, and exiting
+  // 0 while the violation survived. One case per leading-trivia shape.
+  describe("leading trivia (offsets must come from the real source)", () => {
+    it.each([
+      ["a blank line", "\n"],
+      ["a leading space", " "],
+      ["a leading tab", "\t"],
+      ["a BOM", "﻿"],
+      ["a CRLF blank line", "\r\n"],
+    ])("fixes correctly and preserves the comment with %s", async (_label, prefix) => {
+      const comment = "// a comment that must survive verbatim";
+      write(
+        "src/lead.ts",
+        `${prefix}import { local } from "./local";\nimport { readFile } from "node:fs";\n${comment}\nexport const y = 2;\n`,
+      );
+      const io = captureIO(dir);
+
+      expect(await runFix(".", REAL, io)).toBe(0);
+
+      const fixed = read("src/lead.ts");
+      expect(fixed).toContain(comment);
+      // Reordered, and exactly once each — the bug duplicated the first import.
+      expect(fixed.indexOf('import { readFile } from "node:fs";')).toBeLessThan(
+        fixed.indexOf('import { local } from "./local";'),
+      );
+      expect(fixed.match(/import \{ local \}/gu)).toHaveLength(1);
+
+      // The claim exit 0 makes must actually hold.
+      const checkIo = captureIO(dir);
+      expect(await runCheck(".", { colour: false, format: "console" }, checkIo)).toBe(0);
+    });
+  });
+
+  it("writes nothing at all when a later file fails to format", async () => {
+    // Review #39 HIGH-2: fixes were written as the loop went, so a failure on
+    // a later file left earlier ones already rewritten — contradicting the
+    // documented "nothing is written when a scan can't complete".
+    write("src/a-fixable.ts", REVERSED_IMPORTS);
+    // Reorderable imports plus a syntax error: tree-sitter parses best-effort
+    // (so the fix is still offered) but Prettier refuses the file, failing the
+    // format step after the earlier file's fix was already computed.
+    write(
+      "src/z-unformattable.ts",
+      'import a from "./a";\nimport fs from "node:fs";\nconst broken = ;\n',
+    );
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(2);
+    expect(read("src/a-fixable.ts")).toBe(REVERSED_IMPORTS); // untouched despite being fixable
   });
 });

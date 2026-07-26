@@ -198,19 +198,42 @@ export function walkAndCollect(
   }
 }
 
+/**
+ * A rule may only speak about the file it is running on. Returns the failure
+ * when it strays, `undefined` when contained.
+ *
+ * The fix arm matters more than the position arm: a fix is the one report
+ * field written back to disk, so a cross-file range would corrupt a file the
+ * run never read (review #39 LOW-1 — unreachable today, stated mechanically).
+ */
+function outOfFileReport(
+  input: RuleRunInput,
+  captured: CapturedReport,
+): RuleExecutionError | undefined {
+  if (captured.position.file !== input.parsed.file) {
+    return new RuleExecutionError(
+      `reported a position in "${captured.position.file}" while running on "${input.parsed.file}"`,
+      captured.ruleId,
+    );
+  }
+  if (captured.fix !== undefined && captured.fix.position.file !== input.parsed.file) {
+    return new RuleExecutionError(
+      `offered a fix for "${captured.fix.position.file}" while running on "${input.parsed.file}"`,
+      captured.ruleId,
+    );
+  }
+  return undefined;
+}
+
 /** Validates one captured report into a `Violation`, attributed to its rule on failure. */
 function buildOneViolation(
   input: RuleRunInput,
   captured: CapturedReport,
   ordinal: number,
 ): Result<Violation, RuleExecutionError> {
-  if (captured.position.file !== input.parsed.file) {
-    return err(
-      new RuleExecutionError(
-        `reported a position in "${captured.position.file}" while running on "${input.parsed.file}"`,
-        captured.ruleId,
-      ),
-    );
+  const strayed = outOfFileReport(input, captured);
+  if (strayed !== undefined) {
+    return err(strayed);
   }
   const id = violationId(deterministicViolationId(captured.ruleId, captured.position, ordinal));
   if (id.isErr()) {

@@ -106,4 +106,47 @@ describe("import-order fix", () => {
     expect(violations).toHaveLength(1);
     expect("fix" in violations[0]!).toBe(false);
   });
+
+  it("declines when a trailing comment sits on the last import's own line", async () => {
+    // Review #39 HIGH-3: this comment is OUTSIDE the [first, last] contiguity
+    // window, so contiguity alone would let the block reorder out from under
+    // it, silently reattaching it to a different import.
+    const source =
+      'import { local } from "./local";\nimport { readFile } from "node:fs"; // keep this next to fs!\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
+
+  it("declines when a leading comment sits on the first import's own line", async () => {
+    const source =
+      '/* about local */ import { local } from "./local";\nimport { readFile } from "node:fs";\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
+
+  it("still fixes when a comment sits on its own line above the block", async () => {
+    // The guard is deliberately narrow: a comment on a SEPARATE line is not
+    // attached to any one import, so reordering below it is safe.
+    const source =
+      '// module docs\nimport { local } from "./local";\nimport { readFile } from "node:fs";\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]?.fix).toBeDefined();
+  });
+
+  it("declines when any import is side-effect-only (evaluation order is load-bearing)", async () => {
+    // Review #39 MEDIUM-1: `import "./setup"` exists precisely to run at that
+    // point relative to the others; moving it across a group boundary is the
+    // change that breaks it.
+    const source = 'import "./setup-globals";\nimport express from "express";\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
 });

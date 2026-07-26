@@ -158,7 +158,12 @@ module.exports = [
       "today: with two packages, the dedicated rules subsume it. Second " +
       "pathNot alternative: packages/adapters/<tool>/ nests one segment " +
       "deeper (P2-06) — without it this backstop misfires on every " +
-      "legitimate import of a nested adapter.",
+      "legitimate import of a nested adapter. KNOWN LIMITATION (review #39 " +
+      "LOW-4): `from` captures the first segment, which is `adapters` for " +
+      "every nested adapter, so one adapter deep-importing a SIBLING " +
+      "adapter is invisible to this backstop. Each adapter's own " +
+      "*-public-entry-only rule catches it — which is exactly why adapter " +
+      "#2 must not skip adding one.",
     from: { path: "^packages/([^/]+)/" },
     to: {
       path: "^packages/(?!$1/)[^/]+/",

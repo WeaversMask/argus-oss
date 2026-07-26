@@ -151,6 +151,36 @@ describe("applyFixes", () => {
     expect(application.resolvedViolationIds.has(overlapping.id)).toBe(false);
   });
 
+  it("keeps only the first of two distinct insertions at the same offset", () => {
+    const source = "ac\n";
+    const point = { file, startLine: 1, startColumn: 2, endLine: 1, endColumn: 2 };
+    const first = makeViolation({
+      file: FILE,
+      line: 1,
+      column: 2,
+      severity: "warning",
+      rule: "r1",
+      message: "m1",
+      fix: { position: point, replacement: "b" },
+    });
+    const second = makeViolation({
+      file: FILE,
+      line: 1,
+      column: 2,
+      severity: "warning",
+      rule: "r2",
+      message: "m2",
+      fix: { position: point, replacement: "Z" },
+    });
+
+    const application = applyFixes(source, [first, second]);
+
+    // Not "abZc" — the documented policy is keep-the-earliest, drop the rest.
+    expect(application.result).toBe("abc\n");
+    expect(application.resolvedViolationIds.has(first.id)).toBe(true);
+    expect(application.resolvedViolationIds.has(second.id)).toBe(false);
+  });
+
   it("applies two non-overlapping fixes together", () => {
     const source = "aaaa bbbb\n";
     const first = makeViolation({
