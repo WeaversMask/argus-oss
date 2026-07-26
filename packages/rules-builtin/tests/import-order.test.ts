@@ -128,11 +128,44 @@ describe("import-order fix", () => {
     expect("fix" in violations[0]!).toBe(false);
   });
 
-  it("still fixes when a comment sits on its own line above the block", async () => {
-    // The guard is deliberately narrow: a comment on a SEPARATE line is not
-    // attached to any one import, so reordering below it is safe.
+  it("declines when a comment sits on the line directly above the block", async () => {
+    // Follow-up review: the earlier guard stopped at the import's OWN line, so
+    // this case still reordered. A comment one line up is where every
+    // line-scoped directive lives, and it binds to the next line by definition.
     const source =
       '// module docs\nimport { local } from "./local";\nimport { readFile } from "node:fs";\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
+
+  it("declines when a directive comment binds to the block's first import", async () => {
+    // `@ts-expect-error` reattaching is a compile break in both directions:
+    // TS2578 on the import that never needed it, and the original error
+    // resurfacing on the one that did.
+    const source =
+      '// @ts-expect-error untyped\nimport legacy from "./legacy";\nimport { readFile } from "node:fs";\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
+
+  it("declines when a comment sits on the line directly below the block", async () => {
+    const source =
+      'import { local } from "./local";\nimport { readFile } from "node:fs";\n// ^ readFile must stay last\n';
+
+    const violations = await runRule(importOrder, source);
+    expect(violations).toHaveLength(1);
+    expect("fix" in violations[0]!).toBe(false);
+  });
+
+  it("still fixes when a blank line separates a comment from the block", async () => {
+    // A blank line is the signal that the comment is free-floating rather than
+    // attached — a file header keeps its fix, a flush directive does not.
+    const source =
+      '// module docs\n\nimport { local } from "./local";\nimport { readFile } from "node:fs";\n';
 
     const violations = await runRule(importOrder, source);
     expect(violations).toHaveLength(1);

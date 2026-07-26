@@ -1,25 +1,14 @@
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
 import { PrettierFormatter } from "@argus/adapters-prettier";
 import { TreeSitterAstParser } from "@argus/ast";
-import type {
-  AstParserPort,
-  FilePath,
-  FormatterPort,
-  Language,
-  RuleActivation,
-  RuleRunnerPort,
-  Violation,
-} from "@argus/core";
+import type { AstParserPort, RuleRunnerPort, Violation } from "@argus/core";
 import { Runner } from "@argus/rule-engine";
 import type { FileRunFailure } from "@argus/rule-engine";
-import { applyFixes } from "./apply-fixes.js";
-import { unifiedDiff } from "./diff.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
+import { commitFixes, planFixes } from "./fix-plan.js";
+import type { FixAllOutcome, PlannedFix } from "./fix-plan.js";
 import type { CliIO } from "./io.js";
 import type { ScanFailure } from "./report.js";
 import { buildEngine, parseAll, planScan } from "./scan.js";
-import type { ParseOutcome } from "./scan.js";
 
 /** Invocation-level presentation choice for `fix`. */
 export interface FixOptions {
@@ -54,7 +43,12 @@ export interface FixOptions {
  *   `argus fix`" — not "would everything end up clean", which dry-run
  *   cannot promise without writing anything.
  *
- * `2` — operational error, same cases as `check`, in both modes.
+ * `2` — operational error, in both modes: every case `check` has, plus a file
+ * whose fixed text could not be written. Phase one guarantees nothing is
+ * written when the *analysis* can't complete; a write that fails for an
+ * environmental reason (read-only file, full disk) is reported per file and
+ * leaves the run partially applied, which `2` reports as an incomplete run
+ * rather than letting a violation count imply the repo is in a known state.
  */
 export async function runFix(rawPath: string, options: FixOptions, io: CliIO): Promise<number> {
   const plan = await planScan(rawPath, io);
@@ -85,24 +79,47 @@ export async function runFix(rawPath: string, options: FixOptions, io: CliIO): P
       return EXIT_ERROR;
     }
 
-    const outcome = await commitFixes(planned, plan.projectRoot, options, io);
-
-    // Re-derived from the fixed text, never from "how many splices did we
-    // attempt". A fixer that produces a non-resolving edit would otherwise
-    // let exit 0 assert a clean repo it never checked (review #39 MEDIUM-5).
-    const remaining = await countRemaining(planned, summary.violations, parser, engine);
-    io.stderr(
-      summaryLine(outcome.resolvedIds.size, outcome.filesChanged, remaining, options.dryRun),
-    );
-
-    // Dry-run answers "would anything change" (prettier --check's idiom);
-    // a real run answers "do violations remain" (check's own idiom,
-    // extended to "after fixing what I could"). See the doc comment above —
-    // conflating the two would make one of the two flows useless for CI.
-    return (options.dryRun ? outcome.filesChanged > 0 : remaining > 0) ? EXIT_VIOLATIONS : EXIT_OK;
+    const outcome = await commitFixes(planned, plan.projectRoot, options.dryRun, io);
+    return await reportOutcome(outcome, summary.violations, options, { parser, engine, io });
   } finally {
     parser.dispose();
   }
+}
+
+/** What `reportOutcome` needs to re-measure the tree it just changed. */
+interface Rerun {
+  readonly parser: AstParserPort;
+  readonly engine: RuleRunnerPort;
+  readonly io: CliIO;
+}
+
+/** Summarises a finished run on stderr and maps it onto the exit-code contract. */
+async function reportOutcome(
+  outcome: FixAllOutcome,
+  violations: readonly Violation[],
+  options: FixOptions,
+  { parser, engine, io }: Rerun,
+): Promise<number> {
+  // Re-derived from the fixed text, never from "how many splices did we
+  // attempt". A fixer that produces a non-resolving edit would otherwise
+  // let exit 0 assert a clean repo it never checked (review #39 MEDIUM-5).
+  // Measured against what actually reached disk, so a file whose write
+  // failed keeps its violations rather than being credited as fixed.
+  const remaining = await countRemaining(outcome.committed, violations, parser, engine);
+  io.stderr(summaryLine(outcome.resolvedIds.size, outcome.filesChanged, remaining, options.dryRun));
+
+  // A write that failed leaves the run partially applied — the summary above
+  // says what did land, and the exit code reports an incomplete run rather
+  // than a violation count (follow-up review MEDIUM-1).
+  if (outcome.writeFailures > 0) {
+    return EXIT_ERROR;
+  }
+
+  // Dry-run answers "would anything change" (prettier --check's idiom);
+  // a real run answers "do violations remain" (check's own idiom, extended
+  // to "after fixing what I could"). See runFix's doc comment — conflating
+  // the two would make one of the two flows useless for CI.
+  return (options.dryRun ? outcome.filesChanged > 0 : remaining > 0) ? EXIT_VIOLATIONS : EXIT_OK;
 }
 
 /** Announces every parse/rule failure and reports whether there were any. */
@@ -121,21 +138,6 @@ function reportFailures(
   return failures.length > 0;
 }
 
-interface FixAllOutcome {
-  readonly resolvedIds: ReadonlySet<string>;
-  readonly filesChanged: number;
-}
-
-/** One file whose fixed text is computed and ready to write or diff. */
-interface PlannedFix {
-  readonly file: FilePath;
-  readonly language: Language;
-  readonly before: string;
-  readonly after: string;
-  readonly resolvedIds: ReadonlySet<string>;
-  readonly activations: readonly RuleActivation[];
-}
-
 /**
  * Violations still outstanding once this run's edits are applied: every
  * violation in a file nothing touched, plus whatever a fresh run over each
@@ -148,15 +150,15 @@ interface PlannedFix {
  * violation count rather than silently reporting zero.
  */
 async function countRemaining(
-  planned: readonly PlannedFix[],
+  committed: readonly PlannedFix[],
   violations: readonly Violation[],
   parser: AstParserPort,
   engine: RuleRunnerPort,
 ): Promise<number> {
-  const changed = new Set(planned.map((entry) => entry.file));
+  const changed = new Set(committed.map((entry) => entry.file));
   let remaining = violations.filter((v) => !changed.has(v.position.file)).length;
 
-  for (const entry of planned) {
+  for (const entry of committed) {
     const before = violations.filter((v) => v.position.file === entry.file).length;
     const reparsed = await parser.parse(entry.file, entry.after, entry.language);
     if (reparsed.isErr()) {
@@ -168,98 +170,6 @@ async function countRemaining(
   }
 
   return remaining;
-}
-
-/**
- * Phase one: compute every file's fixed text, touching no disk. Returns
- * `undefined` once any file fails to format — nothing has been written at
- * that point, so the caller can abort cleanly.
- */
-async function planFixes(
-  parsed: ParseOutcome,
-  violations: readonly Violation[],
-  formatter: FormatterPort,
-  io: CliIO,
-): Promise<PlannedFix[] | undefined> {
-  const violationsByFile = groupByFile(violations);
-  const planned: PlannedFix[] = [];
-
-  for (const input of parsed.inputs) {
-    const file = input.parsed.file;
-    const violationsForFile = violationsByFile.get(file);
-    if (violationsForFile === undefined) {
-      continue;
-    }
-    // The exact bytes read from disk — never `input.parsed.root.text`, which
-    // omits leading trivia and would shift every offset (see ParseOutcome).
-    const before = parsed.sources.get(file);
-    if (before === undefined) {
-      // Unreachable: parseAll records a source for every input it emits.
-      io.stderr(`argus: internal error: no source recorded for ${file}\n`);
-      return undefined;
-    }
-
-    const spliced = applyFixes(before, violationsForFile);
-    if (spliced.resolvedViolationIds.size === 0) {
-      continue; // nothing in this file could be fixed
-    }
-
-    const formatted = await formatter.format(spliced.result, file);
-    if (formatted.isErr()) {
-      io.stderr(`argus: failed to format ${file}: ${formatted.error.message}\n`);
-      return undefined;
-    }
-    if (formatted.value === before) {
-      continue; // fix + format round-tripped to a no-op
-    }
-
-    planned.push({
-      file,
-      language: input.parsed.language,
-      before,
-      after: formatted.value,
-      resolvedIds: spliced.resolvedViolationIds,
-      activations: input.activations,
-    });
-  }
-
-  return planned;
-}
-
-/** Phase two: write every planned fix (or, under `--dry-run`, diff it). */
-async function commitFixes(
-  planned: readonly PlannedFix[],
-  projectRoot: string,
-  options: FixOptions,
-  io: CliIO,
-): Promise<FixAllOutcome> {
-  const resolvedIds = new Set<string>();
-
-  for (const entry of planned) {
-    if (options.dryRun) {
-      io.stdout(unifiedDiff(entry.file, entry.before, entry.after));
-    } else {
-      await writeFile(path.resolve(projectRoot, entry.file), entry.after, "utf8");
-    }
-    for (const id of entry.resolvedIds) {
-      resolvedIds.add(id);
-    }
-  }
-
-  return { resolvedIds, filesChanged: planned.length };
-}
-
-function groupByFile(violations: readonly Violation[]): Map<FilePath, Violation[]> {
-  const byFile = new Map<FilePath, Violation[]>();
-  for (const violation of violations) {
-    const existing = byFile.get(violation.position.file);
-    if (existing === undefined) {
-      byFile.set(violation.position.file, [violation]);
-    } else {
-      existing.push(violation);
-    }
-  }
-  return byFile;
 }
 
 function summaryLine(

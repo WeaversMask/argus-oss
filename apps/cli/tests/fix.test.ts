@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runCheck } from "../src/check.js";
@@ -176,9 +176,13 @@ describe("runFix", () => {
       ["a CRLF blank line", "\r\n"],
     ])("fixes correctly and preserves the comment with %s", async (_label, prefix) => {
       const comment = "// a comment that must survive verbatim";
+      // The blank line before the comment is load-bearing for the fixture, not
+      // decoration: a comment flush against the block is one the rule now
+      // declines to reorder under (see abuttingComment), which would test the
+      // decline path instead of the offset arithmetic this case is about.
       write(
         "src/lead.ts",
-        `${prefix}import { local } from "./local";\nimport { readFile } from "node:fs";\n${comment}\nexport const y = 2;\n`,
+        `${prefix}import { local } from "./local";\nimport { readFile } from "node:fs";\n\n${comment}\nexport const y = 2;\n`,
       );
       const io = captureIO(dir);
 
@@ -215,4 +219,36 @@ describe("runFix", () => {
     expect(await runFix(".", REAL, io)).toBe(2);
     expect(read("src/a-fixable.ts")).toBe(REVERSED_IMPORTS); // untouched despite being fixable
   });
+
+  // A root user ignores the mode bits, so the write would succeed and the case
+  // could not be provoked. Skipped rather than faked: the point is the real
+  // errno path through commitFixes.
+  it.skipIf(process.getuid?.() === 0)(
+    "reports a failed write per file, keeps the summary, and exits 2",
+    () => {
+      // Follow-up review MEDIUM-1: the commit phase had no error handling, so
+      // an unwritable file escaped to main's last-resort handler — a bare
+      // "unexpected error: EACCES …" with no summary and no per-file context,
+      // while earlier files had already been rewritten.
+      write("src/a-fixable.ts", REVERSED_IMPORTS);
+      write("src/z-readonly.ts", REVERSED_IMPORTS);
+      chmodSync(path.join(dir, "src/z-readonly.ts"), 0o444);
+      const io = captureIO(dir);
+
+      return runFix(".", REAL, io).then((code) => {
+        chmodSync(path.join(dir, "src/z-readonly.ts"), 0o644);
+
+        expect(code).toBe(2);
+        expect(io.err()).toContain("failed to write src/z-readonly.ts");
+        expect(io.err()).not.toContain("unexpected error");
+        // The run is partially applied and says so, rather than going silent.
+        expect(read("src/a-fixable.ts")).not.toBe(REVERSED_IMPORTS);
+        expect(read("src/z-readonly.ts")).toBe(REVERSED_IMPORTS);
+        expect(io.err()).toContain("fixed 1 violation across 1 file");
+        // The unwritten file's violation is still counted as outstanding —
+        // countRemaining measures what reached disk, not what was planned.
+        expect(io.err()).toContain("1 violation remains");
+      });
+    },
+  );
 });

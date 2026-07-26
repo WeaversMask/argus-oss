@@ -181,6 +181,43 @@ describe("applyFixes", () => {
     expect(application.resolvedViolationIds.has(second.id)).toBe(false);
   });
 
+  it("keeps an insertion and a replacement that start at the same offset", () => {
+    // These do not conflict: magic-string composes appendLeft(N) with
+    // overwrite(N, …) cleanly. The same-offset guard above is scoped to a
+    // following *insertion* so it stops rejecting this (follow-up review LOW-1).
+    const source = "ac\n";
+    const insertion = makeViolation({
+      file: FILE,
+      line: 1,
+      column: 2,
+      severity: "warning",
+      rule: "r1",
+      message: "m1",
+      fix: {
+        position: { file, startLine: 1, startColumn: 2, endLine: 1, endColumn: 2 },
+        replacement: "b",
+      },
+    });
+    const replacement = makeViolation({
+      file: FILE,
+      line: 1,
+      column: 2,
+      severity: "warning",
+      rule: "r2",
+      message: "m2",
+      fix: {
+        position: { file, startLine: 1, startColumn: 2, endLine: 1, endColumn: 3 },
+        replacement: "Z",
+      },
+    });
+
+    const application = applyFixes(source, [insertion, replacement]);
+
+    expect(application.result).toBe("abZ\n");
+    expect(application.resolvedViolationIds.has(insertion.id)).toBe(true);
+    expect(application.resolvedViolationIds.has(replacement.id)).toBe(true);
+  });
+
   it("applies two non-overlapping fixes together", () => {
     const source = "aaaa bbbb\n";
     const first = makeViolation({

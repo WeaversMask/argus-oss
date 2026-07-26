@@ -89,14 +89,20 @@ function selectNonOverlapping(candidates: readonly Candidate[]): Candidate[] {
     // (a zero-width accept leaves `lastEnd` where it was), so without this the
     // documented "keep the earliest, drop the rest" would silently apply both
     // and concatenate them in sort order (review #39 LOW-2).
-    if (candidate.startOffset === lastWasInsertionAt) {
+    //
+    // Scoped to a following *insertion*, not to everything at that offset: an
+    // insertion at N followed by a replacement starting at N do not conflict —
+    // `magic-string` composes `appendLeft(N)` with `overwrite(N, …)` cleanly —
+    // so the broader guard silently dropped a second fix that was safe to
+    // apply (follow-up review LOW-1).
+    const isInsertion = candidate.startOffset === candidate.endOffset;
+    if (isInsertion && candidate.startOffset === lastWasInsertionAt) {
       continue;
     }
     if (candidate.startOffset >= lastEnd) {
       accepted.push(candidate);
       lastEnd = candidate.endOffset;
-      lastWasInsertionAt =
-        candidate.startOffset === candidate.endOffset ? candidate.startOffset : undefined;
+      lastWasInsertionAt = isInsertion ? candidate.startOffset : undefined;
     }
   }
   return accepted;
