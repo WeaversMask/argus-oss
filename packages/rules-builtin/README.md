@@ -17,20 +17,20 @@
 
 ### The rules
 
-| Rule id                         | Default | Options     | What it flags                                                                      |
-| ------------------------------- | ------- | ----------- | ---------------------------------------------------------------------------------- |
-| `quality/cyclomatic-complexity` | warning | `max` (10)  | Functions with more than `max` linearly independent paths (`1 + decision points`)  |
-| `quality/max-file-length`       | warning | `max` (300) | Files longer than `max` lines                                                      |
-| `quality/max-function-length`   | warning | `max` (50)  | Functions whose line span exceeds `max`                                            |
-| `quality/max-nesting-depth`     | warning | `max` (4)   | Block nesting deeper than `max` (per scope; `else if` ladders stay at one level)   |
-| `quality/no-dead-code`          | warning | —           | Statements after a `return`/`throw`/`break`/`continue` in a block or `switch` case |
-| `style/naming-convention`       | warning | —           | Non-PascalCase types; functions not camel/PascalCase; snake_case variables         |
-| `style/import-order`            | warning | —           | Imports out of group order (node builtins → external → relative)                   |
-| `style/no-wildcard-imports`     | warning | —           | `import * as ns` namespace imports (`export * from` re-exports are allowed)        |
-| `docs/require-jsdoc`            | warning | —           | Exported functions/classes/interfaces without a preceding `/** … */` block         |
-| `testing/no-empty-test`         | warning | —           | `it`/`test` calls whose callback body is empty (comment-only counts as empty)      |
+| Rule id                         | Default | Fixable | Options     | What it flags                                                                      |
+| ------------------------------- | ------- | ------- | ----------- | ---------------------------------------------------------------------------------- |
+| `quality/cyclomatic-complexity` | warning | —       | `max` (10)  | Functions with more than `max` linearly independent paths (`1 + decision points`)  |
+| `quality/max-file-length`       | warning | —       | `max` (300) | Files longer than `max` lines                                                      |
+| `quality/max-function-length`   | warning | —       | `max` (50)  | Functions whose line span exceeds `max`                                            |
+| `quality/max-nesting-depth`     | warning | —       | `max` (4)   | Block nesting deeper than `max` (per scope; `else if` ladders stay at one level)   |
+| `quality/no-dead-code`          | warning | —       | —           | Statements after a `return`/`throw`/`break`/`continue` in a block or `switch` case |
+| `style/naming-convention`       | warning | —       | —           | Non-PascalCase types; functions not camel/PascalCase; snake_case variables         |
+| `style/import-order`            | warning | ✓       | —           | Imports out of group order (node builtins → external → relative)                   |
+| `style/no-wildcard-imports`     | warning | —       | —           | `import * as ns` namespace imports (`export * from` re-exports are allowed)        |
+| `docs/require-jsdoc`            | warning | —       | —           | Exported functions/classes/interfaces without a preceding `/** … */` block         |
+| `testing/no-empty-test`         | warning | —       | —           | `it`/`test` calls whose callback body is empty (comment-only counts as empty)      |
 
-Options arrive on `context.options` (frozen). A present-but-invalid `max` (non-integer, `< 1`) is a defensive throw → an attributed `RuleExecutionError`, never a silently wrong finding.
+Options arrive on `context.options` (frozen). A present-but-invalid `max` (non-integer, `< 1`) is a defensive throw → an attributed `RuleExecutionError`, never a silently wrong finding. **Fixable** (P2-06, `argus fix`) means the rule _can_ offer a mechanical edit, not that it always does — see [`docs/guide/rules.md`](../../docs/guide/rules.md) for what makes `import-order` decline a specific case.
 
 ## How it fits
 

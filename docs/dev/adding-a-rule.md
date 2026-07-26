@@ -83,3 +83,13 @@ Node types are the grammar's vocabulary, including anonymous tokens. Before writ
 
 - Read options defensively: `positiveIntOption(context.options, "max", default)` throws a clear error on garbage → an attributed `RuleExecutionError`, not a wrong finding.
 - Add a **property test** (`tests/properties.test.ts`, `fast-check`) wherever the rule states a law — a threshold (`reports iff metric > max`), or an invariant (an `else if` ladder of any length never inflates nesting depth).
+
+### Offering a fix (P2-06)
+
+A rule can attach a mechanical edit to a report: `context.report({ message, position, fix: { position, replacement } })`. The engine threads `fix` onto the resulting `Violation` unchanged (it's additive on `RuleReport`/`Violation`, no port signature changed); `argus fix` collects every violation carrying one, applies it via `magic-string`, then runs the touched file through Prettier as a finishing pass.
+
+**Only offer a fix when you can prove it is safe for that specific case — never guess.** `style/import-order`'s fixer (`packages/rules-builtin/src/style/import-order.ts`) is the reference example: it computes a whole-block reorder but withholds it whenever the block of imports contains anything other than `import_statement` nodes (a comment sitting between two of them would be silently stranded in the wrong place if the statements moved around it) or when two imports share one line (there is no way to reconstruct the whitespace that belonged between them). A violation with no fix is still reported — under-fixing a case you can't prove safe is always better than a wrong edit.
+
+**A rule sees only the AST, never raw source text or byte offsets** (`AstNode` deliberately doesn't expose them — P1-03 scope limit). Build `Fix.replacement` from node `.text`, and reconstruct the gap between two nodes from their line numbers alone: `"\n".repeat(nextNode.position.startLine - prevNode.position.endLine)` is exact for one-per-line code and is how `import-order` preserves existing blank-line grouping under reordering. `support.ts`'s `spanning(a, b)` builds the validated `Position` spanning two nodes for you, alongside the existing `pointAt`.
+
+**Conflict resolution is the apply step's job, not your rule's.** `apps/cli/src/apply-fixes.ts` de-duplicates fixes by structural equality (same range, same replacement) and, for two different fixes that still overlap, keeps the earlier-starting one and drops the rest — your rule never needs to reason about what else might be reported in the same file. If several violations describe the same underlying edit (a whole-block fix commonly resolves more than one of them at once), attach the identical `fix` value to each — the apply step collapses duplicates before splicing anything in.

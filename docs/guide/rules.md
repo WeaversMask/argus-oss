@@ -1,6 +1,6 @@
 # Built-in rules
 
-> The checks Argus ships with. Ten rules for **TypeScript and JavaScript**, in [`@argus/rules-builtin`](../../packages/rules-builtin/README.md) (P2-01). Each is off until a config activates it (rule-config wiring lands with the CLI); until then this page is the catalogue and the reference.
+> The checks Argus ships with. Ten rules for **TypeScript and JavaScript**, in [`@argus/rules-builtin`](../../packages/rules-builtin/README.md) (P2-01). Each is off until a config activates it (rule-config wiring lands with the CLI); until then this page is the catalogue and the reference. **(fixable)** marks a rule `argus fix` (P2-06) can resolve mechanically, at least some of the time — see [the CLI guide](./cli.md#argus-fix-path) for what `fix` does and does not touch.
 
 Every rule is identified by a `category/name` id, reports at a default severity you can override, and — where noted — takes options. A rule reports a **violation** with a message and a `file:line:col` position; the engine assigns the severity you configured (not the rule's default) to each one.
 
@@ -40,9 +40,11 @@ Flags statements that can never run because an earlier statement in the same blo
 
 Flags declarations that break the standard casing conventions: **types** (`class`, `interface`, `type`, `enum`) must be PascalCase; **functions** — both `function` declarations and `const`s assigned a function/arrow — may be camelCase or PascalCase (PascalCase covers components, factories, and constructor-like functions); **other variables** must be camelCase or `UPPER_SNAKE_CASE`. Only plain-identifier declaration sites are checked — destructuring patterns, parameters, methods, and imported names are left alone. Leading underscores are allowed.
 
-### `style/import-order`
+### `style/import-order` (fixable)
 
 Flags top-level imports out of group order. The required order is node builtins (`node:*`, a known builtin, or an unprefixed builtin submodule like `fs/promises`) → external packages (bare specifiers) → relative imports (`./`, `../`). Group-level only, not full alphabetical sorting; `export … from` re-exports are ignored.
+
+**Fixable** (`argus fix`, P2-06) when the block is safe to reorder mechanically: no comment sitting inside the run of imports (it would be silently stranded), and no two imports sharing one line (the gap between them cannot be reconstructed). Otherwise the violation is reported without a fix, for you to resolve by hand.
 
 ### `style/no-wildcard-imports`
 
@@ -66,4 +68,5 @@ Flags `it(...)` / `test(...)` calls whose callback body is empty — a test that
 
 - **Language scope** is TypeScript + JavaScript today. Python parses, but these rules are tuned for TS/JS; Python coverage is planned.
 - **Options** are per-activation, validated defensively — a bad `max` (non-integer or `< 1`) fails that rule loudly rather than producing wrong findings.
-- **Adding your own rule:** see the developer recipe, [`../dev/adding-a-rule.md`](../dev/adding-a-rule.md).
+- **Fixability is per-violation, not just per-rule.** A **(fixable)** rule still reports some violations with no fix attached, whenever it cannot prove the edit is safe for that specific case — see each fixable rule's entry above for what makes it decline.
+- **Adding your own rule:** see the developer recipe, [`../dev/adding-a-rule.md`](../dev/adding-a-rule.md) (now includes a section on offering a fix).

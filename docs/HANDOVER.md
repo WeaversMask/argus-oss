@@ -1,66 +1,80 @@
-# Handover — Dogfooding wiring
+# Handover — Auto-fix engine (`argus fix`)
 
 **From:** claude-sonnet-5
 **To:** next picker (Phase 2 continues)
-**Date:** 2026-07-25
-**Phase:** P2 — MVP (4/6+4, dogfooding wiring done) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** Dogfooding wiring — repo-root `argus.yaml` + CI `dogfood` job — **PR pending merge**
+**Date:** 2026-07-26
+**Phase:** P2 — MVP (5/6+4) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** P2-06 — Auto-fix engine — **PR pending open + independent review**
 
 ---
 
 ## Context
 
-CI now runs Argus on Argus: a repo-root `argus.yaml` (`ignore: ["**/tests/**", ".claude/**"]`) plus a new `dogfood` job in `.github/workflows/ci.yml` that runs `argus check . --format json` and fails the build on any violation, failure, or vacuous scan. `argus check .` at the repo root exits 0 with 0 violations across 135 tracked files.
+`argus fix [path] [--dry-run]` exists: the CLI's first mutating command. Of the ten built-in rules, only `style/import-order` is fixable — investigated, not assumed, before scoping the task down to it (the other nine need a semantic judgement call no mechanical transform can safely make). The fixer proves safety before offering an edit (declines when a comment sits inside the block it would reorder, or when two imports share a line) rather than guessing; `apps/cli` splices accepted fixes in via `magic-string`, then runs the result through a new `@argus/adapters-prettier` package as a finishing pass. Full rationale: [ADR-0006](./adr/0006-autofix-representation-and-safety.md).
 
-Getting there was not just writing the ignore list. The first whole-repo scan (no config) found 191 violations; 153 were in `tests/` (test files, helpers, deliberately-invalid rule fixtures — exactly the maintainer's ruling), but **38 were real violations on production source**: missing JSDoc on 31 exports across `core/domain`, `ast`, `rules-builtin`; oversized functions in `config/loader.ts` and `rules-builtin`'s `max-nesting-depth` rule; a nesting violation in `scripts/check-licenses.mjs`; and four violations on one function — `rule-engine`'s `Engine.runSync` (complexity 20, 156 lines, nesting 5, file 309 lines). This repo's own precedent (P2-02, P2-04: self-scan finds something real, fix it in the same task) said fix, not ignore — so all 38 got fixed before the CI job was wired, meaning the gate starts at zero rather than red.
+All root gates are green and the self-scan is clean (147 files, 0 violations) as of this writing, but **the PR is not yet opened and the independent review has not run** — that is the very next step, not a follow-up task. See "Recommended Next Steps".
 
-## What P2-05/P2-06 inherit
+## What I Did
 
-1. **The dogfood gate is real, not cosmetic.** It requires `filesScanned > 100` (not just exit 0) because a scan that matches nothing is a _successful_ zero-file scan by P2-04's own design — exit 0 alone can't tell "135 clean files" from "the ignore list ate everything". If you touch `argus.yaml`'s `ignore:` or the discovery path, re-run `node apps/cli/bin/argus.mjs check . --format json` locally and check `.summary.filesScanned` before pushing.
-2. **`rule-engine/src/engine.ts` is now a thin class; the dispatch/reporting machinery lives in `handlers.ts`.** `Engine.runSync` = compile → walk → build, ~11 lines. If you touch rule execution, read `handlers.ts`'s `registerListeners`/`walkAndCollect`/`buildViolations` — the walk itself (`walk()` from `./walk.js`) is untouched and must stay iterative (50k-deep test in `tests/perf/`).
-3. **neverthrow gotcha:** returning an `Err<T1, E>` from a function typed `Result<T2, E>` does not typecheck, even though at runtime an `Err` only carries `E`. Rewrap with `err(x.error)` at every such boundary — `engine.ts`/`handlers.ts` have four examples now.
+- **`Fix` domain type** (`packages/core/src/domain/fix.ts`) threaded additively: `RuleReport.fix?` → `CapturedReport.fix?` → `Violation.fix?`. No `RuleRunnerPort` signature change.
+- **New `FormatterPort`** (core) + **new `@argus/adapters-prettier` package** (`packages/adapters/prettier/`) — `PrettierFormatter` resolves the _target project's_ Prettier config relative to its own root, never `process.cwd()`.
+- **`style/import-order` fixer** (`packages/rules-builtin/src/style/import-order.ts`) — whole-block reorder, gap-preserving (reconstructs blank lines between reordered imports from line numbers, since `AstNode` has no raw offsets), safety-gated as above.
+- **`apps/cli`**: `scan.ts` extracted from `check.ts` (shared config→discover→parse→engine pipeline); new `apply-fixes.ts` (magic-string splice, dedupes/conflict-resolves), `position-offset.ts` (`LineIndex`, position→offset bridge, round-tripped against a real parsed tree in tests), `diff.ts` (unified diff for `--dry-run`), `fix.ts` (`runFix`, decomposed into `fixFile`/`fixAllFiles`/`reportFailures` after the self-scan flagged the first-draft version's complexity).
+- **`pnpm-workspace.yaml`** gains `"packages/adapters/*"`. Two pre-existing dependency-cruiser patterns assumed every package was one segment deep (`no-cross-package-deep-imports`'s backstop, the coverage/dist/.turbo excludes) — both fixed with a companion pattern once the new nested package exposed the assumption; both new/changed rules (`rule-engine-never-imports-adapters`, `adapters-prettier-public-entry-only`) verified by temporarily reintroducing then reverting a violating import.
+- **Cruiser config split**: the rule list crossed 300 lines and moved to `dependency-cruiser-rules.cjs` (genuine modularisation — it only grows as Phase 4's adapters arrive, not a threshold dodge). Needed `@typescript-eslint/no-require-imports` turned off for `*.cjs` in `eslint.config.mjs` — the whole point of that extension, never previously exercised by a same-directory `require()`.
+- Docs: ADR-0006, `docs/guide/cli.md` (`fix` section + exit-code table), `docs/guide/rules.md` (fixable marker), `docs/dev/adding-a-rule.md` (new "Offering a fix" section), `docs/architecture.md`, and the READMEs for `core`, `rule-engine`, `rules-builtin`, `cli`, and the new adapter package.
 
-## Gotchas this task discovered
+PRs merged in this session: none yet — see Recommended Next Steps.
 
-1. **A stray local git worktree can pollute a self-scan without anyone noticing.** `.claude/worktrees/<name>/` (a Claude Code harness artifact, not repo content) added 13 extra files to a local `argus check .` — invisible in CI's fresh checkout, but confusing locally and a real gap in the ignore list. Now excluded (`.claude/**` in `argus.yaml`, `.claude/` in `.gitignore`). If a local self-scan count looks off, check for stray worktrees/dirs before trusting the number.
-2. **The CI exit-code-trust pattern has a hole the P2-04 review's own jq lesson didn't cover:** avoiding the pipe fixes "did the scan run," not "did the scan find anything." Both checks are needed. `jq -e '.summary.filesScanned > N' report.json > /dev/null` as its own step, after redirecting (never piping) the scan to a file.
-3. **TypeScript does not check `readonly` on index-signature types for assignability** — a function typed to take `Record<string, X>` silently accepts a `Readonly<Record<string, X>>` argument with no error, so a refactor can widen away a domain type's readonly-ness without any tooling catching it. Match the domain type exactly, don't accept a wider one just because it happens to compile.
-4. **A floating JSDoc block between imports and the first export attaches to nothing** — no doc tool associates it with the following export. A file-level comment either goes above the imports as a plain `//` block, or gets folded into the first export's doc.
+## What I Did NOT Do (Deferred)
 
-## Evergreen (carried forward)
+- **P2-05 (diff mode)** — untouched, still top of the real backlog once this merges.
+- **A second fixable rule** — only `import-order` this task, deliberately (see ADR-0006). The fix engine's conflict-resolution machinery is tested but not yet exercised by a second real fixer.
+- **`argus explain` does not say whether a rule is fixable** — noted as a gap in `docs/guide/cli.md`, not fixed. Small, non-blocking follow-up if anyone wants it.
+- **`fix --format json`** — no machine-readable output for `fix`, only `check` has one. Not asked for by the phase spec; flag if a consumer needs it.
 
-- Root gates before every push (`pnpm lint && typecheck && build && test`); filtered runs bypass turbo's graph. `pnpm boundaries` too.
-- New package? The checklist: root `vitest.config.ts` projects entry · per-package `*-public-entry-only` cruiser rule **+ negative test** · `Dockerfile.dev` mkdir + compose named volume · README · `pnpm license-check` / `pnpm notices`.
-- prettier reflows Markdown tables — `pnpm exec prettier --write <files>` before staging.
-- `gh pr edit` fails here (projectCards GraphQL) — PATCH via `gh api`.
-- The CI review-pass gate reads the PR body frozen at trigger time — post review evidence as a comment and re-run the job.
-- `$?` after a pipe is the pipe's exit code — verify exit codes with a redirect, not a pipe.
-- Never `--no-verify`; scoped `SKIP=<gate>` with written justification only.
+## Gotchas & Surprises
 
-## State of the system
+1. **A rule never sees raw source or byte offsets** (`AstNode` — P1-03 scope limit, deliberately not revisited). A fix's `Position` → `magic-string` offset conversion has to happen in `apps/cli`, not the rule; `position-offset.ts`'s `LineIndex` is that bridge, and it's worth reading before writing a second fixer.
+2. **Multiple violations can share one fix.** `import-order`'s whole-block reorder resolves every out-of-order import in a file with the _same_ fix object — `apply-fixes.ts` de-dupes by structural equality (not reference: the domain factory rebuilds a fresh frozen copy every time, so reference equality never survives `violation()`).
+3. **Nested workspace packages break single-segment assumptions.** `packages/adapters/prettier/` (two segments deep) silently defeated two existing cruiser patterns that assumed `packages/<name>/...`. If a future package nests similarly, check `dependency-cruiser-rules.cjs`'s backstop and `.dependency-cruiser.cjs`'s `exclude.path` for the same class of bug.
+4. **A `.cjs` file's `require()` was banned by ESLint** even though the same config block declares `require` a real global — `@typescript-eslint/no-require-imports` needed an explicit override for `**/*.cjs`. Fixed once in `eslint.config.mjs`; applies to any future `.cjs` file that needs to require a sibling.
+5. **A tiny new package can fail its own coverage threshold on one defensive branch.** `@argus/adapters-prettier`'s `message()` helper's non-`Error` arm is unreachable through `format()` itself (Prettier only ever rejects with real `Error`s) — with so few total branches in the file, one uncovered arm was 50% of them. Exported `message()` for a direct unit test rather than trying to provoke the unreachable case through the adapter.
+6. **Dry-run and a real run need _different_ exit-code semantics**, not the same one — my first draft computed both from "violations remaining," which makes `--dry-run` return `0` even when a fixable violation exists (since it _would_ be resolved). Fixed to: real run = state ("do violations remain"), dry-run = action-preview ("would anything change", `prettier --check`'s idiom). See ADR-0006 decision 7 before touching either.
 
-- ✅ Tests: **656 passing** (63 files), 0 failing. Aggregate coverage 98.09% lines / 94.59% branches
-- ✅ Lint, typecheck, build, boundaries, format:check clean at root
-- ✅ Self-scan: `argus check .` (repo root) → **0 violations, 0 failures, 135 files**
-- ✅ License gate green (569 packages, 4 exceptions); notices regenerated (no diff — already current)
-- ✅ Merged since the last handover: **#37** (P2-04)
-- ✅ Independent review (Opus, cross-family + escalated for the rule-engine touch): APPROVE WITH CHANGES — 1 HIGH (vacuous-scan gate hole) + 4 MEDIUM + 6 LOW, all addressed in-branch (fix commit on top of the feature commit)
+## State of the System
 
-## Recommended next steps
+- ✅ Tests: **712 passing**, 0 failing (70 files). Aggregate coverage 97.83% lines / 94.2% branches / 99.77% functions
+- ✅ Lint, typecheck, build, boundaries, format:check, license-check all clean at root
+- ✅ Self-scan: `argus check .` (repo root) → **0 violations, 0 failures, 147 files**
+- ⬜ **PR not yet opened.** Branch `p2-06-autofix-engine`, two commits pushed nowhere yet.
+- ⬜ **Independent review not yet run.** This diff touches domain core (`packages/core`) and adds a new adapter boundary (`packages/adapters/prettier`) — full packet, escalated + cross-family per the protocol (Opus, given the author is Sonnet).
 
-Pick up **P2-06** (auto-fix engine, riskiest of the phase) or **P2-05** (diff mode) — both unblocked, no hard ordering between them. Either way:
+## Recommended Next Steps
 
-1. Re-run `node apps/cli/bin/argus.mjs check .` before pushing — the dogfood gate is real now, not aspirational.
-2. If P2-06 lands: `argus fix` will be the CLI's first mutating command; round-trip safety needs the same obsessiveness as the phase doc says. If P2-05 lands: `--diff main` extraction is new territory (`packages/orchestrator/`, a package that doesn't exist yet).
+If you are picking this up mid-flight (the PR described above still isn't open):
 
-## Open decisions / scope calls
+1. Commit the doc changes (tracker + this handover + ADR-0006 + all the README/guide updates), `git push -u origin p2-06-autofix-engine`, open the PR (template: `docs/plan/templates/PR.template.md`).
+2. Run the independent review (full packet — escalated + cross-family), post it as a PR comment, address findings in-branch, re-run root gates + self-scan before pushing the fix commit.
+3. Update this tracker row's "_Independent review: pending._" placeholder with the actual outcome; re-rotate this handover once the PR merges.
 
-- **Ratchet vs. absolute zero.** `quality-gates.md`'s Dogfooding Gate section describes an eventual ratchet (existing-violation count can't increase); the actual gate is absolute-zero, which trivially satisfies that but isn't the same mechanism. Revisit only if the zero bar is ever knowingly relaxed.
-- **`dogfood` is not yet a branch-protection required check** — same maintainer admin step as `boundaries`/`license`/`review-gate` (P0-03 bucket).
-- D-1, D-5, D-6, D-8 unchanged — see IMPLEMENTATION.md. D-8 (CLI packaging) is deferred past Phase 2 by the maintainer.
+Once P2-06 is fully merged, pick up **P2-05** (diff mode — `packages/orchestrator/` doesn't exist yet, new territory) or start the **M1 showcase tail** (DOC-02/03/04, OPS-05 — no hard dependency on P2-05).
+
+## Open Questions for the Next Agent
+
+- Should `argus explain <rule-id>` report fixability? Not done this task; `docs/guide/cli.md` flags it as a known gap.
+- Is the conflict-resolution behavior in `apply-fixes.ts` (keep the earlier-starting fix, drop an overlapping later one) the right policy once a second fixable rule exists, or should it escalate to a file-level failure instead of silently under-fixing? Untested territory beyond one rule.
+
+## Files Touched This Session
+
+Commit 1 (`packages/core`, `packages/rule-engine`, `packages/rules-builtin`): `fix.ts`/`format-error.ts`/`formatter.ts` [created] in core; `violation.ts`, domain/errors/ports `index.ts` [modified]; rule-engine `types.ts`/`handlers.ts`/`engine.ts` [modified]; rules-builtin `import-order.ts`/`support.ts` [modified] + tests.
+
+Commit 2 (`apps/cli`, `packages/adapters/prettier`, workspace config): `apps/cli/src/{scan,apply-fixes,diff,position-offset,fix}.ts` [created], `check.ts`/`main.ts` [modified]; `packages/adapters/prettier/` [created, full package]; `pnpm-workspace.yaml`, `.dependency-cruiser.cjs`, `dependency-cruiser-rules.cjs` [split out], `eslint.config.mjs`, `Dockerfile.dev`, `docker-compose.yml`, `vitest.config.ts` [modified].
+
+Not yet committed: `docs/adr/0006-*.md` [created]; `docs/IMPLEMENTATION.md`, `docs/HANDOVER.md`, `docs/guide/cli.md`, `docs/guide/rules.md`, `docs/dev/adding-a-rule.md`, `docs/architecture.md`, `packages/core/README.md`, `packages/rule-engine/README.md`, `packages/rules-builtin/README.md`, `apps/cli/README.md` [all modified].
 
 ## Sign-off
 
-Argus now enforces its own quality bar in CI, at zero violations, on its own hot-path code — not just the parts it was easy to keep clean. P2-05 and P2-06 are both ready to pick up.
+Code, tests, and gates are all green and self-scan-clean — what remains is entirely process (PR, review, tracker close-out), not implementation.
 
 — claude-sonnet-5
