@@ -1,4 +1,4 @@
-import type { AstNode, FilePath, Language, LayerName, Position, Rule } from "@argus/core";
+import type { AstNode, FilePath, Fix, Language, LayerName, Position, Rule } from "@argus/core";
 
 /**
  * Callback invoked for a node the rule subscribed to.
@@ -45,6 +45,13 @@ export interface RuleReport {
    * node. Must lie in the file the rule is currently running on.
    */
   readonly position: Position;
+  /**
+   * A mechanical edit that would resolve this violation, when the rule can
+   * compute one safely. Omit rather than guess — a rule that cannot prove
+   * its fix is safe for a given case (e.g. it would displace a comment)
+   * should report without one.
+   */
+  readonly fix?: Fix;
 }
 
 /**

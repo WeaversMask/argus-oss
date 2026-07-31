@@ -46,6 +46,7 @@ services:
       - config_node_modules:/app/packages/config/node_modules
       - rules_builtin_node_modules:/app/packages/rules-builtin/node_modules
       - api_contracts_node_modules:/app/packages/api-contracts/node_modules
+      - adapters_prettier_node_modules:/app/packages/adapters/prettier/node_modules
       - cli_node_modules:/app/apps/cli/node_modules
       # Persist pnpm's content-addressable store too: it lives in the
       # container layer otherwise, so every down/up would refetch packages
@@ -101,6 +102,7 @@ volumes:
   config_node_modules:
   rules_builtin_node_modules:
   api_contracts_node_modules:
+  adapters_prettier_node_modules:
   cli_node_modules:
   pnpm_store:
   redis_data:

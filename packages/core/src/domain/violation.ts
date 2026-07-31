@@ -1,5 +1,6 @@
 import type { Result } from "neverthrow";
 import type { ValidationError } from "../errors/validation-error.js";
+import { fix, type Fix } from "./fix.js";
 import type { ViolationId } from "./ids.js";
 import type { LayerName } from "./layer.js";
 import { position, type Position } from "./position.js";
@@ -16,6 +17,8 @@ export interface Violation {
   readonly position: Position;
   /** Layer the offending file belongs to, when classified. */
   readonly layer?: LayerName;
+  /** A mechanical edit that would resolve this violation, when the rule offers one. */
+  readonly fix?: Fix;
 }
 
 /** Smart constructor: validates a {@link Violation} and returns a frozen copy. */
@@ -23,6 +26,8 @@ export function violation(input: Violation): Result<Violation, ValidationError> 
   const validator = new Validator("Violation");
   validator.nonBlankString("message", input.message);
   const validatedPosition = validator.embed("position", position(input.position), input.position);
+  const validatedFix =
+    input.fix !== undefined ? validator.embed("fix", fix(input.fix), input.fix) : undefined;
   return validator.toResult(() =>
     Object.freeze({
       id: input.id,
@@ -31,6 +36,7 @@ export function violation(input: Violation): Result<Violation, ValidationError> 
       message: input.message,
       position: validatedPosition,
       ...(input.layer !== undefined ? { layer: input.layer } : {}),
+      ...(validatedFix !== undefined ? { fix: validatedFix } : {}),
     }),
   );
 }

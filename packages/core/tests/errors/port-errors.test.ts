@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { filePath } from "../../src/domain/file-path.js";
 import { ruleId } from "../../src/domain/rule.js";
 import { DomainError } from "../../src/errors/domain-error.js";
+import { FormatError } from "../../src/errors/format-error.js";
 import { NotificationError } from "../../src/errors/notification-error.js";
 import { ParseError } from "../../src/errors/parse-error.js";
 import { RepositoryError } from "../../src/errors/repository-error.js";
@@ -19,6 +20,7 @@ describe("port errors", () => {
     ["core/resolution", () => new ResolutionError(file(), "unreadable")],
     ["core/repository", () => new RepositoryError("save", "connection lost")],
     ["core/notification", () => new NotificationError("webhook 503")],
+    ["core/format", () => new FormatError(file(), "unresolvable config")],
   ])("%s is a frozen DomainError carrying its context in the message", (code, build) => {
     const error = build();
     expect(error).toBeInstanceOf(DomainError);
@@ -30,6 +32,10 @@ describe("port errors", () => {
   it("ParseError and ResolutionError expose the offending file", () => {
     expect(new ParseError(file(), "x").file).toBe("src/example.ts");
     expect(new ResolutionError(file(), "x").file).toBe("src/example.ts");
+  });
+
+  it("FormatError exposes the offending file", () => {
+    expect(new FormatError(file(), "x").file).toBe("src/example.ts");
   });
 
   it("ToolExecutionError and RepositoryError expose tool and operation", () => {

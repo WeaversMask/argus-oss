@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "packages/adapters/*"
 
 # ── Supply-chain hardening (ADR-0003) ──────────────────────────────────────
 # Newly published versions must be ≥3 days old before pnpm resolves them —

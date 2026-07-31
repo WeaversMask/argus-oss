@@ -1,0 +1,254 @@
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { runCheck } from "../src/check.js";
+import { runFix } from "../src/fix.js";
+import type { FixOptions } from "../src/fix.js";
+import { captureIO, tempDir } from "./support.js";
+
+const REAL: FixOptions = { dryRun: false };
+const DRY_RUN: FixOptions = { dryRun: true };
+
+const REVERSED_IMPORTS =
+  'import { local } from "./local";\nimport { readFile } from "node:fs";\n\nexport const x = [local, readFile];\n';
+const CLEAN = "export const value = 1;\n";
+// Documented, so only max-function-length (not require-jsdoc too) fires
+// under STRICT_LENGTH_CONFIG below — isolates the test to one rule.
+const ONE_LINE_FN = "/** f. */\nexport function f() {\n  return 1;\n}\n";
+// max-function-length has no fixer (needs a logic refactor) — max: 1 makes
+// the 3-line ONE_LINE_FN violate it, so this exercises "unfixable violation
+// remains" without hitting the invalid-option failure path below.
+const STRICT_LENGTH_CONFIG =
+  "rules:\n  quality/max-function-length:\n    severity: warning\n    options:\n      max: 1\n";
+// positiveIntOption throws on max < 1 — this is a deliberately INVALID
+// option, distinct from STRICT_LENGTH_CONFIG above: it produces a rule
+// EXECUTION FAILURE (exit 2), not a normal violation.
+const INVALID_OPTION_CONFIG =
+  "rules:\n  quality/max-function-length:\n    severity: warning\n    options:\n      max: 0\n";
+
+let dir: string;
+let cleanup: () => void;
+
+function write(relative: string, content: string): void {
+  const full = path.join(dir, relative);
+  mkdirSync(path.dirname(full), { recursive: true });
+  writeFileSync(full, content);
+}
+
+function read(relative: string): string {
+  return readFileSync(path.join(dir, relative), "utf8");
+}
+
+beforeEach(() => {
+  ({ dir, cleanup } = tempDir());
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("runFix", () => {
+  it("exits 0 and says so when nothing is fixable", async () => {
+    write("src/clean.ts", CLEAN);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(0);
+    expect(io.err()).toContain("no fixable violations found");
+  });
+
+  it("fixes a reorderable import block, writes the file, and exits 0", async () => {
+    write("src/bad.ts", REVERSED_IMPORTS);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(0);
+    expect(read("src/bad.ts")).toBe(
+      'import { readFile } from "node:fs";\nimport { local } from "./local";\n\nexport const x = [local, readFile];\n',
+    );
+    expect(io.err()).toContain("fixed 1 violation across 1 file");
+  });
+
+  it("resolves multiple violations sharing one whole-block fix in the same file", async () => {
+    // Three groups, all out of order: relative, external, builtin — two
+    // violations (external and builtin each report against a higher group
+    // already seen), both carrying the identical block-reorder fix.
+    const threeReversed =
+      'import { local } from "./local";\nimport lodash from "lodash";\nimport { readFile } from "node:fs";\n\nexport const x = [local, lodash, readFile];\n';
+    write("src/bad.ts", threeReversed);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(0);
+    expect(read("src/bad.ts")).toBe(
+      'import { readFile } from "node:fs";\nimport lodash from "lodash";\nimport { local } from "./local";\n\nexport const x = [local, lodash, readFile];\n',
+    );
+    expect(io.err()).toContain("fixed 2 violations across 1 file");
+  });
+
+  it("round-trips: fixing, then re-running check on the result, finds no import-order violations", async () => {
+    write("src/bad.ts", REVERSED_IMPORTS);
+    expect(await runFix(".", REAL, captureIO(dir))).toBe(0);
+
+    const checkIo = captureIO(dir);
+    await runCheck(".", { colour: false, format: "json" }, checkIo);
+    const report = JSON.parse(checkIo.out()) as { violations: { ruleId: string }[] };
+    expect(report.violations.some((v) => v.ruleId === "style/import-order")).toBe(false);
+  });
+
+  it("--dry-run prints a diff and does not write the file", async () => {
+    write("src/bad.ts", REVERSED_IMPORTS);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", DRY_RUN, io)).toBe(1); // would change a file
+    expect(io.out()).toContain("--- src/bad.ts");
+    expect(io.out()).toContain('-import { local } from "./local";');
+    expect(io.out()).toContain('+import { readFile } from "node:fs";');
+    expect(read("src/bad.ts")).toBe(REVERSED_IMPORTS); // untouched
+  });
+
+  it("--dry-run exits 0 when nothing would change", async () => {
+    write("src/clean.ts", CLEAN);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", DRY_RUN, io)).toBe(0);
+  });
+
+  it("leaves an unfixable violation in place and reports it as remaining", async () => {
+    write("argus.yaml", STRICT_LENGTH_CONFIG);
+    write("src/long.ts", ONE_LINE_FN);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(1);
+    expect(io.err()).toContain("no fixable violations found");
+    expect(io.err()).toContain("1 violation remains");
+    expect(read("src/long.ts")).toBe(ONE_LINE_FN);
+  });
+
+  it("fixes what it can while leaving an unfixable violation elsewhere in the same run", async () => {
+    write("argus.yaml", STRICT_LENGTH_CONFIG);
+    write("src/bad.ts", REVERSED_IMPORTS);
+    write("src/long.ts", ONE_LINE_FN);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(1);
+    expect(read("src/bad.ts")).toBe(
+      'import { readFile } from "node:fs";\nimport { local } from "./local";\n\nexport const x = [local, readFile];\n',
+    );
+    expect(read("src/long.ts")).toBe(ONE_LINE_FN);
+    expect(io.err()).toContain("fixed 1 violation across 1 file");
+    expect(io.err()).toContain("1 violation remains");
+  });
+
+  it("exits 2 on a missing path", async () => {
+    const io = captureIO(dir);
+    expect(await runFix("nowhere", REAL, io)).toBe(2);
+    expect(io.err()).toContain("path not found");
+  });
+
+  it("exits 2 and reports the file when a rule fails on it (bad option), leaving it untouched", async () => {
+    write("argus.yaml", INVALID_OPTION_CONFIG);
+    write("src/a.ts", ONE_LINE_FN);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(2);
+    expect(io.err()).toContain("failed to analyse src/a.ts");
+    expect(existsSync(path.join(dir, "src/a.ts"))).toBe(true);
+    expect(read("src/a.ts")).toBe(ONE_LINE_FN);
+  });
+
+  it("never reformats a file that has no fixable violation, even if it is not Prettier-formatted", async () => {
+    const messy = "const   x   =    1\n";
+    write("src/messy.ts", messy);
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(0);
+    expect(read("src/messy.ts")).toBe(messy);
+  });
+
+  // Review #39 HIGH-1, reproduced: splicing against `parsed.root.text` instead
+  // of the bytes on disk shifted every offset for any file whose first token
+  // isn't at offset 0 — deleting a comment, duplicating an import, and exiting
+  // 0 while the violation survived. One case per leading-trivia shape.
+  describe("leading trivia (offsets must come from the real source)", () => {
+    it.each([
+      ["a blank line", "\n"],
+      ["a leading space", " "],
+      ["a leading tab", "\t"],
+      ["a BOM", "﻿"],
+      ["a CRLF blank line", "\r\n"],
+    ])("fixes correctly and preserves the comment with %s", async (_label, prefix) => {
+      const comment = "// a comment that must survive verbatim";
+      // The blank line before the comment is load-bearing for the fixture, not
+      // decoration: a comment flush against the block is one the rule now
+      // declines to reorder under (see abuttingComment), which would test the
+      // decline path instead of the offset arithmetic this case is about.
+      write(
+        "src/lead.ts",
+        `${prefix}import { local } from "./local";\nimport { readFile } from "node:fs";\n\n${comment}\nexport const y = 2;\n`,
+      );
+      const io = captureIO(dir);
+
+      expect(await runFix(".", REAL, io)).toBe(0);
+
+      const fixed = read("src/lead.ts");
+      expect(fixed).toContain(comment);
+      // Reordered, and exactly once each — the bug duplicated the first import.
+      expect(fixed.indexOf('import { readFile } from "node:fs";')).toBeLessThan(
+        fixed.indexOf('import { local } from "./local";'),
+      );
+      expect(fixed.match(/import \{ local \}/gu)).toHaveLength(1);
+
+      // The claim exit 0 makes must actually hold.
+      const checkIo = captureIO(dir);
+      expect(await runCheck(".", { colour: false, format: "console" }, checkIo)).toBe(0);
+    });
+  });
+
+  it("writes nothing at all when a later file fails to format", async () => {
+    // Review #39 HIGH-2: fixes were written as the loop went, so a failure on
+    // a later file left earlier ones already rewritten — contradicting the
+    // documented "nothing is written when a scan can't complete".
+    write("src/a-fixable.ts", REVERSED_IMPORTS);
+    // Reorderable imports plus a syntax error: tree-sitter parses best-effort
+    // (so the fix is still offered) but Prettier refuses the file, failing the
+    // format step after the earlier file's fix was already computed.
+    write(
+      "src/z-unformattable.ts",
+      'import a from "./a";\nimport fs from "node:fs";\nconst broken = ;\n',
+    );
+    const io = captureIO(dir);
+
+    expect(await runFix(".", REAL, io)).toBe(2);
+    expect(read("src/a-fixable.ts")).toBe(REVERSED_IMPORTS); // untouched despite being fixable
+  });
+
+  // A root user ignores the mode bits, so the write would succeed and the case
+  // could not be provoked. Skipped rather than faked: the point is the real
+  // errno path through commitFixes.
+  it.skipIf(process.getuid?.() === 0)(
+    "reports a failed write per file, keeps the summary, and exits 2",
+    () => {
+      // Follow-up review MEDIUM-1: the commit phase had no error handling, so
+      // an unwritable file escaped to main's last-resort handler — a bare
+      // "unexpected error: EACCES …" with no summary and no per-file context,
+      // while earlier files had already been rewritten.
+      write("src/a-fixable.ts", REVERSED_IMPORTS);
+      write("src/z-readonly.ts", REVERSED_IMPORTS);
+      chmodSync(path.join(dir, "src/z-readonly.ts"), 0o444);
+      const io = captureIO(dir);
+
+      return runFix(".", REAL, io).then((code) => {
+        chmodSync(path.join(dir, "src/z-readonly.ts"), 0o644);
+
+        expect(code).toBe(2);
+        expect(io.err()).toContain("failed to write src/z-readonly.ts");
+        expect(io.err()).not.toContain("unexpected error");
+        // The run is partially applied and says so, rather than going silent.
+        expect(read("src/a-fixable.ts")).not.toBe(REVERSED_IMPORTS);
+        expect(read("src/z-readonly.ts")).toBe(REVERSED_IMPORTS);
+        expect(io.err()).toContain("fixed 1 violation across 1 file");
+        // The unwritten file's violation is still counted as outstanding —
+        // countRemaining measures what reached disk, not what was planned.
+        expect(io.err()).toContain("1 violation remains");
+      });
+    },
+  );
+});

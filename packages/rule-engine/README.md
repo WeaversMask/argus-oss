@@ -10,11 +10,11 @@ The engine is domain-side orchestration: it depends on `@argus/core` only and wa
 
 ## Public surface
 
-| Export                                                         | Kind  | Summary                                                                                                                                                                                             |
-| -------------------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Engine`                                                       | class | Implements `RuleRunnerPort.run`; `register(module)` is the only integration point for a new rule; `rules` lists registered definitions. Never throws — every rule failure is an attributed `Result` |
-| `Runner` (`RunSummary`, `FileRunFailure`)                      | class | Multi-file orchestration over any `RuleRunnerPort`: runs files sequentially in input order, aggregates violations, skips-and-collects failed files                                                  |
-| `RuleModule`, `RuleContext`, `RuleListeners`, … (`RuleReport`) | types | The rule-author contract — see [`docs/dev/adding-a-rule.md`](../../docs/dev/adding-a-rule.md)                                                                                                       |
+| Export                                                         | Kind  | Summary                                                                                                                                                                                                                                          |
+| -------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Engine`                                                       | class | Implements `RuleRunnerPort.run`; `register(module)` is the only integration point for a new rule; `rules` lists registered definitions. Never throws — every rule failure is an attributed `Result`                                              |
+| `Runner` (`RunSummary`, `FileRunFailure`)                      | class | Multi-file orchestration over any `RuleRunnerPort`: runs files sequentially in input order, aggregates violations, skips-and-collects failed files                                                                                               |
+| `RuleModule`, `RuleContext`, `RuleListeners`, … (`RuleReport`) | types | The rule-author contract — see [`docs/dev/adding-a-rule.md`](../../docs/dev/adding-a-rule.md). `RuleReport.fix` (P2-06) is an optional `Fix` a rule can attach when it can prove an edit safe; threaded onto the resulting `Violation` unchanged |
 
 ## How it fits
 
@@ -58,6 +58,7 @@ const summary = await new Runner(engine).runAll(inputs); // { violations, failur
 - **Failure policy is layered.** A rule crash (throw, invalid selector, invalid report, unregistered activation) fails that **file's** run with a `RuleExecutionError` attributed via `ruleId` ("no silent suppression"); the `Runner` above skips-and-collects so one bad file cannot sink a scan.
 - **Determinism end to end.** Same input ⇒ same violations, including ids: violation ids are built from file + rule + position + report ordinal (no randomness in the domain path). Output order is the port contract: start position, ties by rule id, then end position.
 - **Severity is configuration.** Violations carry the activation's severity, never the rule's default; `"off"` activations are skipped before dispatch.
+- **A fix is optional and additive (P2-06).** `report({ ..., fix })` threads straight through to `Violation.fix` — the engine neither validates that a fix is _safe_ (that's the rule's own judgement call, see the recipe) nor requires one. `RuleRunnerPort`'s signature is unchanged; nothing downstream of `Violation[]` had to change to support fixes.
 
 ## Maintenance notes
 

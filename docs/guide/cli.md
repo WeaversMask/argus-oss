@@ -1,6 +1,6 @@
 # The `argus` command line
 
-> Shipped in P2-02, colour output added in P2-03, JSON output in P2-04. Covers the three MVP commands, both output formats, and the exit-code contract. Diff-only scanning (P2-05) and `argus fix` (P2-06) arrive later in Phase 2 and will be documented here as they land.
+> Shipped in P2-02, colour output added in P2-03, JSON output in P2-04, `argus fix` in P2-06. Covers the four MVP commands, both output formats, and the exit-code contract. Diff-only scanning (P2-05) arrives later in Phase 2 and will be documented here as it lands.
 
 ## Running it
 
@@ -126,6 +126,69 @@ A pipe hides Argus's own exit code (`$?` belongs to the last command in the pipe
 
 Exit codes are unchanged by the format: the document is what Argus found, the exit code is its verdict.
 
+## `argus fix [path]`
+
+Applies safe, mechanical fixes for violations that offer one, then runs the changed file through Prettier as a finishing pass:
+
+```bash
+node apps/cli/bin/argus.mjs fix ./src
+```
+
+```
+argus: fixed 2 violations across 1 file
+```
+
+**Not every rule is fixable.** Today that's `style/import-order` alone — the other nine built-in rules need a human judgement call (renaming with every reference updated, splitting a long function, writing real documentation) that a mechanical edit cannot safely make up. `argus explain <rule-id>` does not currently say whether a rule is fixable; for now, "does `fix` touch it" is the answer.
+
+**A rule offers a fix only when it can _prove_ the edit is safe for that specific case.** `import-order`'s fixer declines — reporting the violation with no fix, for you to resolve by hand — when:
+
+- a **comment sits inside** the block of imports it would reorder, or **touches it with no blank line between** — on the first/last import's own line, or the line directly above or below (comments are separate nodes in this grammar, so a reorder would leave the comment behind, describing a different import). The line directly above matters most: that is where line-scoped directives live (`// eslint-disable-next-line`, `// @ts-expect-error`, `// biome-ignore`, `// prettier-ignore`), and reordering under one moves a suppression onto an import that never needed it. Put a blank line between a comment and your imports and the block becomes fixable again;
+- **two imports share a line** (nothing captures the text that belonged between them);
+- any import is **side-effect-only** (`import "./polyfill.js";`) — its whole contract is _when_ it runs relative to the others, so moving it between groups is exactly the change that breaks it;
+- a **non-import statement** interrupts the block.
+
+Declining is not a bug. Under-fixing is always preferred to a wrong edit.
+
+**What a fix touches, and what it never does.** Comments and significant whitespace are never destroyed: fixes are precise text replacements over the exact range a rule identifies, and the run is round-trip safe — `fix` re-runs the rules over its own output before reporting, so exit `0` is a measurement, not a claim.
+
+Two things to know about the blast radius, though:
+
+- **A file that gets one fix gets a full Prettier pass.** Only files `fix` actually edits are formatted — a file with nothing fixable is never touched, whatever its style. But for a file that _does_ have a fixable violation, unrelated lines will be reformatted too. On a codebase that doesn't already run Prettier, expect large diffs.
+- **That pass normalises line endings to LF** (Prettier's default). A CRLF file receiving a fix comes back as LF throughout.
+
+If neither is wanted, run `fix --dry-run` first and apply the hunks you want by hand.
+
+### `--dry-run`
+
+Shows what would change, as a unified diff, without touching any file:
+
+```bash
+node apps/cli/bin/argus.mjs fix ./src --dry-run
+```
+
+```diff
+--- src/index.ts
++++ src/index.ts
+@@ -1,4 +1,4 @@
+-import { local } from "./local";
+-import { readFile } from "node:fs";
++import { readFile } from "node:fs";
++import { local } from "./local";
+
+ export const x = [local, readFile];
+```
+
+**The diff goes to stdout; the `argus: would fix 1 violation across 1 file` summary goes to stderr** — so `argus fix --dry-run > changes.diff` gives you a file that `git apply` accepts, with the human summary still visible on your terminal.
+
+**`--dry-run`'s exit code answers a different question than a real run's.** This matters enough to spell out, because the two modes are not just "the same check with a flag":
+
+| Mode            | `0` means…                                  | `1` means…                                                                                  |
+| --------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `fix`           | No violations remain once this run finished | Violations remain — unfixable rules, or an unsafe/conflicting range a fix declined to touch |
+| `fix --dry-run` | Running `fix` for real would change nothing | Running `fix` for real would change at least one file                                       |
+
+A real run reports **state** ("is the repo clean now"), extending `check`'s own contract. `--dry-run` reports **what an action would do** — the same idiom as `prettier --check` or `terraform plan` — because it cannot promise the repo would end up clean without writing anything. Wire `argus fix --dry-run` into CI the way you would `prettier --check`: it fails exactly when someone forgot to run `argus fix` before committing.
+
 ## `argus init`
 
 Writes a starter `argus.yaml` in the current directory, listing every built-in rule at its default severity so the catalogue is visible in the file itself:
@@ -156,15 +219,17 @@ An unknown id prints the full list of known rule ids.
 
 ## Exit codes
 
-Designed for CI: a non-zero exit fails the job, and `1` versus `2` distinguishes "the code has problems" from "Argus could not do its job".
+Designed for CI: a non-zero exit fails the job, and `1` versus `2` distinguishes "the code has problems" from "Argus could not do its job". `fix` reuses the same three codes, but reinterprets `0`/`1` for a mutating command — see [`--dry-run`](#--dry-run) above for exactly how.
 
-| Code | Meaning                                                                                                                     |
-| ---- | --------------------------------------------------------------------------------------------------------------------------- |
-| `0`  | Success — no violations found. Also `--help`, `--version`, `init`, a successful `explain`, and a scan that matched no files |
-| `1`  | Violations were found                                                                                                       |
-| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, or a file it could not parse |
+| Code | Meaning for `check`                                                                                                         | Meaning for `fix`                                                    |
+| ---- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `0`  | Success — no violations found. Also `--help`, `--version`, `init`, a successful `explain`, and a scan that matched no files | No violations remain (real run) / nothing would change (`--dry-run`) |
+| `1`  | Violations were found                                                                                                       | Violations remain (real run) / something would change (`--dry-run`)  |
+| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, or a file it could not parse | Every `check` case, plus a file whose fix could not be written       |
 
 If some files could not be analysed, `check` reports each one on stderr, notes the count in the summary, and exits `2` even when the files it _could_ read were clean — an incomplete scan never reports itself as a pass.
+
+**What `fix` guarantees about partial runs.** Nothing is written when the _analysis_ can't complete: every file's fixed text is computed and formatted before anything touches disk, so a parse, rule, or Prettier failure on any file means no file is modified at all. A write that fails for an environmental reason — a read-only file, a full disk — is different, and `fix` does not pretend otherwise: it reports that file on stderr (`argus: failed to write …`), writes the rest, prints the usual summary of what did land, and exits `2`. So exit `2` from `fix` means "the run is incomplete, check stderr for what was applied", never "the tree is untouched".
 
 ## Global flags
 
@@ -173,4 +238,4 @@ If some files could not be analysed, `check` reports each one on stderr, notes t
 | `-v`, `--version` | Print the Argus version                |
 | `--help`          | Print usage; works on every subcommand |
 
-`check` additionally takes `--no-color` (see [Colour](#colour) above) and `-f, --format <console|json>` (see [Machine-readable output](#machine-readable-output--format-json)). Both belong to the subcommand, so they go after `check`; an unrecognised format is a usage error (exit `2`), never a silent fallback.
+`check` additionally takes `--no-color` (see [Colour](#colour) above) and `-f, --format <console|json>` (see [Machine-readable output](#machine-readable-output--format-json)). `fix` additionally takes `--dry-run` (see [above](#--dry-run)). All three belong to their subcommand, so they go after the command name; an unrecognised `--format` value is a usage error (exit `2`), never a silent fallback.

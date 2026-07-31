@@ -85,6 +85,17 @@ export function pointAt(file: FilePath, line: number, column = 1): Position {
   })._unsafeUnwrap();
 }
 
+/** The smallest range covering both `a` and `b` — `a` must start at or before `b`'s start. */
+export function spanning(a: Position, b: Position): Position {
+  return position({
+    file: a.file,
+    startLine: a.startLine,
+    startColumn: a.startColumn,
+    endLine: b.endLine,
+    endColumn: b.endColumn,
+  })._unsafeUnwrap();
+}
+
 /**
  * The position of a node's `name` field when present, else the node's own
  * position — so a violation points at the offending identifier, not the whole

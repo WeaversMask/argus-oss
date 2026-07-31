@@ -245,6 +245,32 @@ describe("violations", () => {
     }
   });
 
+  it("threads an offered fix onto the violation, and omits the key when none was offered", async () => {
+    const engine = new Engine();
+    engine
+      .register(
+        moduleOf("flag-identifiers", (context: RuleContext) => ({
+          identifier: (node) => {
+            context.report({
+              message: `flagged ${node.text}`,
+              position: node.position,
+              ...(node.text === "x" ? { fix: { position: node.position, replacement: "z" } } : {}),
+            });
+          },
+        })),
+      )
+      ._unsafeUnwrap();
+
+    const violations = (
+      await engine.run(inputOf(declarationTree(), [activationOf("flag-identifiers")]))
+    )._unsafeUnwrap();
+
+    expect(violations).toHaveLength(2);
+    const [withFix, withoutFix] = violations;
+    expect(withFix!.fix).toEqual({ position: withFix!.position, replacement: "z" });
+    expect("fix" in withoutFix!).toBe(false);
+  });
+
   it("threads the input layer onto every violation, and omits it when unclassified", async () => {
     const engine = new Engine();
     reportEverything(engine);
@@ -594,6 +620,38 @@ describe("containment — the run never throws", () => {
           ._unsafeUnwrap();
       },
       { messagePart: 'reported a position in "src/other.ts"' },
+    );
+  });
+
+  it("fails the run when a rule offers a fix targeting another file", async () => {
+    // A fix is the one report field written back to disk, so a cross-file
+    // range would corrupt a file the run never read (review #39 LOW-1).
+    await expectAttributedError(
+      (engine) => {
+        engine
+          .register(
+            moduleOf("bad-rule", (context: RuleContext) => ({
+              identifier: (node) => {
+                context.report({
+                  message: "fix points elsewhere",
+                  position: node.position,
+                  fix: {
+                    position: {
+                      file: someFile("src/other.ts"),
+                      startLine: 1,
+                      startColumn: 1,
+                      endLine: 1,
+                      endColumn: 2,
+                    },
+                    replacement: "x",
+                  },
+                });
+              },
+            })),
+          )
+          ._unsafeUnwrap();
+      },
+      { messagePart: 'offered a fix for "src/other.ts"' },
     );
   });
 

@@ -29,6 +29,7 @@ describe("run", () => {
     expect(await run(["--help"], io)).toBe(0);
     expect(io.out()).toContain("Usage: argus");
     expect(io.out()).toContain("check");
+    expect(io.out()).toContain("fix");
     expect(io.out()).toContain("init");
     expect(io.out()).toContain("explain");
   });
@@ -71,6 +72,16 @@ describe("run", () => {
     const io = captureIO(dir);
     expect(await run(["check", "."], io)).toBe(1);
     expect(io.out()).toContain("docs/require-jsdoc");
+  });
+
+  it("dispatches fix end to end", async () => {
+    const full = path.join(dir, "src/bad.ts");
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, 'import { local } from "./local";\nimport { readFile } from "node:fs";\n');
+
+    const io = captureIO(dir);
+    expect(await run(["fix", "."], io)).toBe(0);
+    expect(io.err()).toContain("fixed 1 violation");
   });
 
   it("routes --format json to the machine-readable formatter", async () => {

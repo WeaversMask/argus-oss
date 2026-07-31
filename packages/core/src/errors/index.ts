@@ -1,4 +1,5 @@
 export { DomainError } from "./domain-error.js";
+export { FormatError } from "./format-error.js";
 export { NotificationError } from "./notification-error.js";
 export { ParseError } from "./parse-error.js";
 export { RepositoryError } from "./repository-error.js";

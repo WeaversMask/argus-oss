@@ -1,6 +1,6 @@
 # `@argus/cli`
 
-> The first runnable surface of Argus. `argus check` composes config, parser, engine, and the built-in rules into real findings; `argus init` and `argus explain` round out the MVP command set.
+> The first runnable surface of Argus. `argus check` composes config, parser, engine, and the built-in rules into real findings; `argus fix` (P2-06) applies the ones a rule can prove safe; `argus init` and `argus explain` round out the MVP command set.
 
 ## Purpose
 
@@ -10,14 +10,16 @@ It is the first `apps/*` workspace member. Nothing imports it (`packages-never-i
 
 ## Commands
 
-| Command                  | Does                                                                     |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `argus check [path]`     | Scans a file or directory (default `.`) and reports violations           |
-| `argus check --no-color` | Same, with ANSI escapes suppressed regardless of terminal                |
-| `argus init`             | Writes a starter `argus.yaml` listing every built-in rule at its default |
-| `argus explain <rule>`   | Prints a rule's name, default severity, docs link, and full description  |
-| `argus --version`, `-v`  | Prints the CLI version (read from this package's `package.json`)         |
-| `argus --help`           | Usage; also available per command (`argus check --help`)                 |
+| Command                  | Does                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `argus check [path]`     | Scans a file or directory (default `.`) and reports violations                     |
+| `argus check --no-color` | Same, with ANSI escapes suppressed regardless of terminal                          |
+| `argus fix [path]`       | Applies fixes for violations that offer one, then Prettier-formats what it touched |
+| `argus fix --dry-run`    | Shows a diff of what `fix` would change, without writing anything                  |
+| `argus init`             | Writes a starter `argus.yaml` listing every built-in rule at its default           |
+| `argus explain <rule>`   | Prints a rule's name, default severity, docs link, and full description            |
+| `argus --version`, `-v`  | Prints the CLI version (read from this package's `package.json`)                   |
+| `argus --help`           | Usage; also available per command (`argus check --help`)                           |
 
 ### Exit codes
 
@@ -30,6 +32,8 @@ The convention from the phase-02 spec, enforced by tests:
 | `2`  | Operational error — bad usage, unknown command/rule, config error, missing path, or a file that could not be analysed |
 
 Precedence in `check`: any file that failed to parse or analyse → `2`, else any violation → `1`, else `0`. A file that could not be analysed is never silently dropped — it is reported on stderr and counted in the summary ("no silent suppression").
+
+**`fix` reuses 0/1/2 but reinterprets `0`/`1` per mode** (full rationale + a worked example: [`docs/guide/cli.md`](../../docs/guide/cli.md#argus-fix-path)): a real run answers "do violations remain" (state, extending `check`'s own contract); `--dry-run` answers "would anything change" (an action preview, `prettier --check`'s idiom) — the two questions are genuinely different, and collapsing them into one meaning would make one of the two flows useless for CI.
 
 ## How `check` composes the pipeline
 
@@ -52,6 +56,22 @@ renderReport()             this app         → stdout text, then an exit code
 **Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05) is a separate follow-up.
 
 A path with nothing scannable under it is a **successful scan of zero files**, not an early exit: the notice goes to stderr and the pipeline still renders a report, so `--format json` can never hand a consumer an empty stream for a scan that succeeded.
+
+## How `fix` composes the pipeline (P2-06)
+
+Everything through `Engine + Runner.runAll()` above is identical (`scan.ts` is shared) — [`src/fix.ts`](./src/fix.ts) diverges after `violations`:
+
+```
+violations                                    → grouped by file
+        ↓
+apply-fixes.ts: applyFixes(source, forFile)   this app  → spliced source (magic-string), resolved violation ids
+        ↓
+PrettierFormatter.format(spliced, file)       @argus/adapters-prettier → finished source
+        ↓
+diff.ts / fs.writeFile                        this app  → stdout (dry-run) or disk
+```
+
+A file with **no** fixable violation never reaches the formatter — `fix` cannot become a backdoor whole-repo formatter. (It does still reach `applyFixes`, which is what determines there was nothing to apply; the short-circuit is immediately after.) `apply-fixes.ts` de-duplicates fixes by structural equality (a rule may attach the identical edit to several violations it resolves at once — `style/import-order` does exactly this for a whole-block reorder) and, for two _different_ fixes that still overlap, keeps the earlier-starting one and drops the rest rather than risk a corrupted splice. [`position-offset.ts`](./src/position-offset.ts)'s `LineIndex` is the line/column → character-offset bridge `magic-string` needs — built once per file, verified against a real parsed tree in tests (`AstNode` never exposes byte offsets itself; P1-03 scope limit).
 
 ## Output: the formatters
 
@@ -88,7 +108,7 @@ Tests bypass all of this — Vitest resolves TypeScript itself, so `run()` and e
 
 ## How it fits
 
-- **Depends on:** `@argus/core` (domain types, `matchGlob`), `@argus/config`, `@argus/ast`, `@argus/rule-engine`, `@argus/rules-builtin`, `@argus/api-contracts` (the JSON wire shape), `commander` (arg parsing, MIT, zero runtime deps), `neverthrow`.
+- **Depends on:** `@argus/core` (domain types, `matchGlob`), `@argus/config`, `@argus/ast`, `@argus/rule-engine`, `@argus/rules-builtin`, `@argus/api-contracts` (the JSON wire shape), `@argus/adapters-prettier` (P2-06, `fix`'s finishing pass), `commander` (arg parsing, MIT, zero runtime deps), `magic-string` (P2-06, exact-pinned, matches the version already resolved transitively via the vitest toolchain), `neverthrow`.
 - **Dev-depends on:** `@argus/testing` (vitest config).
 - **Consumed by:** nothing — it is the outermost layer.
 
@@ -99,4 +119,4 @@ Tests bypass all of this — Vitest resolves TypeScript itself, so `run()` and e
 - **One parser instance per scan process.** Grammar wasm cannot be freed (see `@argus/ast`), so the parser is constructed once and disposed in a `finally`.
 - **Paths anchor to the project root, not the invocation directory.** [`findProjectRoot`](./src/project-root.ts) walks up for the nearest `argus.yaml`/`argus.yml` (falling back to cwd), and that root is the base for both displayed paths and `ignore:` glob matching. Without this, a root config's `ignore:` globs silently stopped matching when the user ran `argus` from a subdirectory — an independent-review finding on the P2-02 PR, now covered by regression tests. The walk mirrors `ConfigLoader.search` using the same public `CONFIG_FILE_NAMES`, because the loader returns a merged config without reporting which file it came from.
 - **Directories always pruned** during discovery, whatever config says: `node_modules`, `.git`, `dist`, `build`, `coverage`, `.turbo`, `.stryker-tmp`. Symlinks are skipped entirely (no cycles). `.tsx`/`.jsx` are deliberately **not** scanned — the AST adapter wires the TS/JS grammars, not the JSX dialects, so they would misparse.
-- **Coverage exception:** `src/cli.ts` is excluded (see [`vitest.config.ts`](./vitest.config.ts)) — it is the process entry, exercised end-to-end through the bin, with no logic of its own. The remaining uncovered branches are defensive guards on paths that need a hostile filesystem or a corrupted rule catalogue: the duplicate-registration check on `builtinRules`, the per-file read/`filePath`-validation failures, and the `EEXIST` race in `init`.
+- **Coverage exception:** `src/cli.ts` is excluded (see [`vitest.config.ts`](./vitest.config.ts)) — it is the process entry, exercised end-to-end through the bin, with no logic of its own. The remaining uncovered branches are defensive guards on paths that need a hostile filesystem or a corrupted rule catalogue: the duplicate-registration check on `builtinRules` (in both `check` and `fix` — `scan.ts`'s shared `buildEngine`), the per-file read/`filePath`-validation failures, and the `EEXIST` race in `init`. `fix.ts` adds two of the same kind: `formatter.format()` returning `err` (Prettier itself failing on text `applyFixes` already produced as valid source — not exercised by any fixture, since a passing fixer's output is always parseable) and the "fix + format round-tripped to a no-op" branch (no current fixture produces a fix whose formatted result equals the original).

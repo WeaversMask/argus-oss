@@ -17,20 +17,20 @@
 
 ### The rules
 
-| Rule id                         | Default | Options     | What it flags                                                                      |
-| ------------------------------- | ------- | ----------- | ---------------------------------------------------------------------------------- |
-| `quality/cyclomatic-complexity` | warning | `max` (10)  | Functions with more than `max` linearly independent paths (`1 + decision points`)  |
-| `quality/max-file-length`       | warning | `max` (300) | Files longer than `max` lines                                                      |
-| `quality/max-function-length`   | warning | `max` (50)  | Functions whose line span exceeds `max`                                            |
-| `quality/max-nesting-depth`     | warning | `max` (4)   | Block nesting deeper than `max` (per scope; `else if` ladders stay at one level)   |
-| `quality/no-dead-code`          | warning | —           | Statements after a `return`/`throw`/`break`/`continue` in a block or `switch` case |
-| `style/naming-convention`       | warning | —           | Non-PascalCase types; functions not camel/PascalCase; snake_case variables         |
-| `style/import-order`            | warning | —           | Imports out of group order (node builtins → external → relative)                   |
-| `style/no-wildcard-imports`     | warning | —           | `import * as ns` namespace imports (`export * from` re-exports are allowed)        |
-| `docs/require-jsdoc`            | warning | —           | Exported functions/classes/interfaces without a preceding `/** … */` block         |
-| `testing/no-empty-test`         | warning | —           | `it`/`test` calls whose callback body is empty (comment-only counts as empty)      |
+| Rule id                         | Default | Fixable | Options     | What it flags                                                                      |
+| ------------------------------- | ------- | ------- | ----------- | ---------------------------------------------------------------------------------- |
+| `quality/cyclomatic-complexity` | warning | —       | `max` (10)  | Functions with more than `max` linearly independent paths (`1 + decision points`)  |
+| `quality/max-file-length`       | warning | —       | `max` (300) | Files longer than `max` lines                                                      |
+| `quality/max-function-length`   | warning | —       | `max` (50)  | Functions whose line span exceeds `max`                                            |
+| `quality/max-nesting-depth`     | warning | —       | `max` (4)   | Block nesting deeper than `max` (per scope; `else if` ladders stay at one level)   |
+| `quality/no-dead-code`          | warning | —       | —           | Statements after a `return`/`throw`/`break`/`continue` in a block or `switch` case |
+| `style/naming-convention`       | warning | —       | —           | Non-PascalCase types; functions not camel/PascalCase; snake_case variables         |
+| `style/import-order`            | warning | ✓       | —           | Imports out of group order (node builtins → external → relative)                   |
+| `style/no-wildcard-imports`     | warning | —       | —           | `import * as ns` namespace imports (`export * from` re-exports are allowed)        |
+| `docs/require-jsdoc`            | warning | —       | —           | Exported functions/classes/interfaces without a preceding `/** … */` block         |
+| `testing/no-empty-test`         | warning | —       | —           | `it`/`test` calls whose callback body is empty (comment-only counts as empty)      |
 
-Options arrive on `context.options` (frozen). A present-but-invalid `max` (non-integer, `< 1`) is a defensive throw → an attributed `RuleExecutionError`, never a silently wrong finding.
+Options arrive on `context.options` (frozen). A present-but-invalid `max` (non-integer, `< 1`) is a defensive throw → an attributed `RuleExecutionError`, never a silently wrong finding. **Fixable** (P2-06, `argus fix`) means the rule _can_ offer a mechanical edit, not that it always does — see [`docs/guide/rules.md`](../../docs/guide/rules.md) for what makes `import-order` decline a specific case.
 
 ## How it fits
 
@@ -60,5 +60,5 @@ const result = await engine.run({ parsed, activations });
 - **Testing is fixture-driven TDD.** Every rule has `tests/fixtures/<category>/<rule>/{valid,invalid}/` with ≥5 files each, run through a **real** `Engine` + `TreeSitterAstParser` (no mocking of own code) by `tests/harness.ts`; `fixture-suite.ts` asserts the baseline contract (valid → 0 violations, invalid → ≥1). See the extended [`docs/dev/adding-a-rule.md`](../../docs/dev/adding-a-rule.md) for the full convention, including how to inspect real trees while authoring.
 - **Fixtures are data, not code.** They are excluded from the package `tsconfig`, from ESLint (`eslint.config.mjs`), from Prettier (`.prettierignore`), and from Vitest collection (`vitest.config.ts` — some `no-empty-test` fixtures are themselves named `*.test.ts`). Reformatting them would change the line counts the length/nesting fixtures assert on.
 - **Thresholds in tests use small `max` options** so fixtures stay tiny; the documented defaults are pinned separately (`*.test.ts` "defaults to …" cases).
-- **Uncovered defensive branches (all guard against degenerate/malformed parse trees, part of the never-crash posture):** `import-order` — an `import_statement` with no `source` field, and the `split("/")` root fallback; `naming-convention` — a checked declaration with no `name` field (an anonymous default export is not a `class_declaration`, so it is not reached); `no-empty-test` — a test call with no `arguments` node; `no-dead-code` — a `switch` case with no `:` token; `require-jsdoc` — a bare (non-exported) `function_signature`. Coverage sits at ~98% lines / ~95% branches.
+- **Uncovered defensive branches (all guard against degenerate/malformed parse trees, part of the never-crash posture):** `import-order` — an `import_statement` with no `source` field, the `split("/")` root fallback, `computeBlockFix`'s `entries[0]`/`entries[entries.length - 1]` undefined check and its `gapLines[i - 1]` bounds throw (both required by `noUncheckedIndexedAccess`, both unreachable given the caller's invariants — the throw fails the rule loudly rather than silently misformatting, per "crashing fails your rule loudly"); `naming-convention` — a checked declaration with no `name` field (an anonymous default export is not a `class_declaration`, so it is not reached); `no-empty-test` — a test call with no `arguments` node; `no-dead-code` — a `switch` case with no `:` token; `require-jsdoc` — a bare (non-exported) `function_signature`. Coverage sits at ~98% lines / ~95% branches.
 - Private workspace package; not published.

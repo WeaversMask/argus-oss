@@ -86,6 +86,7 @@ export class Engine implements RuleRunnerPort {
           severity,
           message: report.message,
           position: report.position,
+          ...(report.fix !== undefined ? { fix: report.fix } : {}),
         });
       });
       try {

@@ -2,6 +2,8 @@ import type { AstNode } from "@argus/core";
 import type { RuleModule } from "@argus/rule-engine";
 import { childByField } from "../grammar.js";
 import { defineRule, pointAt } from "../support.js";
+import { computeBlockFix } from "./import-order-fix.js";
+import type { ImportEntry } from "./import-order-fix.js";
 
 const NODE_BUILTINS: ReadonlySet<string> = new Set([
   "assert",
@@ -63,6 +65,10 @@ const GROUP_LABEL = ["node builtins", "external packages", "relative imports"] a
  * relative ones — without imposing a bikeshed-prone total order. Only
  * `import` statements at the top of the module are considered; `export … from`
  * re-exports and dynamic imports are ignored.
+ *
+ * Offers a whole-block reordering `fix` when it can prove one is safe (see
+ * {@link computeBlockFix}) — otherwise reports without one, leaving the
+ * violation for manual resolution rather than risk a wrong edit.
  */
 export const importOrder: RuleModule = defineRule(
   {
@@ -74,24 +80,42 @@ export const importOrder: RuleModule = defineRule(
   },
   (context) => ({
     program: (node) => {
-      let highestSoFar = BUILTIN;
-      for (const child of node.children) {
+      const entries: ImportEntry[] = [];
+      node.children.forEach((child, childIndex) => {
         if (child.nodeType !== "import_statement") {
-          continue;
+          return;
         }
         const source = importSource(child);
         if (source === undefined) {
-          continue;
+          return;
         }
-        const group = groupOf(source);
-        if (group < highestSoFar) {
-          context.report({
-            message: `Import "${source}" (${GROUP_LABEL[group]}) must come before ${GROUP_LABEL[highestSoFar]}.`,
-            position: pointAt(context.file, child.position.startLine, child.position.startColumn),
-          });
+        entries.push({ node: child, childIndex, source, group: groupOf(source) });
+      });
+
+      const toReport: { readonly entry: ImportEntry; readonly requiredBefore: 0 | 1 | 2 }[] = [];
+      let highestSoFar: 0 | 1 | 2 = BUILTIN;
+      for (const entry of entries) {
+        if (entry.group < highestSoFar) {
+          toReport.push({ entry, requiredBefore: highestSoFar });
         } else {
-          highestSoFar = group;
+          highestSoFar = entry.group;
         }
+      }
+      if (toReport.length === 0) {
+        return;
+      }
+
+      const blockFix = computeBlockFix(node, entries);
+      for (const { entry, requiredBefore } of toReport) {
+        context.report({
+          message: `Import "${entry.source}" (${GROUP_LABEL[entry.group]}) must come before ${GROUP_LABEL[requiredBefore]}.`,
+          position: pointAt(
+            context.file,
+            entry.node.position.startLine,
+            entry.node.position.startColumn,
+          ),
+          ...(blockFix !== undefined ? { fix: blockFix } : {}),
+        });
       }
     },
   }),
