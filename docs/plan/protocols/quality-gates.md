@@ -11,7 +11,7 @@
 - ✅ No new high/critical security findings (Argus self-scan, from Phase 2 onwards)
 - ✅ Bundle size deltas within budget (web app)
 - ✅ Conventional commit messages (`feat:`, `fix:`, `chore:`, etc.)
-- ✅ License policy respected ([ADR-0002](../../adr/0002-third-party-integration-and-licensing-policy.md)): dependency changes stay on the SPDX allowlist (or are a documented named exception), nothing vendored, `THIRD-PARTY-NOTICES` regenerated (`pnpm notices`) when the tree changes — automated gate from P0-12
+- ✅ License policy respected ([ADR-0002](../../adr/0002-third-party-integration-and-licensing-policy.md)): dependency changes stay on the SPDX allowlist (or are a documented named exception), nothing vendored, `THIRD-PARTY-NOTICES` regenerated (`pnpm notices`) when the tree changes. Both halves are automated in the `license` job — the allowlist by `pnpm license-check` (P0-12), notice freshness by `pnpm notices:check` (OPS-06, which until then was an unenforced convention several task rows had already claimed as verified)
 - ✅ Independent review pass evidenced on the PR — the `Independent review pass` CI job (OPS-04) fails any non-draft PR lacking an `## Independent review` block in the description (light tier) or an `## Independent review packet` comment (full tier); brief in [agentic-execution.md](./agentic-execution.md) §Task Completion Checklist. (Job ships with OPS-04a; adding it to the branch-protection required-checks set is a pending admin step.)
 - ✅ Linked task ID in PR description
 - ✅ `IMPLEMENTATION.md` updated
