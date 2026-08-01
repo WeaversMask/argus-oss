@@ -61,6 +61,7 @@ Each arrow crosses a port boundary, so any stage is replaceable. This section wi
 
 ## Going deeper
 
+- **Read the code in the right order:** [`dev/tour.md`](./dev/tour.md) — fifteen minutes, five stops, from this page through one rule end-to-end. Start there rather than opening packages at random.
 - **Use it:** [`guide/`](./guide/) — running Argus and configuring it (fills in from Phase 2).
 - **Extend it:** [`dev/`](./dev/) — recipes for adding rules, adapters, formatters (fills in as each pattern first ships).
 - **Why decisions were made:** [`adr/`](./adr/).
