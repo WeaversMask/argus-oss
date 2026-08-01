@@ -1,119 +1,92 @@
-# Handover — THIRD-PARTY-NOTICES drift gate (OPS-06)
+# Handover — Showcase README (DOC-02)
 
 **From:** claude-opus-5
-**To:** next picker (Phase 2 continues)
+**To:** next picker (Phase 2 continues — M1 showcase tail)
 **Date:** 2026-08-01
 **Phase:** P2 — MVP (5/6+5) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** OPS-06 — notices drift gate — PR open, awaiting maintainer merge
+**Last task completed:** DOC-02 — Showcase README — **PR open, awaiting maintainer merge**
 
 ---
 
 ## Context
 
-Found during the **DOC-02 independent review**: the README's license receipt claimed THIRD-PARTY-NOTICES was "regenerated and diffed on every change." It was not. The `license` job ran only `pnpm license-check`; neither husky hook ran `pnpm notices`; the only reference anywhere was the manual root script. DOC-02 removed the false claim. **This task makes the claim true instead**, so the several tracker rows that assert "notices regenerated, zero diff" (P2-06, the dogfooding row, P2-04, P2-02, P1-04, P1-03) finally sit on a mechanism.
+P2-06 and the CLAUDE.md background-process guard merged ([#39](https://github.com/WeaversMask/argus-oss/pull/39), [#40](https://github.com/WeaversMask/argus-oss/pull/40)) before this session started, but neither carried its bookkeeping tail — two Recently Completed rows still read `_pending_`, the tracker still said "awaiting merge", and `HANDOVER.md` had never been snapshotted. That close-out is the first commit on this branch; the rest is DOC-02.
 
-This gap was known and deferred twice — the [P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3 flagged platform variance, and P0-12 deferred the check again citing it. It is closed now.
+**Rebased onto OPS-06** ([#42](https://github.com/WeaversMask/argus-oss/pull/42), the THIRD-PARTY-NOTICES drift gate), which merged first and rewrote both tracker files — the parallel-lane case the protocol anticipates. OPS-06 itself came out of DOC-02's independent review: the README's license receipt claimed notices were regenerated and diffed on every change, and nothing checked. Its handover is archived at [`docs/handovers/ops-06-notices-drift-gate-handover.md`](./handovers/ops-06-notices-drift-gate-handover.md) — read it before touching `scripts/`, since the live `HANDOVER.md` you are reading replaced it in the rotation.
+
+The README top is now M1's recruiter tier instead of a Phase-0 pre-alpha notice that had been false since P2-02. **Three of the four M1 criteria that need agent work are still open: DOC-03 (workflow showcase), DOC-04 (developer tour), OPS-05 (go-public sweep).** P2-05 (diff mode) is the last numbered P2 task but is not itself a phase exit criterion and blocks nothing — the tracker's Up Next now ranks the M1 tail ahead of it, which is a re-ranking a later picker may reverse if the maintainer prefers.
 
 ## What I Did
 
-- **`scripts/lib/installed-packages.mjs`** [new] — everything that touches pnpm/`node_modules`: license grouping, copyright extraction, the MPL-2.0 guard, and the platform split.
-- **`scripts/lib/third-party-notices.mjs`** [new] — document rendering + `DRIFT_CHECK_BOUNDARY` / `portablePrefix`.
-- **`scripts/generate-third-party-notices.mjs`** — now an 82-line CLI over those two, with a `--check` mode.
-- **`pnpm notices:check`** (root script) wired into CI's `license` job.
-- Docs: `CONTRIBUTING.md` guardrail #5, `quality-gates.md` license line, an ADR-0002 §F enforcement note.
+- **Closed out P2-06/DOGFOOD bookkeeping** (own commit): archived the P2-06 handover to `docs/handovers/`, filled in the #39/#38 PR links, corrected header/Phase Status/Up Next to post-merge reality.
+- **Rewrote the top of `README.md`** in DOC-02's specced order. Everything below the fold (posture, external tools, dev setup, Docker, license) kept its content.
+- **`docs/assets/argus-self-scan.svg`** — the committed terminal demo, two frames, generated from real captured CLI output.
+- **Root `argus` script** in `package.json` — one line, so `pnpm -s argus check .` is a real command (see Gotcha 2).
+- **Re-measured every tracker metric** rather than copying it forward; found and corrected two stale numbers and one broken CI job (Gotchas 3 and 4).
 
-### The design decision, and why
-
-The generator's output was host-dependent in **two** ways, not one. The task brief named the first; the second only shows up on Linux.
-
-1. **The `Snapshot:` line** carried the current date and the host platform. → **Removed from the file; the full provenance (date · pnpm · platform) now goes to stderr on every run.** This was the brief's option (a), and it is the right one: a self-reported date proves only that _someone ran the script_, whereas `git log -1 -- THIRD-PARTY-NOTICES` proves when the committed content actually changed and cannot be refreshed by a no-op rerun. The alternative — "diff only below the snapshot line" — keeps a line in the file that is knowably wrong the moment anyone else regenerates, makes the check structure-aware rather than dumb, and does nothing about (2), which is what actually breaks CI.
-
-2. **Packages that declare `os`/`cpu`/`libc` resolve differently per host.** On darwin-arm64 that is four: `@rolldown/binding-darwin-arm64`, `@turbo/darwin-arm64`, `lightningcss-darwin-arm64`, `fsevents`. On linux-x64 CI the first three become their linux variants, **`fsevents` is not installed at all**, and **`@rollup/rollup-linux-x64-gnu` appears** — it is a linux-only optional dependency of `neverthrow`, invisible from a Mac. So both the membership _and the size_ of that set are host properties. Fixing only (1) still leaves a check that fails 100% of the time.
-
-   **Three options were weighed. Dropping the four from the file (making a plain `git diff --exit-code` work) was rejected on the repo's own policy**: ADR-0002 §F says notices are never dropped, and `fsevents` carries `Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller` — held by no other package in the tree. Reconstructing the full per-platform families from the lockfile was rejected too: you cannot read a notice out of a package you never downloaded, so ~29 entries would have to claim "no copyright line" about packages nobody looked at.
-
-   **Chosen:** the generator emits them into a trailing section under a fixed marker, and every count above that marker is computed from the portable set alone. `--check` compares the prefix and stops. So the file keeps full legal fidelity, and the check verifies everything that _can_ be verified across hosts.
-
-**Detection is structural, not lexical** — a package is platform-scoped iff its own `package.json` declares `os`/`cpu`/`libc`. Name heuristics would have failed: `@turbo/linux-64` and `fsevents` share nothing with `lightningcss-darwin-arm64`.
-
-**Why `--check` and not `pnpm notices && git diff --exit-code`:** the comparison has to know which region is comparable, and the only component that can know is the generator. Putting it in the YAML would mean a hand-maintained `sed`/ignore list in CI drifting from the file's actual structure. `--check` never writes, so a red CI job leaves nothing to clean up.
+PRs merged in this session: none — this branch's PR is open and awaiting the maintainer.
 
 ## What I Did NOT Do (Deferred)
 
-- **README.md untouched — deliberately.** DOC-02 is in flight on `doc-02-showcase-readme` and rewrites the README's licensing receipt row. Once both land, that row can cite `pnpm notices:check` as the enforcing mechanism. Editing it from this branch would have created a pure conflict for no benefit.
-- **No pre-commit/pre-push hook.** CI-only, per the brief. `pnpm notices:check` runs in ~3s locally if anyone wants it wired later.
-- **No automated test for the scripts.** `scripts/` has no test harness (`check-licenses.mjs`, a CI gate since P0-12, has none either) and creating one is its own task. Verified by execution instead — eight cases, below. **This is the weakest part of the task; flagging it rather than burying it.**
-- **`MPL_EXCEPTION` still duplicated** between `installed-packages.mjs` and `check-licenses.mjs`, with the "keep in sync" comment both files already carried. Unifying them is a separate change.
+- **Badges (CI, coverage, mutation, license).** These are explicitly **OPS-05's** listed output, not DOC-02's, and a mutation badge would currently be red (Gotcha 4). Deliberately left out; OPS-05 should place them.
+- **DOC-03 / DOC-04.** Untouched. DOC-03 was specced as "polish after DOC-02 framing settles" — that framing is now settled, so it is the natural next pick.
+- **The failing weekly Stryker job.** Diagnosed only as far as "failing since 2026-07-28, logs expired". Needs its own task (Gotcha 4).
+- **`argus explain` still doesn't report fixability** — inherited gap from P2-06, still flagged in `docs/guide/cli.md`, still small.
 
 ## Gotchas & Surprises
 
-1. **The brief's complication was half the problem.** The snapshot line is the visible one; the platform-scoped packages are the one that actually makes a naive diff fail on CI, and they are invisible from a Mac — `pnpm notices` there produces a date-only diff, so the check looks like it would work. If you touch this again, reason from `os`/`cpu`/`libc` in the lockfile, not from what your laptop produces.
-2. **`fsevents` is not a per-platform build artifact.** The other three are one-variant-per-host builds of a parent package (lightningcss, turbo, rolldown) and carry their parent's notice. fsevents is an independent project that happens to be darwin-only, with its own copyright holders. Any scheme that treats "platform-scoped" as "same notice as the parent, therefore droppable" is wrong on exactly this package.
-3. **Verified the tail cannot leak into the compared prefix.** A platform-scoped package with its own dependencies would drag non-platform packages in and out of the portable set per host, silently breaking the check. Checked the whole lockfile: no `os`/`cpu`/`libc`-constrained entry declares `dependencies`/`optionalDependencies`/`peerDependencies`. Re-verify if that ever changes — it is recorded in the script header for that reason.
-4. **The check must fail closed when the marker is missing.** A file predating this change, or a hand-edited one, would otherwise compare an empty prefix to an empty prefix and report "in sync." Covered by verification case 4.
-5. **`pnpm run <script>` auto-installs first on pnpm 11** (also noted in the P0-11 handover). The first `pnpm notices` in a fresh worktree syncs `node_modules` before the script executes. Not the generator doing installs.
-6. **A count of an excluded set is still part of the included region.** The design carefully kept host-dependent _packages_ out of the compared prefix and then printed a _tally_ of them in the header, four lines from the sentence claiming the prefix is a pure function of the tree. Whenever you exempt a region from a check, audit what the rest of the document derives from it — summaries, totals and cross-references are the leak, not the data.
-7. **The rewrite tripped the repo's own 300-line file limit** (344 lines) — decomposed into two library modules rather than trimming the explanation, per the P2-06 / dogfooding precedent. **The split is verified byte-neutral**: `THIRD-PARTY-NOTICES` has SHA `ead639e766…` before and after each of the two splits.
+1. **`node_modules` can silently predate a merged branch.** After pulling #39, `argus check` died with `ERR_MODULE_NOT_FOUND: '@argus/adapters-prettier'` — the new nested workspace package had never been linked locally. `pnpm install --frozen-lockfile` fixes it. Worth doing reflexively after any pull that adds a package.
 
-## Verification
+2. **`pnpm <script>` is not transparent, and that nearly shipped a false demo.** Plain `pnpm argus check .` echoes `$ node apps/cli/bin/argus.mjs check .` before the output **and** appends `[ELIFECYCLE] Command failed with exit code 1.` whenever argus exits non-zero — i.e. on every run that finds something. A demo frame showing clean output under that command would have been fabricated. `pnpm -s` suppresses both and still propagates the real exit code (verified: 0 clean, 1 with violations). **Use `pnpm -s` in any doc that shows argus output.**
 
-`--check` was exercised against the real repo, eight cases, all re-run after the review fixes:
+3. **Re-measure, never copy forward.** The tracker's standing "569 third-party packages" was actually **563**, and the self-scan file count had moved 147 → 149. Both had been carried across sessions unverified. Every number in the new README was produced by running the thing in this session; the Metrics Snapshot now says when it was measured. **The rebase onto OPS-06 proved the point again:** its two new `scripts/lib/` modules moved the count 149 → **151**, invalidating the number in the tracker, the handover, the README alt text _and_ the committed SVG demo — all re-measured and corrected rather than carried. A rebase is a re-measure trigger, not just a merge exercise.
 
-| #   | Scenario                                                                                                              | Expected | Result |
-| --- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
-| 1   | Committed file matches the tree                                                                                       | exit 0   | ✅     |
-| 2   | One version hand-edited above the boundary (`zod 4.4.3` → `4.4.4`)                                                    | exit 1   | ✅     |
-| 3   | **Platform tail rewritten to linux-x64 variants, `fsevents` removed**                                                 | exit 0   | ✅     |
-| 4   | Boundary marker removed                                                                                               | exit 1   | ✅     |
-| 5   | `THIRD-PARTY-NOTICES` absent                                                                                          | exit 1   | ✅     |
-| 6   | `--check` on a clean tree                                                                                             | no write | ✅     |
-| 7   | A whole package block deleted (the real drift mode: dep added, notices not regenerated)                               | exit 1   | ✅     |
-| 8   | **Full linux tail: 3 variants swapped, `fsevents` dropped, `@rollup/rollup-linux-x64-gnu` added, count line changed** | exit 0   | ✅     |
+4. **A report-only CI job can fail silently for weeks.** The weekly Stryker mutation workflow has failed since **2026-07-28** ([run 30363247769](https://github.com/WeaversMask/argus-oss/actions/runs/30363247769)); because it gates nothing, nobody noticed, and the 85.74% score kept being cited as current. Its logs have already expired, so diagnosis starts from scratch — first suspect is config globs that predate `packages/api-contracts` and the nested `packages/adapters/*` (the same single-segment-path assumption that bit dependency-cruiser in P2-06, Gotcha 3 of the previous handover). **Do not cite that number until the job is green.**
 
-**Confirmed on a real Linux runner** — PR #42's `license` job, all 11 checks green:
-
-```
-$ node scripts/generate-third-party-notices.mjs --check
-THIRD-PARTY-NOTICES is in sync with the dependency tree (498 packages, 14 licenses, 4 platform-specific).
-Checked 2026-08-01 · pnpm 11.5.3 · linux-x64; the platform-specific tail is not compared.
-```
-
-Same 498 packages / 14 licenses as darwin-arm64 from a file generated on a Mac — the portable set really is host-independent, and the design no longer rests on simulation. Linux also reports **4** platform-specific packages, matching the reviewer's lockfile reconstruction (three variants swapped, `fsevents` out, `@rollup/rollup-linux-x64-gnu` in). Note what that means: the header-count HIGH really would have passed its first CI run by coincidence.
-
-Cases 3 and 8 are the ones that matter for CI: they simulate what a Linux runner produces and confirm the check does **not** false-fail. Case 2's report names the line, the committed value and the expected value.
-
-**Case 8 exists because the independent review found the gate's one real hole.** The first implementation printed `plus N platform-specific package(s)` in the header — i.e. a count derived from the host-dependent set, sitting _above_ the boundary, inside the compared region. Every doc in this task asserted "everything above the marker is a pure function of the tree"; that one line made it false, and case 3 could not catch it because it only edited the tail. It would have gone red on a future dependency bump with a diagnostic pointing at line 23 and no visible connection to the cause. The count now lives below the boundary; `header()` carries a comment saying why nothing derived from the platform set may ever go back.
-
-The review also found `readdirSync` output being used unsorted (`copyrightLines`) — Node guarantees no order, and it differs between the maintainer's APFS and CI's ext4. **`@bcoe/v8-coverage` ships both `LICENSE.md` ("Charles Samborski") and `LICENSE.txt` ("Contributors")**, both rendered inside the compared region, so their order was filesystem-determined. Sorted now, along with `pkg.paths`.
+5. **Write the claim, then go check it.** Two sentences in the first README draft were wrong in exactly the way the M1 "every claim verifiable" bar exists to catch: coverage thresholds are aggregate at the root `vitest.config.ts`, not enforced per package; and cross-family review is "wherever the roster allows", not absolute — P2-04's reviewer was same-family as its author. Both were caught by opening the file rather than by trusting the draft. Anything in a receipts table is a promise that someone will click it.
 
 ## State of the System
 
-- ✅ Tests: **737 passing** (70 files), coverage 97.91% statements / 94.26% branches / 99.77% functions — unchanged, this task adds no product code
-- ✅ Lint, typecheck, build, format:check, license-check, boundaries all green at root
-- ✅ `pnpm notices:check` green: 498 packages, 14 licenses, 4 platform-specific
-- ✅ Self-scan: `argus check .` → **0 violations, 0 failures, 151 files** (first run flagged the 344-line generator and a missing JSDoc on an exported helper; both fixed in-branch, not ignored)
-- ⚠️ **Tracker + handover will conflict with `doc-02-showcase-readme`**, which rewrites both. `docs/handovers/p2-06-autofix-engine-handover.md` is archived here byte-identically to DOC-02's copy, so that add/add merges cleanly; `HANDOVER.md` and `IMPLEMENTATION.md` will need a manual resolve on whichever PR merges second.
-- ✅ Independent review (Sonnet, cross-family): **REQUEST CHANGES — 1 HIGH + 1 MEDIUM + 2 LOW, all addressed in-branch** (separate fix commit). The HIGH is the header-count hole described under Verification; the reviewer reproduced it against the real `buildNotices()` output.
-- ✅ **PR [#42](https://github.com/WeaversMask/argus-oss/pull/42) open — all 11 CI checks green**, including the new `notices:check` step on real linux-x64 (see Verification) and the review gate after the packet comment landed
+- ✅ Tests: **737 passing** (70 files), coverage 97.84 lines / 94.26 branches / 99.77 functions / 97.91 statements
+- ✅ Lint, typecheck, build, format:check, boundaries (248 modules / 847 deps), license-check (563 pkgs) — all green at root
+- ✅ Self-scan: `pnpm -s argus check .` → **0 violations, 0 failures, 151 files** (re-measured after the OPS-06 rebase, which added two `scripts/lib/` modules)
+- ✅ `pnpm -s argus check . --format json` and `pnpm -s argus explain <rule-id>` both verified working as the README documents them
+- ⚠️ **Weekly Stryker mutation job red since 2026-07-28** — report-only, gates nothing, needs its own task (Gotcha 4)
+- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited from P2-06, both passed in both full runs this session
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
 
-1. **P2-05 (diff mode)** — still the one remaining numbered P2 task; needs `packages/orchestrator/`, which does not exist yet.
-2. The **M1 showcase tail** — DOC-02 is in flight; DOC-03/DOC-04/OPS-05 are open.
-3. If the notices gate ever goes red on a Dependabot PR, the fix is `pnpm notices` and commit — the failure output names the differing lines.
+1. **DOC-03 — workflow showcase** (`docs/workflow.md`). Its dependency was DOC-02's framing, which is now settled. The receipts table in the new README top is the shortlist of guardrails to expand on, and its links are already verified — reuse them rather than re-sourcing.
+2. **DOC-04 — developer tour** (`docs/dev/tour.md`), then **OPS-05** last (it re-verifies everything else, including placing the badges DOC-02 left out).
+3. **P2-05 (diff mode)** whenever the maintainer wants the last numbered task; nothing in Phase 2 waits on it.
+
+Estimated effort: DOC-03 **M**, DOC-04 **S**, OPS-05 **S**.
 
 ## Open Questions for the Next Agent
+
+- Is re-ranking Up Next (M1 tail ahead of P2-05) the right call? It follows the maintainer's M1 directive and the phase exit criteria, which do not name P2-05 — but P2-05 had been listed first since the phase opened.
+- The receipts table is six rows. Does a seventh (determinism/no-AI-in-the-scan-path) belong, and what would its _receipt_ be? It is the strongest product claim in the README and currently the only one carried by prose alone.
+
+Carried forward from OPS-06, still open:
 
 - Should `scripts/` get a test project? Three CI-relevant scripts now have zero automated coverage. It is a small vitest project plus fixtures, and it would let the drift check's fail-closed paths be regression-tested rather than hand-verified once.
 - Should `notices:check` join the pre-push hook? It costs ~3s and would catch drift before CI, at the price of slowing every push.
 
 ## Files Touched This Session
 
-`scripts/lib/installed-packages.mjs`, `scripts/lib/third-party-notices.mjs` [created]; `scripts/generate-third-party-notices.mjs`, `package.json`, `.github/workflows/ci.yml`, `THIRD-PARTY-NOTICES` [regenerated], `CONTRIBUTING.md`, `docs/adr/0002-*.md`, `docs/plan/protocols/quality-gates.md`, `docs/IMPLEMENTATION.md`, `docs/HANDOVER.md`, `docs/handovers/p2-06-autofix-engine-handover.md` [archived].
+```
+docs/handovers/p2-06-autofix-engine-handover.md  [created — rotation snapshot]
+docs/handovers/ops-06-notices-drift-gate-handover.md  [created — rotation snapshot, at rebase]
+docs/IMPLEMENTATION.md                           [modified — close-out, DOC-02 row, metrics]
+docs/HANDOVER.md                                 [rewritten — this file]
+README.md                                        [rewritten above the fold]
+docs/assets/argus-self-scan.svg                  [created — terminal demo]
+package.json                                     [modified — root `argus` script]
+```
 
 ## Sign-off
 
-The gate is real and its limits are written down in the file it checks, in the script that checks it, and in the ADR that requires it. What it cannot verify — the platform tail — is stated rather than implied.
+All gates green, self-scan clean, and every number and link in the new README was verified in this session rather than inherited. The next picker can start DOC-03 immediately.
 
 — claude-opus-5
