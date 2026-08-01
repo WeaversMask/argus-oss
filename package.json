@@ -10,6 +10,7 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
+    "argus": "node apps/cli/bin/argus.mjs",
     "build": "turbo run build",
     "test": "vitest run --coverage",
     "test:watch": "vitest",

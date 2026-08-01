@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="981" height="405" viewBox="0 0 981 405" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="14" role="img" aria-label="Terminal recording: argus check on the Argus repository reports no violations across 149 files, then catches four real violations after one bad file is added.">
+  <title>argus check running on Argus itself</title>
+  <rect width="981" height="405" rx="8" fill="#0d1117"/>
+  <rect width="981" height="30" rx="8" fill="#161b22"/>
+  <rect y="22" width="981" height="8" fill="#161b22"/>
+  <circle cx="20" cy="15" r="5" fill="#ff5f57"/>
+  <circle cx="38" cy="15" r="5" fill="#febc2e"/>
+  <circle cx="56" cy="15" r="5" fill="#28c840"/>
+  <text x="490.5" y="19" fill="#768390" font-size="12" text-anchor="middle">argus check — dogfooding</text>
+  <g xml:space="preserve">
+    <text y="51"><tspan x="20" fill="#58a6ff" font-weight="600">$</tspan><tspan x="36.8" fill="#c9d1d9">pnpm -s argus check .</tspan></text>
+    <text y="72"><tspan x="20" fill="#3fb950">No violations found (scanned 149 files).</tspan></text>
+    <text y="93"><tspan x="20" fill="#58a6ff" font-weight="600">$</tspan><tspan x="36.8" fill="#c9d1d9">echo $?</tspan></text>
+    <text y="114"><tspan x="20" fill="#c9d1d9">0</tspan></text>
+    <text y="156"><tspan x="20" fill="#6e7681"># add one file that trips three rules, then scan again</tspan></text>
+    <text y="177"><tspan x="20" fill="#58a6ff" font-weight="600">$</tspan><tspan x="36.8" fill="#c9d1d9">pnpm -s argus check .</tspan></text>
+    <text y="198"><tspan x="20" fill="#f0f6fc" font-weight="600">packages/core/src/demo-scratch.ts</tspan></text>
+    <text y="219"><tspan x="36.8" fill="#768390"> 1:8</tspan><tspan x="87.2" fill="#d29922">warning</tspan><tspan x="146" fill="#c9d1d9">  Avoid `import * as …`; import the specific bindings you use instead.  </tspan><tspan x="750.8" fill="#768390">style/no-wildcard-imports</tspan></text>
+    <text y="240"><tspan x="36.8" fill="#768390">3:17</tspan><tspan x="87.2" fill="#d29922">warning</tspan><tspan x="146" fill="#c9d1d9">  Exported function should have a JSDoc comment.  </tspan><tspan x="566" fill="#768390">docs/require-jsdoc</tspan></text>
+    <text y="261"><tspan x="36.8" fill="#768390">3:17</tspan><tspan x="87.2" fill="#d29922">warning</tspan><tspan x="146" fill="#c9d1d9">  Cyclomatic complexity 14 exceeds the maximum of 10.  </tspan><tspan x="608" fill="#768390">quality/cyclomatic-complexity</tspan></text>
+    <text y="282"><tspan x="36.8" fill="#768390">8:11</tspan><tspan x="87.2" fill="#d29922">warning</tspan><tspan x="146" fill="#c9d1d9">  Block nesting depth 5 exceeds the maximum of 4.  </tspan><tspan x="574.4" fill="#768390">quality/max-nesting-depth</tspan></text>
+    <text y="324"><tspan x="20" fill="#c9d1d9">4 problems (</tspan><tspan x="120.8" fill="#d29922">4 warnings</tspan><tspan x="204.8" fill="#c9d1d9">) across 150 files</tspan></text>
+    <text y="345"><tspan x="20" fill="#58a6ff" font-weight="600">$</tspan><tspan x="36.8" fill="#c9d1d9">echo $?</tspan></text>
+    <text y="366"><tspan x="20" fill="#c9d1d9">1</tspan></text>
+  </g>
+</svg>

@@ -1,8 +1,57 @@
 # Argus
 
-Deterministic, architecture-aware code-quality platform for TypeScript monorepos: static analysis, layer/dependency-rule enforcement, security scanning, and reporting — built by orchestrating proven open-source engines behind clean adapter boundaries. No AI in the scan path: same input, same result.
+**Argus is a deterministic, architecture-aware code-quality scanner for TypeScript monorepos.** It parses your source with tree-sitter, applies explicit rules to the syntax tree, and reports exactly what it found — as readable console output or as a schema-validated JSON document for CI.
 
-> **Status: pre-alpha (Phase 0 — Foundation).** Toolchain, CI, and governance are being laid down; there is no runnable scanner yet. Current state lives in [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
+- **No model in the scan path.** Same commit in, same findings out — every time. Rule results are sorted by a total order and re-serialise byte-identically, so a diff in CI means your code changed, not that the weather did.
+- **Architecture is enforced, not documented.** "The domain core may not import an adapter", "no package may reach into another's internals", "`packages/` may not import `apps/`" are dependency-cruiser rules that fail the build — and each one was negative-tested: deliberately violated to prove it actually fires, then reverted.
+- **Built by AI agents, under gates that don't take their word for it.** Every task is one branch and one PR; a second agent reviews the diff — from a different model family wherever the roster allows, because a same-model reviewer rationalises past what an independent one catches — and CI fails the PR if that review is missing. Only the human maintainer merges. The receipts are below.
+
+## Argus scanning Argus
+
+Argus's own CI runs Argus over this repository on every pull request and fails if it finds anything. Both frames below are real output — the second was produced by adding one file that breaks three rules, scanning, and deleting it:
+
+![Terminal recording: pnpm -s argus check . reports no violations across 149 files, then catches four violations across three rules after one bad file is added](docs/assets/argus-self-scan.svg)
+
+Ten built-in rules ship today, covering complexity, function and file length, nesting depth, dead code, naming, import order, wildcard imports, JSDoc on exports, and empty tests — see the [rule reference](docs/guide/rules.md). `argus fix` can repair import order in place; the rest report only, by design ([ADR-0006](docs/adr/0006-autofix-representation-and-safety.md) explains why nine of the ten are not safely auto-fixable).
+
+## How the quality was enforced
+
+Every row is one guardrail: what it guarantees, the file that implements it, and a link to a time it demonstrably worked.
+
+| Guarantee                                                                                      | Mechanism                                                                                                                                                  | Receipt                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Argus is held to its own bar.** Every PR scans this whole repo and must come back clean.     | [`argus.yaml`](argus.yaml) · the `dogfood` job in [`ci.yml`](.github/workflows/ci.yml)                                                                     | [#38](https://github.com/WeaversMask/argus-oss/pull/38) — the first whole-repo scan found **38 real violations in production source**. All 38 were fixed, not added to the ignore list.                                                          |
+| **Every PR gets an independent review, and CI fails the PR without one.**                      | the `review-gate` job in [`ci.yml`](.github/workflows/ci.yml) · [execution protocol](docs/plan/protocols/agentic-execution.md)                             | [#39](https://github.com/WeaversMask/argus-oss/pull/39) — review reproduced a **silent file corruption** in the auto-fix engine: files rewritten wrongly while the tool reported success. A second review then found a bug the first had missed. |
+| **Layering rules are machine-checked**, not left to code review.                               | [`dependency-cruiser-rules.cjs`](dependency-cruiser-rules.cjs) · the `boundaries` job                                                                      | [#18](https://github.com/WeaversMask/argus-oss/pull/18) — every boundary rule is negative-tested: violated on purpose, confirmed to fail the build, then reverted.                                                                               |
+| **A secret cannot reach the remote.** Scanned at commit, at push, and in CI over full history. | [`.husky/pre-commit`](.husky/pre-commit) · [`.husky/pre-push`](.husky/pre-push) · the `secret-scan` job · [policy](docs/SECURITY-NOTES.md)                 | [#14](https://github.com/WeaversMask/argus-oss/pull/14) — the pre-push layer **fails closed**: gitleaks exits 0 when its own `git log` fails, so a scan that never ran must not pass.                                                            |
+| **No dependency runs an install script**, and no release younger than 3 days is resolved.      | [`pnpm-workspace.yaml`](pnpm-workspace.yaml) (`allowBuilds`, `minimumReleaseAge`) · [ADR-0003](docs/adr/0003-supply-chain-hardening-baseline.md)           | [#22](https://github.com/WeaversMask/argus-oss/pull/22) — tree-sitter's native-compile install scripts were reviewed and **denied**; Argus loads the wasm build instead ([ADR-0005](docs/adr/0005-ast-adapter-wasm-tree-sitter.md)).             |
+| **Every third-party license is checked** against an explicit allowlist.                        | [`scripts/check-licenses.mjs`](scripts/check-licenses.mjs) · the `license` job · [ADR-0002](docs/adr/0002-third-party-integration-and-licensing-policy.md) | 563 packages on the allowlist with 4 named, individually-justified exceptions; notices regenerated into [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) and diffed on every change.                                                                   |
+
+Across the workspace, 737 tests cover 97.9% of statements and 94.3% of branches, against [enforced floors](vitest.config.ts) of 85% and 80% — the suite fails below them. Where a defensive branch genuinely cannot be exercised, the exception is written down in that package's README rather than waved through.
+
+## Quickstart
+
+Argus runs from a clone today; there is no published npm package yet (see [Status](#status)).
+
+```bash
+git clone https://github.com/WeaversMask/argus-oss.git && cd argus-oss
+pnpm install
+pnpm -s argus check .
+```
+
+That third command is the one in the recording above. `pnpm -s argus check . --format json` emits the machine-readable document instead; `pnpm -s argus explain <rule-id>` describes any rule. Full command reference: [docs/guide/cli.md](docs/guide/cli.md). Configuration is an optional `argus.yaml` — [docs/guide/configuration.md](docs/guide/configuration.md).
+
+Exit codes follow the usual convention: `0` clean, `1` violations found, `2` something could not be analysed.
+
+## Status
+
+**Phase 2 of 11 — the MVP is real and runs, on TypeScript and JavaScript.** `argus check` produces genuine findings on real projects, emits JSON for tooling, and gates this repository's own CI. What is _not_ done: `argus` is not installable via `npm i -g` yet (deliberately deferred — packaging is [an open decision](docs/IMPLEMENTATION.md#open-decisions), not an oversight), Python parses but has no rules, and the layer-manifest enforcement that gives the project its name arrives in Phase 3.
+
+Phases 3–11 — layer enforcement, delegated security scanners, persistence, an API, a web UI, reporting, CI integrations, an LSP — are **fully specified and deliberately not yet built**. They are the [continuation track](docs/plan/02-roadmap.md#continuation-track-phases-311--optional-post-m1): planned next steps a maintainer can pick up with zero re-planning, not a backlog of debt. Current state is always in [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
+
+If you want the longer story of how this was built, [docs/architecture.md](docs/architecture.md) is the map and [docs/dev/adding-a-rule.md](docs/dev/adding-a-rule.md) is the shortest path to a working mental model.
+
+---
 
 ## Posture
 
@@ -23,7 +72,7 @@ Argus delegates heavy scanning work to existing engines. The engine binaries bel
 
 ¹ Semgrep **registry rules** carry a separate license that restricts redistribution. Argus never embeds them: rules are fetched at runtime, supplied by the user, sourced from the permissive Opengrep fork, or first-party ([ADR-0002 §C](docs/adr/0002-third-party-integration-and-licensing-policy.md)).
 
-Copyleft engines are never imported, linked, or vendored — subprocess only, behind the `ToolAdapter` boundary (ADR-0002 §A/§B). Adapters for these tools land in Phase 4; the integration posture is fixed now, ahead of that code (of the six, only Prettier is in today's tree, as a devDependency). Tool licenses re-verified 2026-07-03.
+Copyleft engines are never imported, linked, or vendored — subprocess only, behind the `ToolAdapter` boundary (ADR-0002 §A/§B). Adapters for these tools land in Phase 4; the integration posture is fixed now, ahead of that code (of the six, only Prettier and Tree-sitter are in today's tree). Tool licenses re-verified 2026-07-03.
 
 ## Development setup
 
