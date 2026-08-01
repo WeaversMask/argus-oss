@@ -1,63 +1,66 @@
-# Handover — DOC-03 complete (workflow showcase)
+# Handover — DOC-04 complete (developer tour) · M1 documentation tail closed
 
 **From:** claude-opus-5
-**To:** next picker (Phase 2 continues — M1 showcase tail)
-**Date:** 2026-08-01
-**Phase:** P2 — MVP (5/6 numbered · 4/7 added) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** DOC-03 — [`docs/workflow.md`](./workflow.md). PR open, awaiting merge.
+**To:** next picker (Phase 2 continues — DOC-05, then OPS-05)
+**Date:** 2026-08-02
+**Phase:** P2 — MVP (5/6 numbered · 5/7 added) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** DOC-04 — [`docs/dev/tour.md`](./dev/tour.md). PR open, awaiting merge.
 
 ---
 
 ## Context
 
-DOC-02 gave the repo a recruiter-tier README with a receipts table. DOC-03 is the other half: **how the work was done**, for a reader who has never seen an agentic workflow. One ASCII diagram of the six-stage loop, one plain-language paragraph per guardrail (each with its mechanism link and one receipt), and an honesty section listing what the process does _not_ cover.
+DOC-02 gave the repo a README, DOC-03 explained the process, DOC-04 explains the **code**: five ordered stops, 52 lines, from the architecture map through one built-in rule end-to-end, ending where [`adding-a-rule.md`](./dev/adding-a-rule.md) reads as instructions rather than new concepts.
 
-The page is deliberately not a second receipts table. The README answers "is this code good?"; `workflow.md` answers "why should I believe the process that produced it?" — which is why its honesty section is load-bearing rather than decorative.
+**With this, the M1 documentation tail is complete.** DOC-05 is unblocked — its Phase 2 consolidation pass audits exactly the tree DOC-03 and DOC-04 just finished — and is the next pick.
 
 ## What I Did
 
-- **Wrote [`docs/workflow.md`](./workflow.md)** and linked it from the README (after the receipts table, plus the closing pointer), [`dev/README.md`](./dev/README.md), and the [`README.md`](./README.md) document map.
-- **Re-derived every receipt from the repo** instead of trusting the spec's shorthand. Two of the spec's own examples did not survive: see Gotcha 1.
-- **Ran the review, then acted on it.** Light tier, cross-family (claude-fable-5), CHANGES REQUESTED on two falsifiable overstatements. Both fixed; one became a new entry in the honesty section rather than a softened sentence.
-- **Closed the books:** tracker header, Up Next, Phase Status counter (`3/7` → `4/7`), and a Recently Completed row carrying the verification findings.
+- **Wrote [`docs/dev/tour.md`](./dev/tour.md)**, linked from `dev/README.md` and `architecture.md` (both required by the spec) plus the `docs/README.md` map.
+- **Followed the code over the spec, twice** — see Gotchas 1 and 2. Both were caught by checking source rather than the docs that describe it.
+- **Corrected `architecture.md`** where it asserted something false that the tour would have relayed.
+- **Ran the review, then acted on it.** Light tier, cross-family (claude-fable-5): one MAJOR, three MINORs, one NIT — all applied.
+- **Closed the books:** tracker header, Up Next re-ranked to DOC-05, counter `4/7` → `5/7`, Recently Completed row, handover rotated.
 
-PRs merged in this session: none — this branch's PR is the session's output.
+PRs merged in this session: DOC-03 ([#44](https://github.com/WeaversMask/argus-oss/pull/44)). This branch's PR is the session's remaining output.
 
 ## What I Did NOT Do (Deferred)
 
-- **DOC-04 / DOC-05 / OPS-05 / P2-05.** Untouched. DOC-04 is the natural next pick and does not depend on DOC-03 merging.
-- **The failing weekly Stryker job** (red since 2026-07-28) and **`argus explain` not reporting fixability** — both inherited, both still needing their own task. The Stryker one is now _cited in public documentation_ as an example of an unenforced gate rotting, which raises the cost of leaving it red.
-- **The stale `license` job comment** in `ci.yml`, which still says it is not a branch-protection required check — it is one. Found by the reviewer, out of scope here, needs a one-line fix.
+- **`FormatterPort` has no in-memory fake.** Ten fakes for eleven ports (Gotcha 2). Real gap, needs its own small task — add `packages/testing/src/mocks/fake-formatter.ts`, export it, then revert the "ten of the eleven" wording in `architecture.md` (two places) and `tour.md` back to "every port".
+- **The phase file's DOC-04 spec still says "fixture → rule → finding → violation"**, which is wrong (Gotcha 1). Left alone deliberately — editing a spec after building against it is how a checklist stops meaning anything. Correct it when `phase-02-mvp.md` is next touched, or note it in the DOC-05 audit.
+- **The failing weekly Stryker job** (red since 2026-07-28) and **`argus explain` not reporting fixability** — both still inherited, both still needing their own task.
+- **`ci.yml`'s stale `license` job comment** (claims it is not a required check; it is). One-line fix, still open from DOC-03.
 
 ## Gotchas & Surprises
 
-1. **Two of DOC-03's own specced receipts were wrong, and checking beat citing.** The spec named "the gitleaks negative tests" — there are none in the tree. The real and better receipt is [#14](https://github.com/WeaversMask/argus-oss/pull/14)'s review finding that gitleaks **exits 0 when its own `git log` fails**, which is why [`.husky/pre-push`](../.husky/pre-push) now greps the output for `ERR` and fails closed. The spec also named "the mutation baseline", which cannot be a live receipt at all while the job is red — so it became the _lead entry in the honesty section_ instead. **A spec's parenthetical examples are a starting list, not a verified one.**
-2. **PR numbers below ~#30 are ambiguous across two repos.** `main` carries **52 merge commits** but `argus-oss` has only **30 merged PRs** — the retired repo's numbering restarts, so `git log` shows two different "Merge pull request #11". Always cite the full `argus-oss` URL; a bare `#N` in prose can resolve to the wrong thing. This is also why "52 merges" and "30 PRs" are both true and not contradictory.
-3. **There are two dependency-cruiser files.** `.dependency-cruiser.cjs` is what `pnpm boundaries` actually runs; `dependency-cruiser-rules.cjs` holds the rule list, split out at P2-06 when the list tripped `quality/max-file-length`. Link the rules file when you mean the rules — that is what the README already does.
-4. **Any absolute claim in a public doc is a review finding waiting to happen.** Both MAJORs were universals: "reviews **every** diff" (bots are exempt, and `main` already has a merged Dependabot bump) and "**nothing** relies on the agent being careful" (the review gate matches a heading marker, not review quality). Neither was sloppy writing — both were true of the common case and false at an edge the linked file itself documents. On a page whose entire argument is "check this yourself", that is fatal. **Write the scope in, or expect to be caught.**
-5. **The review gate is the softest link, and the page now says so.** It greps for an `## Independent review` heading; it cannot judge what is underneath. Worth knowing before you rely on it as though it graded anything.
+1. **`Finding` is not in the rule path, despite the spec's arrow diagram saying so.** Grep `rule-engine/src` and `rules-builtin/src`: zero hits. `Finding` is the `ToolAdapterPort` type — raw output from external tools (jscpd, Semgrep), Phase 4, no adapter built yet. A built-in rule calls `context.report(...)` and the **engine** constructs the `Violation`. This matters beyond wording, because `finding.ts` sits directly beside `violation.ts` in `core/src/domain/` and a newcomer will open both. The tour now warns about it explicitly. **Two specs in a row have had a wrong parenthetical** (DOC-03's "gitleaks negative tests" was the other) — treat the arrow diagrams in phase files as intent, not as API.
+2. **`@argus/testing` ships 10 fakes for 11 ports, and three docs claimed otherwise.** `core/src/ports/index.ts` exports 11; `testing/src/mocks/index.ts` exports 10; `FormatterPort` (P2-06) has none. I wrote the false claim into the tour by taking it from [`architecture.md`](./architecture.md) — **the exact failure DOC-03 was written to warn about**, committed one task later by its own author. The reviewer caught it. Both files are fixed. **When a doc states a countable fact, count it.**
+3. **The tour tripped its own trap.** Stop 2 teaches that "finding" is a reserved word here; stop 5 then said the dogfood gate "fails on any finding". Harmless in any other document — this is the one where it isn't. Watch for vocabulary you have just made load-bearing.
+4. **"Activation" was undefined in both the tour and the recipe** — the only real prerequisite gap against "a newcomer completes `adding-a-rule` unaided". Now glossed at first use. If you extend the recipe, check its vocabulary against what a tour reader actually has.
 
 ## State of the System
 
 - ✅ Docs-only diff — no executable code, no dependency, no schema touched
-- ✅ Root gates re-run: lint · typecheck · build · `format:check` clean, **737/737 tests**, coverage 97.91% statements / 94.26% branches
+- ✅ Root gates green: lint · typecheck · build · `format:check`, **737/737 tests**, coverage 97.91% / 94.26%
 - ✅ Self-scan unchanged at **0 violations, 0 failures, 151 files**
-- ✅ All 22 relative links in `workflow.md` verified to resolve on disk
-- ⚠️ **Weekly Stryker mutation job still red since 2026-07-28** — report-only, gates nothing; do not cite 85.74% as current
-- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited, unrelated to this diff; both passed this session
+- ✅ All 13 relative links in `tour.md` verified on disk; every code claim in it re-verified against source by the reviewer
+- ⚠️ **Weekly Stryker mutation job still red since 2026-07-28** — report-only; do not cite 85.74% as current
+- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited; both passed this session
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
 
-1. **DOC-04 — developer tour** (`docs/dev/tour.md`), effort **S**. The last M1 documentation task. `workflow.md` now covers the process half of orientation, so the tour can stay strictly about the code and link out for the rest.
-2. **DOC-05 — documentation cadence**, effort **M**. Needs DOC-04 first: its Phase 2 consolidation pass audits the tree DOC-03 and DOC-04 complete.
-3. **OPS-05** last, then the phase transition. **P2-05 (diff mode)** whenever the maintainer wants the final numbered task; nothing waits on it.
+1. **DOC-05 — documentation cadence**, effort **M**. Now unblocked. Read its spec carefully: the `docs-delta` gate must resolve the TSDoc-inside-`packages/*/src/**` problem explicitly, and the Phase 2 consolidation pass must actually be **executed once** before the task is called done.
+2. **OPS-05** last, then the phase transition.
+3. **P2-05 (diff mode)** whenever the maintainer wants the final numbered task; nothing waits on it.
+
+Two cheap tasks worth slotting in whenever: the missing `FormatterPort` fake, and `ci.yml`'s stale comment.
 
 ## Open Questions for the Next Agent
 
-- **For OPS-05 — not a question, a correction to inherit.** [Runbook](./go-public-runbook.md) item 7 describes **one** of two routes by which the maintainer's real name reaches history, so anyone auditing from it will find commits it cannot explain. Measured on `origin/main` this session: **79 of 205 commits** carry the name — 52 web-UI **merge** commits (name in the _author_ field, committer `GitHub`) **plus 26 + 1 dependabot commits rewritten by a web-UI "Update branch" / "Rebase and merge"** (name in the _committer_ field, author still correctly `WeaversMask`; invisible to a plain `git log`, needs `%cn`). **Zero** commits carry it in both fields — the signature of a bad local config — so nothing committed on the maintainer's machine is affected, and the repo-local identity override is doing its job. **The paranoia check itself passes: 0 hits for the personal email in commit metadata and in tracked file content.** The name is public on the GitHub profile by choice, so the "optional, cosmetic" rating stands; the lever is the **GitHub profile name field**, not git config, and it only affects commits made after it changes. Fix item 7's wording during OPS-05.
-- **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** Carried from the DOC-05 filing — still wants a maintainer opinion _before_ DOC-05 starts, since seeding it retroactively is most of the task's cost.
+- **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** Carried forward — still wants a maintainer opinion **before** DOC-05 starts, since seeding it retroactively is most of the task's cost. This is now the blocking question, not a background one.
 - **Should the consolidation pass also gate the M1 boundary itself, or only phase transitions?** As specced it does both.
+- **For OPS-05 — a correction to inherit, not a question.** [Runbook](./go-public-runbook.md) item 7 describes one of two routes by which the maintainer's real name reaches history. Measured: **79 of 205 commits** — 52 web-UI merges (name in _author_) plus 27 rewritten by a web-UI "Update branch"/"Rebase and merge" (name in _committer_, invisible without `%cn`). **Zero** in both fields, so no locally-made commit is affected. The paranoia check passes clean (0 personal-email hits). The name is public on the GitHub profile by choice, so "optional, cosmetic" stands; fix item 7's wording only.
 
 Carried forward, still open:
 
@@ -67,17 +70,17 @@ Carried forward, still open:
 ## Files Touched This Session
 
 ```
-docs/workflow.md                                   [created — the deliverable]
-docs/handovers/doc-05-cadence-filing-handover.md   [created — rotation snapshot]
-docs/HANDOVER.md                                   [rewritten — this file]
-docs/IMPLEMENTATION.md                             [modified — row, Up Next, counter]
-README.md                                          [modified — two inbound links]
-docs/README.md                                     [modified — document map + For Humans]
-docs/dev/README.md                                 [modified — Start here link]
+docs/dev/tour.md                                     [created — the deliverable]
+docs/handovers/doc-03-workflow-showcase-handover.md  [created — rotation snapshot]
+docs/HANDOVER.md                                     [rewritten — this file]
+docs/IMPLEMENTATION.md                               [modified — row, Up Next, counter]
+docs/architecture.md                                 [modified — tour link + the fake-count correction]
+docs/dev/README.md                                   [modified — tour link]
+docs/README.md                                       [modified — map + For Humans]
 ```
 
 ## Sign-off
 
-The workflow page makes claims a stranger can check, and the ones it could not support were dropped rather than softened — including two the task's own spec had suggested. What the process does _not_ cover is on the same page as what it does, in five entries, not in a footnote. DOC-04 is next and does not wait on this merging.
+The tour is short on purpose and every claim in it was checked against source — including the one I got wrong by trusting a sibling document, which is the lesson of the session and is written into Gotcha 2 rather than quietly patched. The M1 documentation tail is closed. DOC-05 is next, and it wants a maintainer answer on `progress.md` before it starts.
 
 — claude-opus-5
