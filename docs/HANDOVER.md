@@ -1,92 +1,84 @@
-# Handover — Showcase README (DOC-02)
+# Handover — DOC-05 filed (documentation cadence) + post-merge close-out
 
 **From:** claude-opus-5
 **To:** next picker (Phase 2 continues — M1 showcase tail)
 **Date:** 2026-08-01
-**Phase:** P2 — MVP (5/6+5) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** DOC-02 — Showcase README — **PR open, awaiting maintainer merge**
+**Phase:** P2 — MVP (5/6 numbered · 3/7 added) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** DOC-02 — **merged** ([#41](https://github.com/WeaversMask/argus-oss/pull/41)). This session filed a new task rather than building one; its own PR is open.
 
 ---
 
 ## Context
 
-P2-06 and the CLAUDE.md background-process guard merged ([#39](https://github.com/WeaversMask/argus-oss/pull/39), [#40](https://github.com/WeaversMask/argus-oss/pull/40)) before this session started, but neither carried its bookkeeping tail — two Recently Completed rows still read `_pending_`, the tracker still said "awaiting merge", and `HANDOVER.md` had never been snapshotted. That close-out is the first commit on this branch; the rest is DOC-02.
+**Everything opened to date is merged** — OPS-06 ([#42](https://github.com/WeaversMask/argus-oss/pull/42)) and DOC-02 ([#41](https://github.com/WeaversMask/argus-oss/pull/41)) both landed after the previous handover was written, so the tracker's "In Progress" row and one `_pending_` PR link were stale on arrival. That close-out is part of this branch.
 
-**Rebased onto OPS-06** ([#42](https://github.com/WeaversMask/argus-oss/pull/42), the THIRD-PARTY-NOTICES drift gate), which merged first and rewrote both tracker files — the parallel-lane case the protocol anticipates. OPS-06 itself came out of DOC-02's independent review: the README's license receipt claimed notices were regenerated and diffed on every change, and nothing checked. Its handover is archived at [`docs/handovers/ops-06-notices-drift-gate-handover.md`](./handovers/ops-06-notices-drift-gate-handover.md) — read it before touching `scripts/`, since the live `HANDOVER.md` you are reading replaced it in the rotation.
+The substance of the session is a **maintainer directive**: if the project continues past the MVP, the documentation structure must be updated **comprehensively after every completed phase** and **iteratively after every task/story** — the smaller tier sized so that a third party can check progress without reading the tracker. Filed as **DOC-05** in the Phase 2 M1 tail. It is **specced, not built** — see What I Did NOT Do.
 
-The README top is now M1's recruiter tier instead of a Phase-0 pre-alpha notice that had been false since P2-02. **Three of the four M1 criteria that need agent work are still open: DOC-03 (workflow showcase), DOC-04 (developer tour), OPS-05 (go-public sweep).** P2-05 (diff mode) is the last numbered P2 task but is not itself a phase exit criterion and blocks nothing — the tracker's Up Next now ranks the M1 tail ahead of it, which is a re-ranking a later picker may reverse if the maintainer prefers.
+Why it is a real gap and not ceremony: the per-task documentation obligation in [`plan/03-documentation.md`](./plan/03-documentation.md) is **prose that nothing checks**, the same shape as the notices-freshness claim OPS-06 had to close after six tracker rows asserted it against no mechanism. And there is no third-party-readable progress surface at all — this tracker's task rows are agent-facing forensics (several run past a thousand words), which is correct for the next picker and useless to anyone asking "what has this actually delivered, and when?"
 
 ## What I Did
 
-- **Closed out P2-06/DOGFOOD bookkeeping** (own commit): archived the P2-06 handover to `docs/handovers/`, filled in the #39/#38 PR links, corrected header/Phase Status/Up Next to post-merge reality.
-- **Rewrote the top of `README.md`** in DOC-02's specced order. Everything below the fold (posture, external tools, dev setup, Docker, license) kept its content.
-- **`docs/assets/argus-self-scan.svg`** — the committed terminal demo, two frames, generated from real captured CLI output.
-- **Root `argus` script** in `package.json` — one line, so `pnpm -s argus check .` is a real command (see Gotcha 2).
-- **Re-measured every tracker metric** rather than copying it forward; found and corrected two stale numbers and one broken CI job (Gotchas 3 and 4).
+- **Closed the books on the merged work:** DOC-02's `_pending_` → [#41](https://github.com/WeaversMask/argus-oss/pull/41), In Progress cleared, Up Next re-ranked, header and Phase Status corrected to post-merge reality.
+- **Filed DOC-05** in [`plan/phases/phase-02-mvp.md`](./plan/phases/phase-02-mvp.md) with deps, outputs, and acceptance criteria — two tiers: a mechanical per-task `docs-delta` CI gate plus a `docs/progress.md` entry per merged task, and a per-phase consolidation pass a phase must pass **before** it can be marked ✅ Complete.
+- **Wired it into the plan** so it cannot be forgotten: roadmap M1 gains criterion 7 (continuation stays _legible_), the Phase 2 exit criteria gain the consolidation pass, and `03-documentation.md` gains a short "Cadence — specced as DOC-05, not yet installed" section that names the gap in its own standard.
+- **Made the Phase Status counter legible** — `5/6+5` became `5/6 numbered · 3/7 added`, with the notation defined under the table (see Gotcha 1).
 
-PRs merged in this session: none — this branch's PR is open and awaiting the maintainer.
+PRs merged in this session: none — this branch's PR is the session's output.
 
 ## What I Did NOT Do (Deferred)
 
-- **Badges (CI, coverage, mutation, license).** These are explicitly **OPS-05's** listed output, not DOC-02's, and a mutation badge would currently be red (Gotcha 4). Deliberately left out; OPS-05 should place them.
-- **DOC-03 / DOC-04.** Untouched. DOC-03 was specced as "polish after DOC-02 framing settles" — that framing is now settled, so it is the natural next pick.
-- **The failing weekly Stryker job.** Diagnosed only as far as "failing since 2026-07-28, logs expired". Needs its own task (Gotcha 4).
-- **`argus explain` still doesn't report fixability** — inherited gap from P2-06, still flagged in `docs/guide/cli.md`, still small.
+- **Implemented DOC-05.** Deliberate: the ask was to file the task. Nothing exists yet of `docs/progress.md`, the `docs-delta` CI job, `templates/PHASE-DOC-AUDIT.template.md`, the phase 3–11 exit-criteria lines, or the `agentic-execution.md` edits. Until DOC-05 lands, the documentation delta is still an honour-system checklist item.
+- **DOC-03 / DOC-04.** Untouched, and still the natural next picks — DOC-05 depends on both.
+- **The failing weekly Stryker job** (red since 2026-07-28, logs expired) and **`argus explain` not reporting fixability** — both inherited, both still open, both still needing their own task.
 
 ## Gotchas & Surprises
 
-1. **`node_modules` can silently predate a merged branch.** After pulling #39, `argus check` died with `ERR_MODULE_NOT_FOUND: '@argus/adapters-prettier'` — the new nested workspace package had never been linked locally. `pnpm install --frozen-lockfile` fixes it. Worth doing reflexively after any pull that adds a package.
-
-2. **`pnpm <script>` is not transparent, and that nearly shipped a false demo.** Plain `pnpm argus check .` echoes `$ node apps/cli/bin/argus.mjs check .` before the output **and** appends `[ELIFECYCLE] Command failed with exit code 1.` whenever argus exits non-zero — i.e. on every run that finds something. A demo frame showing clean output under that command would have been fabricated. `pnpm -s` suppresses both and still propagates the real exit code (verified: 0 clean, 1 with violations). **Use `pnpm -s` in any doc that shows argus output.**
-
-3. **Re-measure, never copy forward.** The tracker's standing "569 third-party packages" was actually **563**, and the self-scan file count had moved 147 → 149. Both had been carried across sessions unverified. Every number in the new README was produced by running the thing in this session; the Metrics Snapshot now says when it was measured. **The rebase onto OPS-06 proved the point again:** its two new `scripts/lib/` modules moved the count 149 → **151**, invalidating the number in the tracker, the handover, the README alt text _and_ the committed SVG demo — all re-measured and corrected rather than carried. A rebase is a re-measure trigger, not just a merge exercise.
-
-4. **A report-only CI job can fail silently for weeks.** The weekly Stryker mutation workflow has failed since **2026-07-28** ([run 30363247769](https://github.com/WeaversMask/argus-oss/actions/runs/30363247769)); because it gates nothing, nobody noticed, and the 85.74% score kept being cited as current. Its logs have already expired, so diagnosis starts from scratch — first suspect is config globs that predate `packages/api-contracts` and the nested `packages/adapters/*` (the same single-segment-path assumption that bit dependency-cruiser in P2-06, Gotcha 3 of the previous handover). **Do not cite that number until the job is green.**
-
-5. **Write the claim, then go check it.** Two sentences in the first README draft were wrong in exactly the way the M1 "every claim verifiable" bar exists to catch: coverage thresholds are aggregate at the root `vitest.config.ts`, not enforced per package; and cross-family review is "wherever the roster allows", not absolute — P2-04's reviewer was same-family as its author. Both were caught by opening the file rather than by trusting the draft. Anything in a receipts table is a promise that someone will click it.
+1. **The `+N` in the old `5/6+5` counter followed no rule at all** — and my first attempt to explain it was itself wrong, caught by this branch's review. The full history: `+4` from the phase opening (2026-07-19) through 2026-07-26 — the four M1-tail tasks as originally specced — **unmoved** when DOGFOOD was added and merged, then `+5` when OPS-06 merged. So it is not "added tasks" (DOGFOOD would have counted), not "completed tasks" (only 2 were done at `+5`), and not the M1 tail alone (OPS-06 is not M1). It was maintained ad hoc and was short under every reading. The lesson generalises past this one number: **the first clean rule that fits two data points is not a derivation** — I published one on a single transition and it did not survive a reviewer pulling the third. Now defined where it is printed.
+2. **DOC-05 cannot be the phase's last task**, even though it is filed last-but-one. Its acceptance requires the consolidation pass to be _executed once against Phase 2 itself_ — a checklist that has never been run is exactly the untested-gate failure mode this repo keeps re-learning. OPS-05 stays last because it re-verifies everything, DOC-05 included.
+3. **The `docs-delta` gate must apply from its merge forward.** A gate that retro-judges merged work turns every later branch red for history nobody can change; the spec says so explicitly so the implementer does not have to rediscover it.
+4. **A filing task still owes the checklist.** This one produces no code, so there is no dogfooding delta and no ADR — but it does touch the plan docs other tasks read, which is exactly the "plan/doc changes land first as their own small PR" rule. Treat it as light-tier for review.
 
 ## State of the System
 
-- ✅ Tests: **737 passing** (70 files), coverage 97.84 lines / 94.26 branches / 99.77 functions / 97.91 statements
-- ✅ Lint, typecheck, build, format:check, boundaries (248 modules / 847 deps), license-check (563 pkgs) — all green at root
-- ✅ Self-scan: `pnpm -s argus check .` → **0 violations, 0 failures, 151 files** (re-measured after the OPS-06 rebase, which added two `scripts/lib/` modules)
-- ✅ `pnpm -s argus check . --format json` and `pnpm -s argus explain <rule-id>` both verified working as the README documents them
-- ⚠️ **Weekly Stryker mutation job red since 2026-07-28** — report-only, gates nothing, needs its own task (Gotcha 4)
-- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited from P2-06, both passed in both full runs this session
+- ✅ Docs-only diff — no executable code, no dependency, no schema touched
+- ✅ Root gates re-run before push (lint, typecheck, build, test, format:check) — see the PR for the run
+- ✅ Self-scan unchanged at **0 violations, 0 failures, 151 files** (no source files added or removed)
+- ⚠️ **Weekly Stryker mutation job still red since 2026-07-28** — report-only, gates nothing, needs its own task; do not cite 85.74% as current
+- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited, unrelated to this diff
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
 
-1. **DOC-03 — workflow showcase** (`docs/workflow.md`). Its dependency was DOC-02's framing, which is now settled. The receipts table in the new README top is the shortlist of guardrails to expand on, and its links are already verified — reuse them rather than re-sourcing.
-2. **DOC-04 — developer tour** (`docs/dev/tour.md`), then **OPS-05** last (it re-verifies everything else, including placing the badges DOC-02 left out).
-3. **P2-05 (diff mode)** whenever the maintainer wants the last numbered task; nothing in Phase 2 waits on it.
+1. **DOC-03 — workflow showcase** (`docs/workflow.md`). Unblocked since DOC-02 merged; the README receipts table is the shortlist of guardrails and its links are already verified — reuse rather than re-source.
+2. **DOC-04 — developer tour** (`docs/dev/tour.md`).
+3. **DOC-05 — documentation cadence.** Needs 1 and 2 first: its Phase 2 consolidation pass audits the tree they complete.
+4. **OPS-05** last, then the phase transition. **P2-05 (diff mode)** whenever the maintainer wants the final numbered task; nothing waits on it.
 
-Estimated effort: DOC-03 **M**, DOC-04 **S**, OPS-05 **S**.
+Estimated effort: DOC-03 **M**, DOC-04 **S**, DOC-05 **M**, OPS-05 **S**.
 
 ## Open Questions for the Next Agent
 
-- Is re-ranking Up Next (M1 tail ahead of P2-05) the right call? It follows the maintainer's M1 directive and the phase exit criteria, which do not name P2-05 — but P2-05 had been listed first since the phase opened.
-- The receipts table is six rows. Does a seventh (determinism/no-AI-in-the-scan-path) belong, and what would its _receipt_ be? It is the strongest product claim in the README and currently the only one carried by prose alone.
+- **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** DOC-05 specs a progress log because the audience is "someone checking whether this project is alive and moving", not "someone upgrading a dependency" — but a changelog is the more conventional artifact and a public repo may be read as if it had one. Worth a maintainer opinion before DOC-05 starts, since seeding it retroactively is most of the task's cost.
+- **Should the consolidation pass also gate the M1 boundary itself, or only phase transitions?** As specced it does both — Phase 2's exit criteria now carry it — but that makes M1 marginally more expensive to declare.
 
-Carried forward from OPS-06, still open:
+Carried forward, still open:
 
-- Should `scripts/` get a test project? Three CI-relevant scripts now have zero automated coverage. It is a small vitest project plus fixtures, and it would let the drift check's fail-closed paths be regression-tested rather than hand-verified once.
-- Should `notices:check` join the pre-push hook? It costs ~3s and would catch drift before CI, at the price of slowing every push.
+- Should `scripts/` get a test project? Three CI-relevant scripts have zero automated coverage.
+- Should `notices:check` join the pre-push hook? ~3s per push to catch drift before CI.
 
 ## Files Touched This Session
 
 ```
-docs/handovers/p2-06-autofix-engine-handover.md  [created — rotation snapshot]
-docs/handovers/ops-06-notices-drift-gate-handover.md  [created — rotation snapshot, at rebase]
-docs/IMPLEMENTATION.md                           [modified — close-out, DOC-02 row, metrics]
-docs/HANDOVER.md                                 [rewritten — this file]
-README.md                                        [rewritten above the fold]
-docs/assets/argus-self-scan.svg                  [created — terminal demo]
-package.json                                     [modified — root `argus` script]
+docs/handovers/doc-02-showcase-readme-handover.md  [created — rotation snapshot]
+docs/HANDOVER.md                                   [rewritten — this file]
+docs/IMPLEMENTATION.md                             [modified — close-out, Up Next, counter]
+docs/plan/phases/phase-02-mvp.md                   [modified — DOC-05 spec, exit criteria]
+docs/plan/02-roadmap.md                            [modified — M1 task list, criterion 7]
+docs/plan/03-documentation.md                      [modified — cadence forward-pointer]
 ```
 
 ## Sign-off
 
-All gates green, self-scan clean, and every number and link in the new README was verified in this session rather than inherited. The next picker can start DOC-03 immediately.
+The tracker matches the repository: nothing is in flight, every opened PR is merged, and the one number that had been drifting is now defined where it is printed. DOC-05 is specified to the same bar as the tasks around it and is **not** implemented — the next picker takes DOC-03.
 
 — claude-opus-5

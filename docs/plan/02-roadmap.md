@@ -24,7 +24,7 @@
 
 ## Milestone M1 — Showcase-Ready (end of Phase 2)
 
-> **Maintainer directive (2026-07-18).** The project's primary goals are career value and demonstrated agentic-workflow discipline, not market adoption. Phase 2 therefore ends at a hard milestone: the repo must deliver that value **standing alone**, while keeping continuation open. Tasks DOC-02/DOC-03/DOC-04/OPS-05 in [phase-02](./phases/phase-02-mvp.md) implement it.
+> **Maintainer directive (2026-07-18).** The project's primary goals are career value and demonstrated agentic-workflow discipline, not market adoption. Phase 2 therefore ends at a hard milestone: the repo must deliver that value **standing alone**, while keeping continuation open. Tasks DOC-02/DOC-03/DOC-04/DOC-05/OPS-05 in [phase-02](./phases/phase-02-mvp.md) implement it.
 
 M1 is reached when all of the following hold:
 
@@ -34,6 +34,7 @@ M1 is reached when all of the following hold:
 4. **Developer tier (DOC-04):** `docs/dev/tour.md` — an ordered ~15-minute reading path over the existing docs scaffolding that takes a developer new to the project from zero to a working mental model, ending able to follow the `adding-a-rule` recipe unaided.
 5. **Go-public-ready (OPS-05):** every agent-preparable item in the [go-public runbook](../go-public-runbook.md) verified and prepared, so what remains is exactly the maintainer's ~10-minute flip list. **The flip itself stays voluntary, unscheduled, and maintainer-only — M1 does not schedule it.**
 6. **Continuation stays open:** Phases 3–11 remain published below as the roadmap's continuation track, and the README frames them as "what's next", never as unfinished debt.
+7. **Continuation stays legible (DOC-05):** the documentation cadence is installed and proven on Phase 2 itself — a mechanically-gated documentation delta plus a short third-party-readable entry in `docs/progress.md` for **every merged task**, and a comprehensive consolidation pass that **every phase must pass before it can be marked complete**. M1 is a stopping point that a resumed project does not have to pay for later.
 
 ## Continuation Track (Phases 3–11 — optional, post-M1)
 

@@ -59,6 +59,15 @@ If the change touched none of these (e.g. an internal refactor with no surface o
 
 **Scope discipline:** the ongoing cost is meant to be small — a README when a package is born, a TSDoc line when you export, a guide paragraph when a feature ships. No site, no polish, no tooling here. Those are Phase 11.
 
+## Cadence — specced as DOC-05, not yet installed
+
+The obligation above is **per task and enforced by prose alone**: nothing checks that a delta was recorded, and nothing above the task tier keeps the structure honest as phases close. Two things close that, both specced as [`DOC-05`](./phases/phase-02-mvp.md) in the Phase 2 showcase tail:
+
+- **Per merged task (small, iterative):** the documentation delta becomes a mechanical CI gate rather than a checklist line, plus one short plain-language entry in `docs/progress.md` — the **third-party tier**, deliberately separate from `IMPLEMENTATION.md`, whose task rows are agent-facing forensics and are not a progress surface anyone outside the project can read.
+- **Per completed phase (comprehensive):** a documentation consolidation pass against a fixed checklist — architecture map re-verified against the real package graph, every README, guide page, recipe, and ADR reconciled — which a phase must pass **before** it can be marked ✅ Complete.
+
+Until DOC-05 lands, this page is the whole standard and the delta remains an honour-system checklist item.
+
 ## Assembly at Phase 11 (what this feeds)
 
 [`P11-03`](./phases/phase-11-hardening.md) does **not** write documentation from scratch. It assembles and polishes what these streams have already captured:
