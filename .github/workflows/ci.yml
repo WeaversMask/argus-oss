@@ -257,6 +257,23 @@ jobs:
       - name: Check dependency licenses (ADR-0002 §G allowlist)
         run: pnpm license-check
 
+      # Generated-file freshness (OPS-06). ADR-0002 §F requires
+      # THIRD-PARTY-NOTICES to stay current with the tree, and CONTRIBUTING.md
+      # asks contributors to regenerate it — until this step nothing checked,
+      # so several tracker rows asserted "notices regenerated, zero diff"
+      # against no mechanism at all.
+      #
+      # Not the usual `regenerate && git diff --exit-code`: the generated file
+      # is only PARTLY reproducible across hosts. Packages declaring
+      # `os`/`cpu`/`libc` resolve differently here (linux-x64) than on the
+      # maintainer's machine (darwin-arm64), so a byte diff of the whole file
+      # would fail 100% of the time. The generator writes those into a
+      # trailing section and `--check` compares everything above it — the part
+      # that IS a pure function of the dependency tree. It never writes, so a
+      # failure here leaves nothing to clean up. See the script header.
+      - name: Check THIRD-PARTY-NOTICES is in sync with the tree (ADR-0002 §F)
+        run: pnpm notices:check
+
   commitlint:
     name: Commit message validation
     runs-on: ubuntu-latest
