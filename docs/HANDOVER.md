@@ -39,7 +39,7 @@ PRs merged in this session: none — this branch's PR is open and awaiting the m
 
 2. **`pnpm <script>` is not transparent, and that nearly shipped a false demo.** Plain `pnpm argus check .` echoes `$ node apps/cli/bin/argus.mjs check .` before the output **and** appends `[ELIFECYCLE] Command failed with exit code 1.` whenever argus exits non-zero — i.e. on every run that finds something. A demo frame showing clean output under that command would have been fabricated. `pnpm -s` suppresses both and still propagates the real exit code (verified: 0 clean, 1 with violations). **Use `pnpm -s` in any doc that shows argus output.**
 
-3. **Re-measure, never copy forward.** The tracker's standing "569 third-party packages" was actually **563**, and the self-scan file count had moved 147 → 149. Both had been carried across sessions unverified. Every number in the new README was produced by running the thing in this session; the Metrics Snapshot now says when it was measured.
+3. **Re-measure, never copy forward.** The tracker's standing "569 third-party packages" was actually **563**, and the self-scan file count had moved 147 → 149. Both had been carried across sessions unverified. Every number in the new README was produced by running the thing in this session; the Metrics Snapshot now says when it was measured. **The rebase onto OPS-06 proved the point again:** its two new `scripts/lib/` modules moved the count 149 → **151**, invalidating the number in the tracker, the handover, the README alt text _and_ the committed SVG demo — all re-measured and corrected rather than carried. A rebase is a re-measure trigger, not just a merge exercise.
 
 4. **A report-only CI job can fail silently for weeks.** The weekly Stryker mutation workflow has failed since **2026-07-28** ([run 30363247769](https://github.com/WeaversMask/argus-oss/actions/runs/30363247769)); because it gates nothing, nobody noticed, and the 85.74% score kept being cited as current. Its logs have already expired, so diagnosis starts from scratch — first suspect is config globs that predate `packages/api-contracts` and the nested `packages/adapters/*` (the same single-segment-path assumption that bit dependency-cruiser in P2-06, Gotcha 3 of the previous handover). **Do not cite that number until the job is green.**
 
@@ -49,7 +49,7 @@ PRs merged in this session: none — this branch's PR is open and awaiting the m
 
 - ✅ Tests: **737 passing** (70 files), coverage 97.84 lines / 94.26 branches / 99.77 functions / 97.91 statements
 - ✅ Lint, typecheck, build, format:check, boundaries (248 modules / 847 deps), license-check (563 pkgs) — all green at root
-- ✅ Self-scan: `pnpm -s argus check .` → **0 violations, 0 failures, 149 files**
+- ✅ Self-scan: `pnpm -s argus check .` → **0 violations, 0 failures, 151 files** (re-measured after the OPS-06 rebase, which added two `scripts/lib/` modules)
 - ✅ `pnpm -s argus check . --format json` and `pnpm -s argus explain <rule-id>` both verified working as the README documents them
 - ⚠️ **Weekly Stryker mutation job red since 2026-07-28** — report-only, gates nothing, needs its own task (Gotcha 4)
 - ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited from P2-06, both passed in both full runs this session

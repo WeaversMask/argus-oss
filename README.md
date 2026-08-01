@@ -10,7 +10,7 @@
 
 Argus's own CI runs Argus over this repository on every pull request and fails if it finds anything. Both frames below are real output — the second was produced by adding one file that breaks four rules, scanning, and deleting it:
 
-![Terminal recording: pnpm -s argus check . reports no violations across 149 files, then catches four violations across four rules after one bad file is added](docs/assets/argus-self-scan.svg)
+![Terminal recording: pnpm -s argus check . reports no violations across 151 files, then catches four violations across four rules after one bad file is added](docs/assets/argus-self-scan.svg)
 
 Ten built-in rules ship today, covering complexity, function and file length, nesting depth, dead code, naming, import order, wildcard imports, JSDoc on exports, and empty tests — see the [rule reference](docs/guide/rules.md). `argus fix` can repair import order in place; the rest report only, by design ([ADR-0006](docs/adr/0006-autofix-representation-and-safety.md) explains why nine of the ten are not safely auto-fixable).
 
