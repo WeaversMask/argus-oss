@@ -84,6 +84,7 @@ The repo is licensed **MIT** (`LICENSE` at root; `package.json` `"license": "MIT
 ### F. Notices and prerequisites
 
 - A `THIRD-PARTY-NOTICES` file is generated from the dependency tree and kept current (preserving notices is required for Apache-2.0 components and is good practice for all). **License notices are never dropped — even for permissive licenses.**
+  - _Enforcement note (OPS-06, 2026-08-01):_ "kept current" was an unenforced convention until the `license` job gained `pnpm notices:check`. It compares the part of the file that is a pure function of the tree; packages declaring `os`/`cpu`/`libc` resolve differently on every host, so they are inventoried in a trailing section the check cannot compare. Dropping them would have made the whole file comparable — and was rejected precisely because of the sentence above: `fsevents` carries a copyright line held by no other package in the tree.
 - The README carries an **"External tools / Prerequisites"** section: each external tool, that the user installs it separately, and its license.
 
 ### G. License-compliance self-audit guardrail

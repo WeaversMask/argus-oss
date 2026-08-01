@@ -19,9 +19,14 @@ osv-scanner) are not npm dependencies and are never distributed with
 Argus — users install them separately. See README "External tools /
 Prerequisites" and ADR-0002 §A/§B.
 
-Snapshot: 2026-07-25 · pnpm 11.5.3 · darwin-arm64 · 502 packages, 14 licenses
-Platform-specific binary packages (e.g. lightningcss-<platform>) vary with
-the host that generated this file.
+Inventory: 498 packages under 14 licenses, plus the
+platform-specific packages listed at the end of this file.
+
+This file records no generation date, no host, and no figure derived from
+either: everything above the PLATFORM-SPECIFIC heading is a pure function
+of the dependency tree, which is what lets CI verify it
+(`pnpm notices:check`, the license job). For when it was last regenerated,
+use  git log -1 -- THIRD-PARTY-NOTICES.
 
 --------------------------------------------------------------------------------
 NAMED LICENSE EXCEPTION — MPL-2.0 (ADR-0002 §G)
@@ -33,10 +38,11 @@ weak file-level copyleft, unmodified, and not redistributed by Argus.
 Their notices are preserved in the MPL-2.0 section of this file, and the
 source of the MPL-covered files is available from each package's
 repository. Any NEW MPL-2.0 dependency must pass maintainer review —
-this generator fails on MPL-2.0 packages outside the exception list.
+this generator fails on MPL-2.0 packages outside the exception list,
+platform-specific builds of an exception package included (those are
+listed at the end of this file rather than here).
 
     lightningcss 1.32.0
-    lightningcss-darwin-arm64 1.32.0
 
 ================================================================================
 (MIT AND CC-BY-3.0) — 1 package
@@ -368,8 +374,8 @@ get-caller-file 2.0.5
   https://github.com/stefanpenner/get-caller-file#readme
 
 glob 10.5.0, 7.2.3
-  Copyright (c) Isaac Z. Schlueter and Contributors
   Copyright (c) 2009-2023 Isaac Z. Schlueter and Contributors
+  Copyright (c) Isaac Z. Schlueter and Contributors
   https://github.com/isaacs/node-glob#readme
 
 glob-parent 5.1.2, 6.0.2
@@ -402,8 +408,8 @@ isexe 2.0.0
   https://github.com/isaacs/isexe#readme
 
 lru-cache 10.4.3, 5.1.1
-  Copyright (c) Isaac Z. Schlueter and Contributors
   Copyright (c) 2010-2023 Isaac Z. Schlueter and Contributors
+  Copyright (c) Isaac Z. Schlueter and Contributors
   https://github.com/isaacs/node-lru-cache#readme
 
 minimalistic-assert 1.0.1
@@ -496,7 +502,7 @@ yargs-parser 22.0.0
   https://github.com/yargs/yargs-parser#readme
 
 ================================================================================
-MIT — 395 packages
+MIT — 392 packages
 ================================================================================
 
 @babel/code-frame 7.29.7
@@ -904,10 +910,6 @@ MIT — 395 packages
   (published package carries no copyright line or author field)
   https://github.com/pkgjs/parseargs#readme
 
-@rolldown/binding-darwin-arm64 1.0.3
-  (published package carries no copyright line or author field)
-  https://rolldown.rs/
-
 @rolldown/pluginutils 1.0.1
   Copyright (c) 2026-present, rolldown/plugins repository contributors
   https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
@@ -931,10 +933,6 @@ MIT — 395 packages
 @standard-schema/spec 1.1.0
   Copyright (c) 2024 Colin McDonnell
   https://standardschema.dev
-
-@turbo/darwin-arm64 2.10.2
-  Copyright (c) 2026 Vercel, Inc
-  https://turborepo.dev
 
 @types/chai 5.2.3
   Copyright (c) Microsoft Corporation.
@@ -1368,10 +1366,6 @@ fs-extra 7.0.1, 8.1.0
   Copyright (c) 2011-2017 JP Richardson
   https://github.com/jprichardson/node-fs-extra
 
-fsevents 2.3.3
-  Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller
-  https://github.com/fsevents/fsevents
-
 function-bind 1.1.2
   Copyright (c) 2013 Raynos.
   https://github.com/Raynos/function-bind
@@ -1518,8 +1512,8 @@ js-md4 0.3.2
   https://github.com/emn178/js-md4
 
 js-tokens 10.0.0, 4.0.0
-  Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell
   Copyright (c) 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025 Simon Lydell
+  Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell
   https://github.com/lydell/js-tokens#readme
 
 js-yaml 3.15.0, 4.3.0
@@ -2115,14 +2109,10 @@ zod 4.4.3
   https://zod.dev
 
 ================================================================================
-MPL-2.0 — 2 packages
+MPL-2.0 — 1 package
 ================================================================================
 
 lightningcss 1.32.0
-  (published package carries no copyright line or author field)
-  https://github.com/parcel-bundler/lightningcss#readme
-
-lightningcss-darwin-arm64 1.32.0
   (published package carries no copyright line or author field)
   https://github.com/parcel-bundler/lightningcss#readme
 
@@ -2141,3 +2131,32 @@ Unknown — 1 package
 spawndamnit 3.0.1
   Copyright (c) 2017-present James Kyle <me@thejameskyle.com>
   https://github.com/thejameskyle/spawndamnit#readme
+
+================================================================================
+PLATFORM-SPECIFIC PACKAGES — HOST-DEPENDENT, NOT DRIFT-CHECKED
+================================================================================
+
+The 4 package(s) below declare `os` / `cpu` / `libc`
+constraints, so npm resolves a different set of them on every machine — a
+per-platform binary such as lightningcss-<platform>, or a package
+restricted to one OS such as fsevents. Both which packages appear here and
+how many do are properties of the host that last regenerated this file, not
+of the dependency tree, so no check can compare this section across
+platforms; `pnpm notices:check` stops at this heading. Their notices are
+preserved here rather than dropped, because ADR-0002 §F drops none.
+
+@rolldown/binding-darwin-arm64 1.0.3 — MIT (os: darwin · cpu: arm64)
+  (published package carries no copyright line or author field)
+  https://rolldown.rs/
+
+@turbo/darwin-arm64 2.10.2 — MIT (os: darwin · cpu: arm64)
+  Copyright (c) 2026 Vercel, Inc
+  https://turborepo.dev
+
+fsevents 2.3.3 — MIT (os: darwin)
+  Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller
+  https://github.com/fsevents/fsevents
+
+lightningcss-darwin-arm64 1.32.0 — MPL-2.0 (os: darwin · cpu: arm64)
+  (published package carries no copyright line or author field)
+  https://github.com/parcel-bundler/lightningcss#readme

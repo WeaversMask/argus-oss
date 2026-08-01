@@ -1,95 +1,119 @@
-# Handover — Auto-fix engine (`argus fix`)
+# Handover — THIRD-PARTY-NOTICES drift gate (OPS-06)
 
-**From:** claude-sonnet-5
+**From:** claude-opus-5
 **To:** next picker (Phase 2 continues)
-**Date:** 2026-07-26
-**Phase:** P2 — MVP (5/6+4) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** P2-06 — Auto-fix engine — **PR [#39](https://github.com/WeaversMask/argus-oss/pull/39) open, review done and addressed, awaiting maintainer merge**
+**Date:** 2026-08-01
+**Phase:** P2 — MVP (5/6+5) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** OPS-06 — notices drift gate — PR open, awaiting maintainer merge
 
 ---
 
 ## Context
 
-`argus fix [path] [--dry-run]` exists: the CLI's first mutating command. Of the ten built-in rules, only `style/import-order` is fixable — investigated, not assumed, before scoping the task down to it (the other nine need a semantic judgement call no mechanical transform can safely make). The fixer proves safety before offering an edit — it declines on four distinct shapes (interior comment, comment touching the block with no blank line between them, side-effect-only import, two imports sharing a line) rather than guessing; `apps/cli` splices accepted fixes in via `magic-string`, then runs the result through a new `@argus/adapters-prettier` package as a finishing pass. Full rationale: [ADR-0006](./adr/0006-autofix-representation-and-safety.md).
+Found during the **DOC-02 independent review**: the README's license receipt claimed THIRD-PARTY-NOTICES was "regenerated and diffed on every change." It was not. The `license` job ran only `pnpm license-check`; neither husky hook ran `pnpm notices`; the only reference anywhere was the manual root script. DOC-02 removed the false claim. **This task makes the claim true instead**, so the several tracker rows that assert "notices regenerated, zero diff" (P2-06, the dogfooding row, P2-04, P2-02, P1-04, P1-03) finally sit on a mechanism.
 
-**Two independent reviews, both REQUEST CHANGES.** The first (Opus, cross-family + escalated) returned 3 HIGH + 5 MEDIUM + 4 LOW, every HIGH reproduced — including a silent file corruption. A **second, fresh Opus pass at the maintainer's request then found a HIGH the first had missed**, plus a MEDIUM and a LOW; all 15 findings across both are fixed in-branch and re-verified. PR [#39](https://github.com/WeaversMask/argus-oss/pull/39) is open. Nothing is left for the next picker except the maintainer's merge decision. The findings are worth reading before writing a second fixer — see "Gotchas", especially 7 and 10.
+This gap was known and deferred twice — the [P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3 flagged platform variance, and P0-12 deferred the check again citing it. It is closed now.
 
 ## What I Did
 
-- **`Fix` domain type** (`packages/core/src/domain/fix.ts`) threaded additively: `RuleReport.fix?` → `CapturedReport.fix?` → `Violation.fix?`. No `RuleRunnerPort` signature change.
-- **New `FormatterPort`** (core) + **new `@argus/adapters-prettier` package** (`packages/adapters/prettier/`) — `PrettierFormatter` resolves the _target project's_ Prettier config relative to its own root, never `process.cwd()`.
-- **`style/import-order` fixer** (`packages/rules-builtin/src/style/import-order.ts`) — whole-block reorder, gap-preserving (reconstructs blank lines between reordered imports from line numbers, since `AstNode` has no raw offsets), safety-gated as above.
-- **`apps/cli`**: `scan.ts` extracted from `check.ts` (shared config→discover→parse→engine pipeline, and since the review the carrier of each file's exact on-disk source); new `apply-fixes.ts` (magic-string splice, dedupes/conflict-resolves), `position-offset.ts` (`LineIndex`, position→offset bridge, round-tripped against a real parsed tree in tests), `diff.ts` (unified diff for `--dry-run`, verified against real `git apply`), `fix.ts` (`runFix` → `planFixes`/`commitFixes`/`countRemaining`, two-phase so nothing is written until every edit is computed).
-- **`pnpm-workspace.yaml`** gains `"packages/adapters/*"`. Two pre-existing dependency-cruiser patterns assumed every package was one segment deep (`no-cross-package-deep-imports`'s backstop, the coverage/dist/.turbo excludes) — both fixed with a companion pattern once the new nested package exposed the assumption; both new/changed rules (`rule-engine-never-imports-adapters`, `adapters-prettier-public-entry-only`) verified by temporarily reintroducing then reverting a violating import.
-- **Cruiser config split**: the rule list crossed 300 lines and moved to `dependency-cruiser-rules.cjs` (genuine modularisation — it only grows as Phase 4's adapters arrive, not a threshold dodge). Needed `@typescript-eslint/no-require-imports` turned off for `*.cjs` in `eslint.config.mjs` — the whole point of that extension, never previously exercised by a same-directory `require()`.
-- Docs: ADR-0006, `docs/guide/cli.md` (`fix` section + exit-code table), `docs/guide/rules.md` (fixable marker), `docs/dev/adding-a-rule.md` (new "Offering a fix" section), `docs/architecture.md`, and the READMEs for `core`, `rule-engine`, `rules-builtin`, `cli`, and the new adapter package.
+- **`scripts/lib/installed-packages.mjs`** [new] — everything that touches pnpm/`node_modules`: license grouping, copyright extraction, the MPL-2.0 guard, and the platform split.
+- **`scripts/lib/third-party-notices.mjs`** [new] — document rendering + `DRIFT_CHECK_BOUNDARY` / `portablePrefix`.
+- **`scripts/generate-third-party-notices.mjs`** — now an 82-line CLI over those two, with a `--check` mode.
+- **`pnpm notices:check`** (root script) wired into CI's `license` job.
+- Docs: `CONTRIBUTING.md` guardrail #5, `quality-gates.md` license line, an ADR-0002 §F enforcement note.
 
-- **Review-fix pass** (separate commit): all 12 findings from the #39 packet — see Gotchas 0, 7, 8, 9 for the ones with lasting lessons.
-- **Second review-fix pass** (separate commit): the 3 findings from the fresh Opus pass the maintainer asked for after the first — HIGH (comment guard missed the line directly above the block, breaking directive comments), MEDIUM (commit phase had no write-error handling), LOW (overlap guard dropped a non-conflicting fix). Gotchas 8 and 10. The widened guard pushed two files past the self-scan's limits, so `import-order-fix.ts` (the prove-safety-and-build-the-replacement half of the rule) and `apps/cli/src/fix-plan.ts` (the two-phase machinery) were split out — the same decompose-rather-than-ignore precedent both earlier passes followed.
+### The design decision, and why
 
-PRs merged in this session: none — #39 is open and awaiting the maintainer.
+The generator's output was host-dependent in **two** ways, not one. The task brief named the first; the second only shows up on Linux.
+
+1. **The `Snapshot:` line** carried the current date and the host platform. → **Removed from the file; the full provenance (date · pnpm · platform) now goes to stderr on every run.** This was the brief's option (a), and it is the right one: a self-reported date proves only that _someone ran the script_, whereas `git log -1 -- THIRD-PARTY-NOTICES` proves when the committed content actually changed and cannot be refreshed by a no-op rerun. The alternative — "diff only below the snapshot line" — keeps a line in the file that is knowably wrong the moment anyone else regenerates, makes the check structure-aware rather than dumb, and does nothing about (2), which is what actually breaks CI.
+
+2. **Packages that declare `os`/`cpu`/`libc` resolve differently per host.** On darwin-arm64 that is four: `@rolldown/binding-darwin-arm64`, `@turbo/darwin-arm64`, `lightningcss-darwin-arm64`, `fsevents`. On linux-x64 CI the first three become their linux variants, **`fsevents` is not installed at all**, and **`@rollup/rollup-linux-x64-gnu` appears** — it is a linux-only optional dependency of `neverthrow`, invisible from a Mac. So both the membership _and the size_ of that set are host properties. Fixing only (1) still leaves a check that fails 100% of the time.
+
+   **Three options were weighed. Dropping the four from the file (making a plain `git diff --exit-code` work) was rejected on the repo's own policy**: ADR-0002 §F says notices are never dropped, and `fsevents` carries `Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller` — held by no other package in the tree. Reconstructing the full per-platform families from the lockfile was rejected too: you cannot read a notice out of a package you never downloaded, so ~29 entries would have to claim "no copyright line" about packages nobody looked at.
+
+   **Chosen:** the generator emits them into a trailing section under a fixed marker, and every count above that marker is computed from the portable set alone. `--check` compares the prefix and stops. So the file keeps full legal fidelity, and the check verifies everything that _can_ be verified across hosts.
+
+**Detection is structural, not lexical** — a package is platform-scoped iff its own `package.json` declares `os`/`cpu`/`libc`. Name heuristics would have failed: `@turbo/linux-64` and `fsevents` share nothing with `lightningcss-darwin-arm64`.
+
+**Why `--check` and not `pnpm notices && git diff --exit-code`:** the comparison has to know which region is comparable, and the only component that can know is the generator. Putting it in the YAML would mean a hand-maintained `sed`/ignore list in CI drifting from the file's actual structure. `--check` never writes, so a red CI job leaves nothing to clean up.
 
 ## What I Did NOT Do (Deferred)
 
-- **P2-05 (diff mode)** — untouched, still top of the real backlog once this merges.
-- **A second fixable rule** — only `import-order` this task, deliberately (see ADR-0006). The fix engine's conflict-resolution machinery is tested but not yet exercised by a second real fixer.
-- **`argus explain` does not say whether a rule is fixable** — noted as a gap in `docs/guide/cli.md`, not fixed. Small, non-blocking follow-up if anyone wants it.
-- **`fix --format json`** — no machine-readable output for `fix`, only `check` has one. Not asked for by the phase spec; flag if a consumer needs it.
+- **README.md untouched — deliberately.** DOC-02 is in flight on `doc-02-showcase-readme` and rewrites the README's licensing receipt row. Once both land, that row can cite `pnpm notices:check` as the enforcing mechanism. Editing it from this branch would have created a pure conflict for no benefit.
+- **No pre-commit/pre-push hook.** CI-only, per the brief. `pnpm notices:check` runs in ~3s locally if anyone wants it wired later.
+- **No automated test for the scripts.** `scripts/` has no test harness (`check-licenses.mjs`, a CI gate since P0-12, has none either) and creating one is its own task. Verified by execution instead — eight cases, below. **This is the weakest part of the task; flagging it rather than burying it.**
+- **`MPL_EXCEPTION` still duplicated** between `installed-packages.mjs` and `check-licenses.mjs`, with the "keep in sync" comment both files already carried. Unifying them is a separate change.
 
 ## Gotchas & Surprises
 
-0. **`parsed.root.text` is NOT the file's source.** Tree-sitter's `program` node starts at the _first token_, so any file beginning with a blank line, space, tab, or BOM yields a root whose text is a truncated copy — while every `Position` stays absolute. Splicing against it shifts every offset. This shipped in my first pass and the reviewer reproduced it as a **silent file corruption**: comment deleted, import duplicated, exit `0`, violation still present. `ParseOutcome.sources` now carries the bytes read from disk, and `parseAll` is its single producer. **If you write anything else that edits files, take the source from there, never from the AST.** The tell that should have caught it earlier: `position-offset.test.ts` round-trips against `source` — the unit test used the correct base while production did not, so a green suite proved nothing about the real path.
+1. **The brief's complication was half the problem.** The snapshot line is the visible one; the platform-scoped packages are the one that actually makes a naive diff fail on CI, and they are invisible from a Mac — `pnpm notices` there produces a date-only diff, so the check looks like it would work. If you touch this again, reason from `os`/`cpu`/`libc` in the lockfile, not from what your laptop produces.
+2. **`fsevents` is not a per-platform build artifact.** The other three are one-variant-per-host builds of a parent package (lightningcss, turbo, rolldown) and carry their parent's notice. fsevents is an independent project that happens to be darwin-only, with its own copyright holders. Any scheme that treats "platform-scoped" as "same notice as the parent, therefore droppable" is wrong on exactly this package.
+3. **Verified the tail cannot leak into the compared prefix.** A platform-scoped package with its own dependencies would drag non-platform packages in and out of the portable set per host, silently breaking the check. Checked the whole lockfile: no `os`/`cpu`/`libc`-constrained entry declares `dependencies`/`optionalDependencies`/`peerDependencies`. Re-verify if that ever changes — it is recorded in the script header for that reason.
+4. **The check must fail closed when the marker is missing.** A file predating this change, or a hand-edited one, would otherwise compare an empty prefix to an empty prefix and report "in sync." Covered by verification case 4.
+5. **`pnpm run <script>` auto-installs first on pnpm 11** (also noted in the P0-11 handover). The first `pnpm notices` in a fresh worktree syncs `node_modules` before the script executes. Not the generator doing installs.
+6. **A count of an excluded set is still part of the included region.** The design carefully kept host-dependent _packages_ out of the compared prefix and then printed a _tally_ of them in the header, four lines from the sentence claiming the prefix is a pure function of the tree. Whenever you exempt a region from a check, audit what the rest of the document derives from it — summaries, totals and cross-references are the leak, not the data.
+7. **The rewrite tripped the repo's own 300-line file limit** (344 lines) — decomposed into two library modules rather than trimming the explanation, per the P2-06 / dogfooding precedent. **The split is verified byte-neutral**: `THIRD-PARTY-NOTICES` has SHA `ead639e766…` before and after each of the two splits.
 
-1. **A rule never sees raw source or byte offsets** (`AstNode` — P1-03 scope limit, deliberately not revisited). A fix's `Position` → `magic-string` offset conversion has to happen in `apps/cli`, not the rule; `position-offset.ts`'s `LineIndex` is that bridge, and it's worth reading before writing a second fixer.
-2. **Multiple violations can share one fix.** `import-order`'s whole-block reorder resolves every out-of-order import in a file with the _same_ fix object — `apply-fixes.ts` de-dupes by structural equality (not reference: the domain factory rebuilds a fresh frozen copy every time, so reference equality never survives `violation()`).
-3. **Nested workspace packages break single-segment assumptions.** `packages/adapters/prettier/` (two segments deep) silently defeated two existing cruiser patterns that assumed `packages/<name>/...`. If a future package nests similarly, check `dependency-cruiser-rules.cjs`'s backstop and `.dependency-cruiser.cjs`'s `exclude.path` for the same class of bug.
-4. **A `.cjs` file's `require()` was banned by ESLint** even though the same config block declares `require` a real global — `@typescript-eslint/no-require-imports` needed an explicit override for `**/*.cjs`. Fixed once in `eslint.config.mjs`; applies to any future `.cjs` file that needs to require a sibling.
-5. **A tiny new package can fail its own coverage threshold on one defensive branch.** `@argus/adapters-prettier`'s `message()` helper's non-`Error` arm is unreachable through `format()` itself (Prettier only ever rejects with real `Error`s) — with so few total branches in the file, one uncovered arm was 50% of them. Exported `message()` for a direct unit test rather than trying to provoke the unreachable case through the adapter.
-6. **Dry-run and a real run need _different_ exit-code semantics**, not the same one — my first draft computed both from "violations remaining," which makes `--dry-run` return `0` even when a fixable violation exists (since it _would_ be resolved). Fixed to: real run = state ("do violations remain"), dry-run = action-preview ("would anything change", `prettier --check`'s idiom). See ADR-0006 decision 7 before touching either.
+## Verification
 
-7. **"Prove safety or decline" is only as good as the cases you thought of.** Three of the four decline conditions in `computeBlockFix` owe their shape to a reviewer going looking: a comment _abutting_ the block (outside the contiguity window I was checking) and side-effect-only imports. For the latter my own reasoning — "we only move imports _between_ groups, never _within_ one, so order is preserved" — is exactly **inverted**: a bare `import "./setup.js"` exists precisely to run at a point relative to the others, so a cross-group move is the breaking one. Declining is cheap and always safe; the bar for adding a fifth condition should stay low.
+`--check` was exercised against the real repo, eight cases, all re-run after the review fixes:
 
-8. **A mutating command must write in two phases — and two phases still is not atomic.** Writing as the loop goes means a later file's failure leaves earlier ones already rewritten. Everything is in memory anyway, so compute-then-flush costs nothing and makes "nothing is written when a scan can't complete" true for every _computable_ failure. It does **not** cover an environmental one: the second review (MEDIUM-1) showed a `chmod 444` file mid-list still leaving earlier files rewritten, escaping as `main`'s bare `unexpected error: EACCES …` with no summary. The commit phase now catches per file, reports in the CLI's own voice, finishes the rest, still prints the summary, and exits 2 — and `countRemaining` measures what actually reached disk, so an unwritten file keeps its violations. Watch for a doc claim that outruns the code: the guide's absolute "nothing is written" was the tell.
+| #   | Scenario                                                                                                              | Expected | Result |
+| --- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
+| 1   | Committed file matches the tree                                                                                       | exit 0   | ✅     |
+| 2   | One version hand-edited above the boundary (`zod 4.4.3` → `4.4.4`)                                                    | exit 1   | ✅     |
+| 3   | **Platform tail rewritten to linux-x64 variants, `fsevents` removed**                                                 | exit 0   | ✅     |
+| 4   | Boundary marker removed                                                                                               | exit 1   | ✅     |
+| 5   | `THIRD-PARTY-NOTICES` absent                                                                                          | exit 1   | ✅     |
+| 6   | `--check` on a clean tree                                                                                             | no write | ✅     |
+| 7   | A whole package block deleted (the real drift mode: dep added, notices not regenerated)                               | exit 1   | ✅     |
+| 8   | **Full linux tail: 3 variants swapped, `fsevents` dropped, `@rollup/rollup-linux-x64-gnu` added, count line changed** | exit 0   | ✅     |
 
-9. **`split("\n")` leaves a trailing `""` for newline-terminated text.** Counting it as a diff line put an off-by-one in every hunk header we emitted, so `git apply` rejected every patch — invisible to `toContain` assertions. `diff.test.ts` now shells out to real `git apply`.
+**Confirmed on a real Linux runner** — PR #42's `license` job, all 11 checks green:
 
-10. **A passing test can be the bug.** The second review's HIGH: the comment guard checked the import's _own_ line but not the line directly above, so `// eslint-disable-next-line`, `// @ts-expect-error`, `// biome-ignore` and friends were reordered out from under — moving a _suppression_ onto an import that never needed it. Reproduced as `tsc` exit 0 → `argus fix` → `tsc` exit 2 (TS2578 plus the original error resurfacing), while `argus` reported success. What kept it alive through the first review was a **test asserting the permissive behaviour**, justified by the one benign example it used (`// module docs`): "a comment on a SEPARATE line is not attached to any one import". True for prose, false for every directive comment — and once written down as a passing test, nobody re-derives it. When a guard's rationale is "this comment would end up describing a different import", check that the guard actually covers where comments _live_, and be suspicious of any test whose comment explains why something unsafe is fine.
+```
+$ node scripts/generate-third-party-notices.mjs --check
+THIRD-PARTY-NOTICES is in sync with the dependency tree (498 packages, 14 licenses, 4 platform-specific).
+Checked 2026-08-01 · pnpm 11.5.3 · linux-x64; the platform-specific tail is not compared.
+```
+
+Same 498 packages / 14 licenses as darwin-arm64 from a file generated on a Mac — the portable set really is host-independent, and the design no longer rests on simulation. Linux also reports **4** platform-specific packages, matching the reviewer's lockfile reconstruction (three variants swapped, `fsevents` out, `@rollup/rollup-linux-x64-gnu` in). Note what that means: the header-count HIGH really would have passed its first CI run by coincidence.
+
+Cases 3 and 8 are the ones that matter for CI: they simulate what a Linux runner produces and confirm the check does **not** false-fail. Case 2's report names the line, the committed value and the expected value.
+
+**Case 8 exists because the independent review found the gate's one real hole.** The first implementation printed `plus N platform-specific package(s)` in the header — i.e. a count derived from the host-dependent set, sitting _above_ the boundary, inside the compared region. Every doc in this task asserted "everything above the marker is a pure function of the tree"; that one line made it false, and case 3 could not catch it because it only edited the tail. It would have gone red on a future dependency bump with a diagnostic pointing at line 23 and no visible connection to the cause. The count now lives below the boundary; `header()` carries a comment saying why nothing derived from the platform set may ever go back.
+
+The review also found `readdirSync` output being used unsorted (`copyrightLines`) — Node guarantees no order, and it differs between the maintainer's APFS and CI's ext4. **`@bcoe/v8-coverage` ships both `LICENSE.md` ("Charles Samborski") and `LICENSE.txt` ("Contributors")**, both rendered inside the compared region, so their order was filesystem-determined. Sorted now, along with `pkg.paths`.
 
 ## State of the System
 
-- ✅ Tests: **737 passing** (70 files), aggregate coverage ~97.9% lines / ~94.3% branches / ~99.8% functions
-- ✅ Lint, typecheck, build, boundaries, format:check, license-check all clean at root
-- ✅ Self-scan: `argus check .` (repo root) → **0 violations, 0 failures, 149 files**
-- ✅ PR [#39](https://github.com/WeaversMask/argus-oss/pull/39) open, 6 commits, review packet posted as a comment
-- ✅ First independent review (Opus, cross-family + escalated): **REQUEST CHANGES — 3 HIGH + 5 MEDIUM + 4 LOW, all addressed in-branch**, each HIGH re-verified against the reviewer's own repro
-- ✅ Second independent review (fresh Opus, maintainer-requested): **REQUEST CHANGES — 1 HIGH + 1 MEDIUM + 1 LOW, all addressed in-branch** (gotchas 7, 8, 10), each reproduced in a real sandbox before and after the fix
-- ⚠️ **Two pre-existing flaky tests** under full-suite parallel load on a busy machine: `@argus/ast` `tests/perf/parse-benchmark.test.ts` and `@argus/cli` `tests/bin.test.ts` (both spawn subprocesses / measure wall time). Verified flaky on untouched `HEAD` too, and both pass in isolation — not caused by this branch, but worth a timeout review if CI ever catches them.
-- ⬜ **Awaiting the maintainer's merge decision** — agents never merge
+- ✅ Tests: **737 passing** (70 files), coverage 97.91% statements / 94.26% branches / 99.77% functions — unchanged, this task adds no product code
+- ✅ Lint, typecheck, build, format:check, license-check, boundaries all green at root
+- ✅ `pnpm notices:check` green: 498 packages, 14 licenses, 4 platform-specific
+- ✅ Self-scan: `argus check .` → **0 violations, 0 failures, 151 files** (first run flagged the 344-line generator and a missing JSDoc on an exported helper; both fixed in-branch, not ignored)
+- ⚠️ **Tracker + handover will conflict with `doc-02-showcase-readme`**, which rewrites both. `docs/handovers/p2-06-autofix-engine-handover.md` is archived here byte-identically to DOC-02's copy, so that add/add merges cleanly; `HANDOVER.md` and `IMPLEMENTATION.md` will need a manual resolve on whichever PR merges second.
+- ✅ Independent review (Sonnet, cross-family): **REQUEST CHANGES — 1 HIGH + 1 MEDIUM + 2 LOW, all addressed in-branch** (separate fix commit). The HIGH is the header-count hole described under Verification; the reviewer reproduced it against the real `buildNotices()` output.
+- ✅ **PR [#42](https://github.com/WeaversMask/argus-oss/pull/42) open — all 11 CI checks green**, including the new `notices:check` step on real linux-x64 (see Verification) and the review gate after the packet comment landed
+- ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
 
-P2-06 needs nothing further from an agent. Once the maintainer merges #39:
-
-1. Re-rotate this handover (archive to `docs/handovers/p2-06-autofix-engine-handover.md`) and flip the tracker's P2-06 row from `_pending_` to the PR link.
-2. Pick up **P2-05** (diff mode — `packages/orchestrator/` doesn't exist yet, new territory) or start the **M1 showcase tail** (DOC-02/03/04, OPS-05 — no hard dependency on P2-05, so either order works).
-
-If the maintainer wants changes on #39 first, the review packet is the PR comment and every finding's fix is in the `fix(cli,rules-builtin,rule-engine): address the #39 review packet` commit.
+1. **P2-05 (diff mode)** — still the one remaining numbered P2 task; needs `packages/orchestrator/`, which does not exist yet.
+2. The **M1 showcase tail** — DOC-02 is in flight; DOC-03/DOC-04/OPS-05 are open.
+3. If the notices gate ever goes red on a Dependabot PR, the fix is `pnpm notices` and commit — the failure output names the differing lines.
 
 ## Open Questions for the Next Agent
 
-- Should `argus explain <rule-id>` report fixability? Not done this task; `docs/guide/cli.md` flags it as a known gap.
-- Is the conflict-resolution behavior in `apply-fixes.ts` (keep the earlier-starting fix, drop an overlapping later one) the right policy once a second fixable rule exists, or should it escalate to a file-level failure instead of silently under-fixing? Untested territory beyond one rule.
+- Should `scripts/` get a test project? Three CI-relevant scripts now have zero automated coverage. It is a small vitest project plus fixtures, and it would let the drift check's fail-closed paths be regression-tested rather than hand-verified once.
+- Should `notices:check` join the pre-push hook? It costs ~3s and would catch drift before CI, at the price of slowing every push.
 
 ## Files Touched This Session
 
-Commit 1 (`packages/core`, `packages/rule-engine`, `packages/rules-builtin`): `fix.ts`/`format-error.ts`/`formatter.ts` [created] in core; `violation.ts`, domain/errors/ports `index.ts` [modified]; rule-engine `types.ts`/`handlers.ts`/`engine.ts` [modified]; rules-builtin `import-order.ts`/`support.ts` [modified] + tests.
-
-Commit 2 (`apps/cli`, `packages/adapters/prettier`, workspace config): `apps/cli/src/{scan,apply-fixes,diff,position-offset,fix}.ts` [created], `check.ts`/`main.ts` [modified]; `packages/adapters/prettier/` [created, full package]; `pnpm-workspace.yaml`, `.dependency-cruiser.cjs`, `dependency-cruiser-rules.cjs` [split out], `eslint.config.mjs`, `Dockerfile.dev`, `docker-compose.yml`, `vitest.config.ts` [modified].
-
-Not yet committed: `docs/adr/0006-*.md` [created]; `docs/IMPLEMENTATION.md`, `docs/HANDOVER.md`, `docs/guide/cli.md`, `docs/guide/rules.md`, `docs/dev/adding-a-rule.md`, `docs/architecture.md`, `packages/core/README.md`, `packages/rule-engine/README.md`, `packages/rules-builtin/README.md`, `apps/cli/README.md` [all modified].
+`scripts/lib/installed-packages.mjs`, `scripts/lib/third-party-notices.mjs` [created]; `scripts/generate-third-party-notices.mjs`, `package.json`, `.github/workflows/ci.yml`, `THIRD-PARTY-NOTICES` [regenerated], `CONTRIBUTING.md`, `docs/adr/0002-*.md`, `docs/plan/protocols/quality-gates.md`, `docs/IMPLEMENTATION.md`, `docs/HANDOVER.md`, `docs/handovers/p2-06-autofix-engine-handover.md` [archived].
 
 ## Sign-off
 
-Code, tests, and gates are all green and self-scan-clean — what remains is entirely process (PR, review, tracker close-out), not implementation.
+The gate is real and its limits are written down in the file it checks, in the script that checks it, and in the ADR that requires it. What it cannot verify — the platform tail — is stated rather than implied.
 
-— claude-sonnet-5
+— claude-opus-5

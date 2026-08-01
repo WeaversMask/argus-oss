@@ -1,178 +1,82 @@
 #!/usr/bin/env node
-// Generates THIRD-PARTY-NOTICES from the installed dependency tree via
-// `pnpm licenses list --json`. ADR-0002 §F: copyright notices are preserved
-// for every license, permissive included. Regenerate whenever the dependency
-// tree changes:  pnpm notices
+// CLI entry for THIRD-PARTY-NOTICES. Two modes, one generation path:
 //
-// Dependency-free by design: it must run before any license tooling exists
-// (license-checker arrives with the P0-12 gate; this needs only pnpm).
+//   pnpm notices        regenerate the file from the installed tree
+//   pnpm notices:check  regenerate in memory and compare, writing nothing
+//
+// The check runs in CI's `license` job so the committed file cannot silently
+// drift from the dependency tree (ADR-0002 §F). It compares only the part of
+// the file that is a pure function of that tree — read the "Two hosts, one
+// file" note in lib/third-party-notices.mjs for why the tail is exempt and
+// what that costs.
 
-import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync } from "node:fs";
 import process from "node:process";
 import console from "node:console";
 
-const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const outputPath = join(repoRoot, "THIRD-PARTY-NOTICES");
+import {
+  buildNotices,
+  DRIFT_CHECK_BOUNDARY,
+  outputPath,
+  portablePrefix,
+} from "./lib/third-party-notices.mjs";
 
-// Packages covered by the ADR-0002 §G named MPL-2.0 exception (dev-only
-// transitives, reviewed by the maintainer). Any other MPL-2.0 package must
-// trip review — this generator refuses to bless it silently.
-// Keep in sync with NAMED_EXCEPTIONS in check-licenses.mjs (the P0-12 gate).
-const MPL_EXCEPTION = /^lightningcss(-.+)?$/;
+const checkOnly = process.argv.includes("--check");
+const { text: generated, counts, provenance } = buildNotices();
 
-const LICENSE_FILE = /^(licen[cs]e|copying|notice)([-.].*)?$/i;
-
-const HR = "=".repeat(80);
-const hr = "-".repeat(80);
-
-function pnpm(args) {
-  return execFileSync("pnpm", args, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    maxBuffer: 128 * 1024 * 1024,
-  }).trim();
-}
-
-// Pull the copyright line(s) out of a package's shipped license/notice files.
-// Filters template placeholders (Apache's "[yyyy]") and legalese lines that
-// merely mention the word ("copyright notice and this permission notice").
-function copyrightLines(pkgDir) {
-  let entries;
-  try {
-    entries = readdirSync(pkgDir);
-  } catch {
-    return [];
+function reportDrift(committed, expected) {
+  const a = committed.split("\n");
+  const b = expected.split("\n");
+  const differing = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if (a[i] !== b[i]) differing.push(i + 1);
   }
-  const lines = new Set();
-  for (const entry of entries.filter((name) => LICENSE_FILE.test(name))) {
-    let text;
-    try {
-      text = readFileSync(join(pkgDir, entry), "utf8");
-    } catch {
-      continue;
-    }
-    for (const rawLine of text.split(/\r?\n/)) {
-      if (lines.size >= 4) break;
-      const line = rawLine.replace(/^[\s#*/>-]+/, "").trim();
-      if (!/^(portions\s+)?copyright\b|^©/i.test(line)) continue;
-      if (!/\d{4}|\(c\)|©/i.test(line)) continue;
-      if (/\[yyyy\]|\[name of copyright owner\]/i.test(line)) continue;
-      if (line.length > 180) continue;
-      lines.add(line);
-    }
-  }
-  return [...lines];
-}
-
-function formatPackage(pkg) {
-  const versions = [...pkg.versions].sort().join(", ");
-  const block = [`${pkg.name} ${versions}`];
-  // Merge across all resolved versions — notice text can differ between them.
-  const notices = [...new Set((pkg.paths ?? []).flatMap((dir) => copyrightLines(dir)))];
-  if (notices.length > 0) {
-    for (const notice of notices) block.push(`  ${notice}`);
-  } else if (typeof pkg.author === "string" && pkg.author.length > 0) {
-    block.push(`  Author: ${pkg.author}`);
-  } else {
-    // e.g. verbatim MPL-2.0 text ships with no copyright line at all
-    block.push("  (published package carries no copyright line or author field)");
-  }
-  if (pkg.homepage) block.push(`  ${pkg.homepage}`);
-  return block.join("\n");
-}
-
-const groups = JSON.parse(pnpm(["licenses", "list", "--json"]));
-
-// Workspace packages are first-party, not third-party — drop them.
-for (const [licenseId, pkgs] of Object.entries(groups)) {
-  groups[licenseId] = pkgs.filter((pkg) => !pkg.name.startsWith("@argus/"));
-  if (groups[licenseId].length === 0) delete groups[licenseId];
-}
-
-// Match compound license expressions too ("MIT OR MPL-2.0") — the interim
-// guard stays fail-closed until P0-12's SPDX-aware gate takes over.
-const mplPackages = Object.entries(groups)
-  .filter(([licenseId]) => /\bMPL-2\.0\b/i.test(licenseId))
-  .flatMap(([, pkgs]) => pkgs);
-const unexpectedMpl = mplPackages.filter((pkg) => !MPL_EXCEPTION.test(pkg.name));
-if (unexpectedMpl.length > 0) {
   console.error(
-    `MPL-2.0 package(s) outside the ADR-0002 §G named exception: ` +
-      `${unexpectedMpl.map((pkg) => pkg.name).join(", ")}.\n` +
-      `New MPL-2.0 dependencies need maintainer review (and an update to the ` +
-      `named-exception list in scripts/generate-third-party-notices.mjs) ` +
-      `before they can be inventoried.`,
+    `THIRD-PARTY-NOTICES is out of date: ${differing.length} line(s) differ ` +
+      `from the current dependency tree (${counts}).`,
   );
-  process.exit(1);
-}
-
-const licenseIds = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-const totalPackages = licenseIds.reduce((n, id) => n + groups[id].length, 0);
-const snapshot = [
-  new Date().toISOString().slice(0, 10),
-  `pnpm ${pnpm(["--version"])}`,
-  `${process.platform}-${process.arch}`,
-  `${totalPackages} packages, ${licenseIds.length} licenses`,
-].join(" · ");
-
-const out = [];
-out.push(
-  HR,
-  "THIRD-PARTY SOFTWARE NOTICES",
-  HR,
-  "",
-  "Argus is MIT-licensed (see LICENSE). This file inventories the third-party",
-  "npm packages resolved by Argus's dependency manifests (package.json,",
-  "pnpm-lock.yaml) and preserves their copyright notices, grouped by license.",
-  "Notices are preserved for every license, permissive included (ADR-0002 §F).",
-  "",
-  "GENERATED FILE — do not edit by hand. Regenerate with:  pnpm notices",
-  "",
-  "Argus ships as source code plus dependency manifests only (ADR-0002 §B):",
-  "the packages below are NOT vendored or redistributed in this repository.",
-  "They are fetched from the npm registry at install time, and each package",
-  "carries its own full license text in its published form.",
-  "",
-  "The external scanning engines Argus orchestrates (TruffleHog, Semgrep,",
-  "osv-scanner) are not npm dependencies and are never distributed with",
-  'Argus — users install them separately. See README "External tools /',
-  'Prerequisites" and ADR-0002 §A/§B.',
-  "",
-  `Snapshot: ${snapshot}`,
-  "Platform-specific binary packages (e.g. lightningcss-<platform>) vary with",
-  "the host that generated this file.",
-  "",
-);
-
-if (mplPackages.length > 0) {
-  out.push(
-    hr,
-    "NAMED LICENSE EXCEPTION — MPL-2.0 (ADR-0002 §G)",
-    hr,
-    "",
-    "MPL-2.0 is not on the Argus dependency allowlist. The packages below are",
-    "a named, maintainer-reviewed exception: dev-only transitive dependencies,",
-    "weak file-level copyleft, unmodified, and not redistributed by Argus.",
-    "Their notices are preserved in the MPL-2.0 section of this file, and the",
-    "source of the MPL-covered files is available from each package's",
-    "repository. Any NEW MPL-2.0 dependency must pass maintainer review —",
-    "this generator fails on MPL-2.0 packages outside the exception list.",
-    "",
-    ...mplPackages.map((pkg) => `    ${pkg.name} ${[...pkg.versions].sort().join(", ")}`),
-    "",
-  );
-}
-
-for (const licenseId of licenseIds) {
-  const pkgs = [...groups[licenseId]].sort((a, b) => a.name.localeCompare(b.name));
-  out.push(HR, `${licenseId} — ${pkgs.length} package${pkgs.length === 1 ? "" : "s"}`, HR, "");
-  for (const pkg of pkgs) {
-    out.push(formatPackage(pkg), "");
+  for (const line of differing.slice(0, 10)) {
+    console.error(`  line ${line}:`);
+    console.error(`    committed: ${a[line - 1] ?? "(end of file)"}`);
+    console.error(`    expected:  ${b[line - 1] ?? "(end of file)"}`);
   }
+  if (differing.length > 10) console.error(`  … and ${differing.length - 10} more`);
+  console.error(`Run  pnpm notices  and commit the result.`);
 }
 
-writeFileSync(outputPath, out.join("\n").trimEnd() + "\n");
-console.error(`Wrote ${outputPath} (${totalPackages} packages, ${licenseIds.length} licenses)`);
+function check() {
+  let committed;
+  try {
+    committed = readFileSync(outputPath, "utf8");
+  } catch (error) {
+    console.error(`Cannot read ${outputPath}: ${error.message}. Run  pnpm notices  to create it.`);
+    process.exit(1);
+  }
+  const committedPrefix = portablePrefix(committed);
+  const expectedPrefix = portablePrefix(generated);
+  // Fail closed: a file without the boundary predates this check or was
+  // hand-edited. Comparing nothing must never read as clean.
+  if (committedPrefix === undefined || expectedPrefix === undefined) {
+    const missingFrom =
+      committedPrefix === undefined ? "THIRD-PARTY-NOTICES" : "the generated output";
+    console.error(
+      `Expected marker "${DRIFT_CHECK_BOUNDARY}" is missing from ${missingFrom}. ` +
+        `Run  pnpm notices  and commit the result.`,
+    );
+    process.exit(1);
+  }
+  if (committedPrefix !== expectedPrefix) {
+    reportDrift(committedPrefix, expectedPrefix);
+    process.exit(1);
+  }
+  console.error(`THIRD-PARTY-NOTICES is in sync with the dependency tree (${counts}).`);
+  console.error(`Checked ${provenance}; the platform-specific tail is not compared.`);
+}
+
+if (checkOnly) {
+  check();
+} else {
+  writeFileSync(outputPath, generated);
+  console.error(`Wrote ${outputPath} (${counts}).`);
+  console.error(`Generated ${provenance}.`);
+}
