@@ -58,7 +58,7 @@
 | P11 — Hardening & GA   | ⏸ Not started  | —         | —                                                                                                                                                                                                                                          |
 
 **Status legend:** ⏸ not started · 🟡 in progress · ✅ complete · 🔴 blocked
-**Completed column:** `<done>/<total> numbered · <done>/<total> added`. Phase 2's counter previously read `5/6+5`, where `+N` silently meant "unnumbered tasks added to the phase" and had drifted a task behind the real set — the DOC-02 review already caught the tracker and handover disagreeing about it. Spelled out here so it cannot drift again.
+**Completed column:** `<done>/<total> numbered · <done>/<total> added`. Phase 2's counter previously read `5/6+5`, where `+N` was never defined and never followed one rule: it sat at `+4` from the phase opening (2026-07-19) to 2026-07-26 — the four M1-tail tasks as originally specced — did **not** move when DOGFOOD was added and merged, then went to `+5` when OPS-06 merged. Under every reading it was short of the real set of added tasks (6 before DOC-05 was filed, 7 after). The DOC-02 review had already caught the tracker and handover disagreeing about it. Spelled out here so it cannot drift again.
 
 ---
 
