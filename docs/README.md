@@ -40,6 +40,7 @@ argus/
     ├── HANDOVER.md              active handover (rotates per task)
     ├── SECURITY-NOTES.md        what must never be committed
     ├── architecture.md          how the packages fit together (reader map)
+    ├── workflow.md              how the work is done (loop, guardrails, receipts)
     ├── risks.md                 risk register
     ├── guide/                   user-facing guide (fills in from Phase 2)
     ├── dev/                     contributor/maintainer recipes
@@ -81,6 +82,7 @@ argus/
 
 - **Using Argus** → [`guide/`](./guide/) (fills in from Phase 2).
 - **How it fits together** → [`architecture.md`](./architecture.md).
+- **How it was built, and why the output can be trusted** → [`workflow.md`](./workflow.md).
 - **Working on the internals** → [`dev/`](./dev/), then the package's own `README.md`.
 
 New contributor? Read these in order:
