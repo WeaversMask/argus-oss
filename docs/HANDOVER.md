@@ -70,6 +70,16 @@ The generator's output was host-dependent in **two** ways, not one. The task bri
 | 7   | A whole package block deleted (the real drift mode: dep added, notices not regenerated)                               | exit 1   | ✅     |
 | 8   | **Full linux tail: 3 variants swapped, `fsevents` dropped, `@rollup/rollup-linux-x64-gnu` added, count line changed** | exit 0   | ✅     |
 
+**Confirmed on a real Linux runner** — PR #42's `license` job, all 11 checks green:
+
+```
+$ node scripts/generate-third-party-notices.mjs --check
+THIRD-PARTY-NOTICES is in sync with the dependency tree (498 packages, 14 licenses, 4 platform-specific).
+Checked 2026-08-01 · pnpm 11.5.3 · linux-x64; the platform-specific tail is not compared.
+```
+
+Same 498 packages / 14 licenses as darwin-arm64 from a file generated on a Mac — the portable set really is host-independent, and the design no longer rests on simulation. Linux also reports **4** platform-specific packages, matching the reviewer's lockfile reconstruction (three variants swapped, `fsevents` out, `@rollup/rollup-linux-x64-gnu` in). Note what that means: the header-count HIGH really would have passed its first CI run by coincidence.
+
 Cases 3 and 8 are the ones that matter for CI: they simulate what a Linux runner produces and confirm the check does **not** false-fail. Case 2's report names the line, the committed value and the expected value.
 
 **Case 8 exists because the independent review found the gate's one real hole.** The first implementation printed `plus N platform-specific package(s)` in the header — i.e. a count derived from the host-dependent set, sitting _above_ the boundary, inside the compared region. Every doc in this task asserted "everything above the marker is a pure function of the tree"; that one line made it false, and case 3 could not catch it because it only edited the tail. It would have gone red on a future dependency bump with a diagnostic pointing at line 23 and no visible connection to the cause. The count now lives below the boundary; `header()` carries a comment saying why nothing derived from the platform set may ever go back.
@@ -84,6 +94,7 @@ The review also found `readdirSync` output being used unsorted (`copyrightLines`
 - ✅ Self-scan: `argus check .` → **0 violations, 0 failures, 151 files** (first run flagged the 344-line generator and a missing JSDoc on an exported helper; both fixed in-branch, not ignored)
 - ⚠️ **Tracker + handover will conflict with `doc-02-showcase-readme`**, which rewrites both. `docs/handovers/p2-06-autofix-engine-handover.md` is archived here byte-identically to DOC-02's copy, so that add/add merges cleanly; `HANDOVER.md` and `IMPLEMENTATION.md` will need a manual resolve on whichever PR merges second.
 - ✅ Independent review (Sonnet, cross-family): **REQUEST CHANGES — 1 HIGH + 1 MEDIUM + 2 LOW, all addressed in-branch** (separate fix commit). The HIGH is the header-count hole described under Verification; the reviewer reproduced it against the real `buildNotices()` output.
+- ✅ **PR [#42](https://github.com/WeaversMask/argus-oss/pull/42) open — all 11 CI checks green**, including the new `notices:check` step on real linux-x64 (see Verification) and the review gate after the packet comment landed
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
