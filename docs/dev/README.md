@@ -4,6 +4,7 @@
 
 ## Start here
 
+- **How the work is done — the loop, the gates, and what they don't cover:** [`../workflow.md`](../workflow.md). Read this before your first PR; it is the "why" behind the rules in `CONTRIBUTING.md`.
 - **How it fits together:** [`../architecture.md`](../architecture.md).
 - **Where code goes + forbidden imports:** [`../plan/01-repo-structure.md`](../plan/01-repo-structure.md).
 - **Engineering principles:** [`../plan/00-principles.md`](../plan/00-principles.md).

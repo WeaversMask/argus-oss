@@ -30,6 +30,8 @@ Every row is one guardrail: what it guarantees, the file that implements it, and
 
 Across the workspace, 737 tests cover 97.9% of statements and 94.3% of branches, against [enforced floors](vitest.config.ts) of 85% and 80% — the suite fails below them. Where a defensive branch genuinely cannot be exercised, the exception is written down in that package's README rather than waved through.
 
+**[docs/workflow.md](docs/workflow.md) is the full story** — the loop a task travels from plan file to `main`, what each guardrail above is actually for, and the four things this process does _not_ protect against.
+
 ## Quickstart
 
 Argus runs from a clone today; there is no published npm package yet (see [Status](#status)).
@@ -50,7 +52,7 @@ Exit codes follow the usual convention: `0` clean, `1` violations found, `2` som
 
 Phases 3–11 — layer enforcement, delegated security scanners, persistence, an API, a web UI, reporting, CI integrations, an LSP — are **fully specified and deliberately not yet built**. They are the [continuation track](docs/plan/02-roadmap.md#continuation-track-phases-311--optional-post-m1): planned next steps a maintainer can pick up with zero re-planning, not a backlog of debt. Current state is always in [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
 
-If you want the longer story of how this was built, [docs/architecture.md](docs/architecture.md) is the map and [docs/dev/adding-a-rule.md](docs/dev/adding-a-rule.md) is the shortest path to a working mental model.
+If you want the longer story of how this was built, [docs/workflow.md](docs/workflow.md) covers the process, [docs/architecture.md](docs/architecture.md) is the map of the code, and [docs/dev/adding-a-rule.md](docs/dev/adding-a-rule.md) is the shortest path to a working mental model.
 
 ---
 

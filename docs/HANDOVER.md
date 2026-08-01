@@ -1,65 +1,63 @@
-# Handover — DOC-05 filed (documentation cadence) + post-merge close-out
+# Handover — DOC-03 complete (workflow showcase)
 
 **From:** claude-opus-5
 **To:** next picker (Phase 2 continues — M1 showcase tail)
 **Date:** 2026-08-01
-**Phase:** P2 — MVP (5/6 numbered · 3/7 added) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** DOC-02 — **merged** ([#41](https://github.com/WeaversMask/argus-oss/pull/41)). This session filed a new task rather than building one; its own PR is open.
+**Phase:** P2 — MVP (5/6 numbered · 4/7 added) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** DOC-03 — [`docs/workflow.md`](./workflow.md). PR open, awaiting merge.
 
 ---
 
 ## Context
 
-**Everything opened to date is merged** — OPS-06 ([#42](https://github.com/WeaversMask/argus-oss/pull/42)) and DOC-02 ([#41](https://github.com/WeaversMask/argus-oss/pull/41)) both landed after the previous handover was written, so the tracker's "In Progress" row and one `_pending_` PR link were stale on arrival. That close-out is part of this branch.
+DOC-02 gave the repo a recruiter-tier README with a receipts table. DOC-03 is the other half: **how the work was done**, for a reader who has never seen an agentic workflow. One ASCII diagram of the six-stage loop, one plain-language paragraph per guardrail (each with its mechanism link and one receipt), and an honesty section listing what the process does _not_ cover.
 
-The substance of the session is a **maintainer directive**: if the project continues past the MVP, the documentation structure must be updated **comprehensively after every completed phase** and **iteratively after every task/story** — the smaller tier sized so that a third party can check progress without reading the tracker. Filed as **DOC-05** in the Phase 2 M1 tail. It is **specced, not built** — see What I Did NOT Do.
-
-Why it is a real gap and not ceremony: the per-task documentation obligation in [`plan/03-documentation.md`](./plan/03-documentation.md) is **prose that nothing checks**, the same shape as the notices-freshness claim OPS-06 had to close after six tracker rows asserted it against no mechanism. And there is no third-party-readable progress surface at all — this tracker's task rows are agent-facing forensics (several run past a thousand words), which is correct for the next picker and useless to anyone asking "what has this actually delivered, and when?"
+The page is deliberately not a second receipts table. The README answers "is this code good?"; `workflow.md` answers "why should I believe the process that produced it?" — which is why its honesty section is load-bearing rather than decorative.
 
 ## What I Did
 
-- **Closed the books on the merged work:** DOC-02's `_pending_` → [#41](https://github.com/WeaversMask/argus-oss/pull/41), In Progress cleared, Up Next re-ranked, header and Phase Status corrected to post-merge reality.
-- **Filed DOC-05** in [`plan/phases/phase-02-mvp.md`](./plan/phases/phase-02-mvp.md) with deps, outputs, and acceptance criteria — two tiers: a mechanical per-task `docs-delta` CI gate plus a `docs/progress.md` entry per merged task, and a per-phase consolidation pass a phase must pass **before** it can be marked ✅ Complete.
-- **Wired it into the plan** so it cannot be forgotten: roadmap M1 gains criterion 7 (continuation stays _legible_), the Phase 2 exit criteria gain the consolidation pass, and `03-documentation.md` gains a short "Cadence — specced as DOC-05, not yet installed" section that names the gap in its own standard.
-- **Made the Phase Status counter legible** — `5/6+5` became `5/6 numbered · 3/7 added`, with the notation defined under the table (see Gotcha 1).
+- **Wrote [`docs/workflow.md`](./workflow.md)** and linked it from the README (after the receipts table, plus the closing pointer), [`dev/README.md`](./dev/README.md), and the [`README.md`](./README.md) document map.
+- **Re-derived every receipt from the repo** instead of trusting the spec's shorthand. Two of the spec's own examples did not survive: see Gotcha 1.
+- **Ran the review, then acted on it.** Light tier, cross-family (claude-fable-5), CHANGES REQUESTED on two falsifiable overstatements. Both fixed; one became a new entry in the honesty section rather than a softened sentence.
+- **Closed the books:** tracker header, Up Next, Phase Status counter (`3/7` → `4/7`), and a Recently Completed row carrying the verification findings.
 
 PRs merged in this session: none — this branch's PR is the session's output.
 
 ## What I Did NOT Do (Deferred)
 
-- **Implemented DOC-05.** Deliberate: the ask was to file the task. Nothing exists yet of `docs/progress.md`, the `docs-delta` CI job, `templates/PHASE-DOC-AUDIT.template.md`, the phase 3–11 exit-criteria lines, or the `agentic-execution.md` edits. Until DOC-05 lands, the documentation delta is still an honour-system checklist item.
-- **DOC-03 / DOC-04.** Untouched, and still the natural next picks — DOC-05 depends on both.
-- **The failing weekly Stryker job** (red since 2026-07-28, logs expired) and **`argus explain` not reporting fixability** — both inherited, both still open, both still needing their own task.
+- **DOC-04 / DOC-05 / OPS-05 / P2-05.** Untouched. DOC-04 is the natural next pick and does not depend on DOC-03 merging.
+- **The failing weekly Stryker job** (red since 2026-07-28) and **`argus explain` not reporting fixability** — both inherited, both still needing their own task. The Stryker one is now _cited in public documentation_ as an example of an unenforced gate rotting, which raises the cost of leaving it red.
+- **The stale `license` job comment** in `ci.yml`, which still says it is not a branch-protection required check — it is one. Found by the reviewer, out of scope here, needs a one-line fix.
 
 ## Gotchas & Surprises
 
-1. **The `+N` in the old `5/6+5` counter followed no rule at all** — and my first attempt to explain it was itself wrong, caught by this branch's review. The full history: `+4` from the phase opening (2026-07-19) through 2026-07-26 — the four M1-tail tasks as originally specced — **unmoved** when DOGFOOD was added and merged, then `+5` when OPS-06 merged. So it is not "added tasks" (DOGFOOD would have counted), not "completed tasks" (only 2 were done at `+5`), and not the M1 tail alone (OPS-06 is not M1). It was maintained ad hoc and was short under every reading. The lesson generalises past this one number: **the first clean rule that fits two data points is not a derivation** — I published one on a single transition and it did not survive a reviewer pulling the third. Now defined where it is printed.
-2. **DOC-05 cannot be the phase's last task**, even though it is filed last-but-one. Its acceptance requires the consolidation pass to be _executed once against Phase 2 itself_ — a checklist that has never been run is exactly the untested-gate failure mode this repo keeps re-learning. OPS-05 stays last because it re-verifies everything, DOC-05 included.
-3. **The `docs-delta` gate must apply from its merge forward.** A gate that retro-judges merged work turns every later branch red for history nobody can change; the spec says so explicitly so the implementer does not have to rediscover it.
-4. **A filing task still owes the checklist.** This one produces no code, so there is no dogfooding delta and no ADR — but it does touch the plan docs other tasks read, which is exactly the "plan/doc changes land first as their own small PR" rule. Treat it as light-tier for review.
+1. **Two of DOC-03's own specced receipts were wrong, and checking beat citing.** The spec named "the gitleaks negative tests" — there are none in the tree. The real and better receipt is [#14](https://github.com/WeaversMask/argus-oss/pull/14)'s review finding that gitleaks **exits 0 when its own `git log` fails**, which is why [`.husky/pre-push`](../.husky/pre-push) now greps the output for `ERR` and fails closed. The spec also named "the mutation baseline", which cannot be a live receipt at all while the job is red — so it became the _lead entry in the honesty section_ instead. **A spec's parenthetical examples are a starting list, not a verified one.**
+2. **PR numbers below ~#30 are ambiguous across two repos.** `main` carries **52 merge commits** but `argus-oss` has only **30 merged PRs** — the retired repo's numbering restarts, so `git log` shows two different "Merge pull request #11". Always cite the full `argus-oss` URL; a bare `#N` in prose can resolve to the wrong thing. This is also why "52 merges" and "30 PRs" are both true and not contradictory.
+3. **There are two dependency-cruiser files.** `.dependency-cruiser.cjs` is what `pnpm boundaries` actually runs; `dependency-cruiser-rules.cjs` holds the rule list, split out at P2-06 when the list tripped `quality/max-file-length`. Link the rules file when you mean the rules — that is what the README already does.
+4. **Any absolute claim in a public doc is a review finding waiting to happen.** Both MAJORs were universals: "reviews **every** diff" (bots are exempt, and `main` already has a merged Dependabot bump) and "**nothing** relies on the agent being careful" (the review gate matches a heading marker, not review quality). Neither was sloppy writing — both were true of the common case and false at an edge the linked file itself documents. On a page whose entire argument is "check this yourself", that is fatal. **Write the scope in, or expect to be caught.**
+5. **The review gate is the softest link, and the page now says so.** It greps for an `## Independent review` heading; it cannot judge what is underneath. Worth knowing before you rely on it as though it graded anything.
 
 ## State of the System
 
 - ✅ Docs-only diff — no executable code, no dependency, no schema touched
-- ✅ Root gates re-run before push (lint, typecheck, build, test, format:check) — see the PR for the run
-- ✅ Self-scan unchanged at **0 violations, 0 failures, 151 files** (no source files added or removed)
-- ⚠️ **Weekly Stryker mutation job still red since 2026-07-28** — report-only, gates nothing, needs its own task; do not cite 85.74% as current
-- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited, unrelated to this diff
+- ✅ Root gates re-run: lint · typecheck · build · `format:check` clean, **737/737 tests**, coverage 97.91% statements / 94.26% branches
+- ✅ Self-scan unchanged at **0 violations, 0 failures, 151 files**
+- ✅ All 22 relative links in `workflow.md` verified to resolve on disk
+- ⚠️ **Weekly Stryker mutation job still red since 2026-07-28** — report-only, gates nothing; do not cite 85.74% as current
+- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`) — inherited, unrelated to this diff; both passed this session
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps
 
-1. **DOC-03 — workflow showcase** (`docs/workflow.md`). Unblocked since DOC-02 merged; the README receipts table is the shortlist of guardrails and its links are already verified — reuse rather than re-source.
-2. **DOC-04 — developer tour** (`docs/dev/tour.md`).
-3. **DOC-05 — documentation cadence.** Needs 1 and 2 first: its Phase 2 consolidation pass audits the tree they complete.
-4. **OPS-05** last, then the phase transition. **P2-05 (diff mode)** whenever the maintainer wants the final numbered task; nothing waits on it.
-
-Estimated effort: DOC-03 **M**, DOC-04 **S**, DOC-05 **M**, OPS-05 **S**.
+1. **DOC-04 — developer tour** (`docs/dev/tour.md`), effort **S**. The last M1 documentation task. `workflow.md` now covers the process half of orientation, so the tour can stay strictly about the code and link out for the rest.
+2. **DOC-05 — documentation cadence**, effort **M**. Needs DOC-04 first: its Phase 2 consolidation pass audits the tree DOC-03 and DOC-04 complete.
+3. **OPS-05** last, then the phase transition. **P2-05 (diff mode)** whenever the maintainer wants the final numbered task; nothing waits on it.
 
 ## Open Questions for the Next Agent
 
-- **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** DOC-05 specs a progress log because the audience is "someone checking whether this project is alive and moving", not "someone upgrading a dependency" — but a changelog is the more conventional artifact and a public repo may be read as if it had one. Worth a maintainer opinion before DOC-05 starts, since seeding it retroactively is most of the task's cost.
-- **Should the consolidation pass also gate the M1 boundary itself, or only phase transitions?** As specced it does both — Phase 2's exit criteria now carry it — but that makes M1 marginally more expensive to declare.
+- **For OPS-05 — not a question, a correction to inherit.** [Runbook](./go-public-runbook.md) item 7 describes **one** of two routes by which the maintainer's real name reaches history, so anyone auditing from it will find commits it cannot explain. Measured on `origin/main` this session: **79 of 205 commits** carry the name — 52 web-UI **merge** commits (name in the _author_ field, committer `GitHub`) **plus 26 + 1 dependabot commits rewritten by a web-UI "Update branch" / "Rebase and merge"** (name in the _committer_ field, author still correctly `WeaversMask`; invisible to a plain `git log`, needs `%cn`). **Zero** commits carry it in both fields — the signature of a bad local config — so nothing committed on the maintainer's machine is affected, and the repo-local identity override is doing its job. **The paranoia check itself passes: 0 hits for the personal email in commit metadata and in tracked file content.** The name is public on the GitHub profile by choice, so the "optional, cosmetic" rating stands; the lever is the **GitHub profile name field**, not git config, and it only affects commits made after it changes. Fix item 7's wording during OPS-05.
+- **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** Carried from the DOC-05 filing — still wants a maintainer opinion _before_ DOC-05 starts, since seeding it retroactively is most of the task's cost.
+- **Should the consolidation pass also gate the M1 boundary itself, or only phase transitions?** As specced it does both.
 
 Carried forward, still open:
 
@@ -69,16 +67,17 @@ Carried forward, still open:
 ## Files Touched This Session
 
 ```
-docs/handovers/doc-02-showcase-readme-handover.md  [created — rotation snapshot]
+docs/workflow.md                                   [created — the deliverable]
+docs/handovers/doc-05-cadence-filing-handover.md   [created — rotation snapshot]
 docs/HANDOVER.md                                   [rewritten — this file]
-docs/IMPLEMENTATION.md                             [modified — close-out, Up Next, counter]
-docs/plan/phases/phase-02-mvp.md                   [modified — DOC-05 spec, exit criteria]
-docs/plan/02-roadmap.md                            [modified — M1 task list, criterion 7]
-docs/plan/03-documentation.md                      [modified — cadence forward-pointer]
+docs/IMPLEMENTATION.md                             [modified — row, Up Next, counter]
+README.md                                          [modified — two inbound links]
+docs/README.md                                     [modified — document map + For Humans]
+docs/dev/README.md                                 [modified — Start here link]
 ```
 
 ## Sign-off
 
-The tracker matches the repository: nothing is in flight, every opened PR is merged, and the one number that had been drifting is now defined where it is printed. DOC-05 is specified to the same bar as the tasks around it and is **not** implemented — the next picker takes DOC-03.
+The workflow page makes claims a stranger can check, and the ones it could not support were dropped rather than softened — including two the task's own spec had suggested. What the process does _not_ cover is on the same page as what it does, in five entries, not in a footnote. DOC-04 is next and does not wait on this merging.
 
 — claude-opus-5
