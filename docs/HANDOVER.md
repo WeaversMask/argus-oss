@@ -28,7 +28,7 @@ The generator's output was host-dependent in **two** ways, not one. The task bri
 
 1. **The `Snapshot:` line** carried the current date and the host platform. → **Removed from the file; the full provenance (date · pnpm · platform) now goes to stderr on every run.** This was the brief's option (a), and it is the right one: a self-reported date proves only that _someone ran the script_, whereas `git log -1 -- THIRD-PARTY-NOTICES` proves when the committed content actually changed and cannot be refreshed by a no-op rerun. The alternative — "diff only below the snapshot line" — keeps a line in the file that is knowably wrong the moment anyone else regenerates, makes the check structure-aware rather than dumb, and does nothing about (2), which is what actually breaks CI.
 
-2. **Four packages declare `os`/`cpu`/`libc`** and so resolve differently per host: `@rolldown/binding-darwin-arm64`, `@turbo/darwin-arm64`, `lightningcss-darwin-arm64`, and `fsevents`. On linux-x64 CI the first three become their linux variants and **fsevents is not installed at all** — which also shifts the per-license counts and the total. Fixing only (1) still leaves a check that fails 100% of the time.
+2. **Packages that declare `os`/`cpu`/`libc` resolve differently per host.** On darwin-arm64 that is four: `@rolldown/binding-darwin-arm64`, `@turbo/darwin-arm64`, `lightningcss-darwin-arm64`, `fsevents`. On linux-x64 CI the first three become their linux variants, **`fsevents` is not installed at all**, and **`@rollup/rollup-linux-x64-gnu` appears** — it is a linux-only optional dependency of `neverthrow`, invisible from a Mac. So both the membership _and the size_ of that set are host properties. Fixing only (1) still leaves a check that fails 100% of the time.
 
    **Three options were weighed. Dropping the four from the file (making a plain `git diff --exit-code` work) was rejected on the repo's own policy**: ADR-0002 §F says notices are never dropped, and `fsevents` carries `Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller` — held by no other package in the tree. Reconstructing the full per-platform families from the lockfile was rejected too: you cannot read a notice out of a package you never downloaded, so ~29 entries would have to claim "no copyright line" about packages nobody looked at.
 
@@ -42,7 +42,7 @@ The generator's output was host-dependent in **two** ways, not one. The task bri
 
 - **README.md untouched — deliberately.** DOC-02 is in flight on `doc-02-showcase-readme` and rewrites the README's licensing receipt row. Once both land, that row can cite `pnpm notices:check` as the enforcing mechanism. Editing it from this branch would have created a pure conflict for no benefit.
 - **No pre-commit/pre-push hook.** CI-only, per the brief. `pnpm notices:check` runs in ~3s locally if anyone wants it wired later.
-- **No automated test for the scripts.** `scripts/` has no test harness (`check-licenses.mjs`, a CI gate since P0-12, has none either) and creating one is its own task. Verified by execution instead — seven cases, below. **This is the weakest part of the task; flagging it rather than burying it.**
+- **No automated test for the scripts.** `scripts/` has no test harness (`check-licenses.mjs`, a CI gate since P0-12, has none either) and creating one is its own task. Verified by execution instead — eight cases, below. **This is the weakest part of the task; flagging it rather than burying it.**
 - **`MPL_EXCEPTION` still duplicated** between `installed-packages.mjs` and `check-licenses.mjs`, with the "keep in sync" comment both files already carried. Unifying them is a separate change.
 
 ## Gotchas & Surprises
@@ -52,23 +52,29 @@ The generator's output was host-dependent in **two** ways, not one. The task bri
 3. **Verified the tail cannot leak into the compared prefix.** A platform-scoped package with its own dependencies would drag non-platform packages in and out of the portable set per host, silently breaking the check. Checked the whole lockfile: no `os`/`cpu`/`libc`-constrained entry declares `dependencies`/`optionalDependencies`/`peerDependencies`. Re-verify if that ever changes — it is recorded in the script header for that reason.
 4. **The check must fail closed when the marker is missing.** A file predating this change, or a hand-edited one, would otherwise compare an empty prefix to an empty prefix and report "in sync." Covered by verification case 4.
 5. **`pnpm run <script>` auto-installs first on pnpm 11** (also noted in the P0-11 handover). The first `pnpm notices` in a fresh worktree syncs `node_modules` before the script executes. Not the generator doing installs.
-6. **The rewrite tripped the repo's own 300-line file limit** (344 lines) — decomposed into two library modules rather than trimming the explanation, per the P2-06 / dogfooding precedent. **The split is verified byte-neutral**: `THIRD-PARTY-NOTICES` has SHA `ead639e766…` before and after each of the two splits.
+6. **A count of an excluded set is still part of the included region.** The design carefully kept host-dependent _packages_ out of the compared prefix and then printed a _tally_ of them in the header, four lines from the sentence claiming the prefix is a pure function of the tree. Whenever you exempt a region from a check, audit what the rest of the document derives from it — summaries, totals and cross-references are the leak, not the data.
+7. **The rewrite tripped the repo's own 300-line file limit** (344 lines) — decomposed into two library modules rather than trimming the explanation, per the P2-06 / dogfooding precedent. **The split is verified byte-neutral**: `THIRD-PARTY-NOTICES` has SHA `ead639e766…` before and after each of the two splits.
 
 ## Verification
 
-`--check` was exercised against the real repo, seven cases, all after the final split:
+`--check` was exercised against the real repo, eight cases, all re-run after the review fixes:
 
-| #   | Scenario                                                                                | Expected | Result |
-| --- | --------------------------------------------------------------------------------------- | -------- | ------ |
-| 1   | Committed file matches the tree                                                         | exit 0   | ✅     |
-| 2   | One version hand-edited above the boundary (`zod 4.4.3` → `4.4.4`)                      | exit 1   | ✅     |
-| 3   | **Platform tail rewritten to linux-x64 variants, `fsevents` removed**                   | exit 0   | ✅     |
-| 4   | Boundary marker removed                                                                 | exit 1   | ✅     |
-| 5   | `THIRD-PARTY-NOTICES` absent                                                            | exit 1   | ✅     |
-| 6   | `--check` on a clean tree                                                               | no write | ✅     |
-| 7   | A whole package block deleted (the real drift mode: dep added, notices not regenerated) | exit 1   | ✅     |
+| #   | Scenario                                                                                                              | Expected | Result |
+| --- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
+| 1   | Committed file matches the tree                                                                                       | exit 0   | ✅     |
+| 2   | One version hand-edited above the boundary (`zod 4.4.3` → `4.4.4`)                                                    | exit 1   | ✅     |
+| 3   | **Platform tail rewritten to linux-x64 variants, `fsevents` removed**                                                 | exit 0   | ✅     |
+| 4   | Boundary marker removed                                                                                               | exit 1   | ✅     |
+| 5   | `THIRD-PARTY-NOTICES` absent                                                                                          | exit 1   | ✅     |
+| 6   | `--check` on a clean tree                                                                                             | no write | ✅     |
+| 7   | A whole package block deleted (the real drift mode: dep added, notices not regenerated)                               | exit 1   | ✅     |
+| 8   | **Full linux tail: 3 variants swapped, `fsevents` dropped, `@rollup/rollup-linux-x64-gnu` added, count line changed** | exit 0   | ✅     |
 
-Case 3 is the one that matters for CI: it simulates what a Linux runner produces and confirms the check does **not** false-fail. Case 2's report names the line, the committed value and the expected value.
+Cases 3 and 8 are the ones that matter for CI: they simulate what a Linux runner produces and confirm the check does **not** false-fail. Case 2's report names the line, the committed value and the expected value.
+
+**Case 8 exists because the independent review found the gate's one real hole.** The first implementation printed `plus N platform-specific package(s)` in the header — i.e. a count derived from the host-dependent set, sitting _above_ the boundary, inside the compared region. Every doc in this task asserted "everything above the marker is a pure function of the tree"; that one line made it false, and case 3 could not catch it because it only edited the tail. It would have gone red on a future dependency bump with a diagnostic pointing at line 23 and no visible connection to the cause. The count now lives below the boundary; `header()` carries a comment saying why nothing derived from the platform set may ever go back.
+
+The review also found `readdirSync` output being used unsorted (`copyrightLines`) — Node guarantees no order, and it differs between the maintainer's APFS and CI's ext4. **`@bcoe/v8-coverage` ships both `LICENSE.md` ("Charles Samborski") and `LICENSE.txt` ("Contributors")**, both rendered inside the compared region, so their order was filesystem-determined. Sorted now, along with `pkg.paths`.
 
 ## State of the System
 
@@ -77,6 +83,7 @@ Case 3 is the one that matters for CI: it simulates what a Linux runner produces
 - ✅ `pnpm notices:check` green: 498 packages, 14 licenses, 4 platform-specific
 - ✅ Self-scan: `argus check .` → **0 violations, 0 failures, 151 files** (first run flagged the 344-line generator and a missing JSDoc on an exported helper; both fixed in-branch, not ignored)
 - ⚠️ **Tracker + handover will conflict with `doc-02-showcase-readme`**, which rewrites both. `docs/handovers/p2-06-autofix-engine-handover.md` is archived here byte-identically to DOC-02's copy, so that add/add merges cleanly; `HANDOVER.md` and `IMPLEMENTATION.md` will need a manual resolve on whichever PR merges second.
+- ✅ Independent review (Sonnet, cross-family): **REQUEST CHANGES — 1 HIGH + 1 MEDIUM + 2 LOW, all addressed in-branch** (separate fix commit). The HIGH is the header-count hole described under Verification; the reviewer reproduced it against the real `buildNotices()` output.
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
 
 ## Recommended Next Steps

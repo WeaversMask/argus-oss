@@ -53,7 +53,12 @@ export function portablePrefix(text) {
   return index < 0 ? undefined : text.slice(0, index);
 }
 
-function header(totalPackages, licenseCount, platformCount) {
+// Nothing printed here may derive from the platform-scoped set — not even a
+// count of it. That set is host-dependent by definition, and this block lands
+// above DRIFT_CHECK_BOUNDARY, i.e. inside the region --check compares. (The
+// first version of this gate printed "plus N platform-specific package(s)"
+// right here; review caught it. The count now lives in platformSection().)
+function header(totalPackages, licenseCount) {
   return [
     HR,
     "THIRD-PARTY SOFTWARE NOTICES",
@@ -76,13 +81,14 @@ function header(totalPackages, licenseCount, platformCount) {
     'Argus — users install them separately. See README "External tools /',
     'Prerequisites" and ADR-0002 §A/§B.',
     "",
-    `Inventory: ${totalPackages} packages under ${licenseCount} licenses, plus`,
-    `${platformCount} platform-specific package(s) listed at the end of this file.`,
+    `Inventory: ${totalPackages} packages under ${licenseCount} licenses, plus the`,
+    "platform-specific packages listed at the end of this file.",
     "",
-    "This file records no generation date and no host: everything above the",
-    "PLATFORM-SPECIFIC heading is a pure function of the dependency tree, which",
-    "is what lets CI verify it (`pnpm notices:check`, the license job). For when",
-    "it was last regenerated, use  git log -1 -- THIRD-PARTY-NOTICES.",
+    "This file records no generation date, no host, and no figure derived from",
+    "either: everything above the PLATFORM-SPECIFIC heading is a pure function",
+    "of the dependency tree, which is what lets CI verify it",
+    "(`pnpm notices:check`, the license job). For when it was last regenerated,",
+    "use  git log -1 -- THIRD-PARTY-NOTICES.",
     "",
   ];
 }
@@ -125,11 +131,12 @@ function platformSection(platformScoped) {
     DRIFT_CHECK_BOUNDARY,
     HR,
     "",
-    "The packages below declare `os` / `cpu` / `libc` constraints, so npm",
-    "resolves a different set of them on every machine — a per-platform binary",
-    "such as lightningcss-<platform>, or a package restricted to one OS such as",
-    "fsevents. This section therefore reflects whichever variants the host that",
-    "last regenerated this file installed, and no check can compare it across",
+    `The ${platformScoped.length} package(s) below declare \`os\` / \`cpu\` / \`libc\``,
+    "constraints, so npm resolves a different set of them on every machine — a",
+    "per-platform binary such as lightningcss-<platform>, or a package",
+    "restricted to one OS such as fsevents. Both which packages appear here and",
+    "how many do are properties of the host that last regenerated this file, not",
+    "of the dependency tree, so no check can compare this section across",
     "platforms; `pnpm notices:check` stops at this heading. Their notices are",
     "preserved here rather than dropped, because ADR-0002 §F drops none.",
     "",
@@ -149,7 +156,7 @@ export function buildNotices() {
   const { groups, licenseIds, platformScoped, totalPackages, portableMpl } = readInventory();
 
   const out = [
-    ...header(totalPackages, licenseIds.length, platformScoped.length),
+    ...header(totalPackages, licenseIds.length),
     ...mplExceptionBlock(portableMpl),
     ...licenseSections(groups, licenseIds),
     ...platformSection(platformScoped),

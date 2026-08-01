@@ -51,7 +51,13 @@ function copyrightLines(pkgDir) {
     return [];
   }
   const lines = new Set();
-  for (const entry of entries.filter((name) => LICENSE_FILE.test(name))) {
+  // Sorted, because `lines` is insertion-ordered and `readdirSync` is not:
+  // it reflects the filesystem's own enumeration, which differs between the
+  // maintainer's APFS and CI's ext4. A package shipping more than one notice
+  // file with different holders — @bcoe/v8-coverage ships LICENSE.md
+  // ("Charles Samborski") and LICENSE.txt ("Contributors") — would otherwise
+  // render in a host-dependent order inside the drift-checked region.
+  for (const entry of entries.filter((name) => LICENSE_FILE.test(name)).sort()) {
     let text;
     try {
       text = readFileSync(join(pkgDir, entry), "utf8");
@@ -75,6 +81,13 @@ function copyrightLines(pkgDir) {
 // structural, not a guess from the name (`@turbo/linux-64` and `fsevents`
 // share nothing lexically). Returns e.g. "os: darwin · cpu: arm64", or
 // undefined for a package that installs everywhere.
+//
+// Any non-empty constraint list counts, including npm's negated form
+// (`os: ["!win32"]`). A negated one installs on both darwin and linux, so
+// exiling it to the un-compared tail is conservative rather than wrong — it
+// costs coverage of that package, it cannot cause a false pass elsewhere.
+// Zero packages in the current lockfile use the negated form; if that stops
+// being true and the count matters, treat all-negated lists as portable.
 function platformConstraints(pkg) {
   for (const dir of pkg.paths ?? []) {
     let manifest;
@@ -96,7 +109,9 @@ export function formatPackage(pkg, headerSuffix = "") {
   const versions = [...pkg.versions].sort().join(", ");
   const block = [`${pkg.name} ${versions}${headerSuffix}`];
   // Merge across all resolved versions — notice text can differ between them.
-  const notices = [...new Set((pkg.paths ?? []).flatMap((dir) => copyrightLines(dir)))];
+  // Sorted for the same reason the license-file list is: pnpm's path order is
+  // not a documented guarantee, and this text is compared byte-for-byte.
+  const notices = [...new Set([...(pkg.paths ?? [])].sort().flatMap((dir) => copyrightLines(dir)))];
   if (notices.length > 0) {
     for (const notice of notices) block.push(`  ${notice}`);
   } else if (typeof pkg.author === "string" && pkg.author.length > 0) {
