@@ -99,7 +99,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 
 ## Milestone M1 tasks (showcase tail — maintainer directive 2026-07-18)
 
-> These make the repo deliver its career value at the Phase 2 boundary: a 30-second recruiter surface, a plain-language workflow story, a guided developer path, and go-public readiness. Full criteria: [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2). Two audiences, two depths — and the complexity bar for both is _"ah, I get it"_, with links carrying the depth.
+> These make the repo deliver its career value at the Phase 2 boundary: a 30-second recruiter surface, a plain-language workflow story, a guided developer path, a documentation cadence that holds if work continues, and go-public readiness. Full criteria: [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2). Two audiences, two depths — and the complexity bar for both is _"ah, I get it"_, with links carrying the depth.
 
 ### [DOC-02] Showcase README — the 30-second recruiter surface
 
@@ -133,9 +133,28 @@ A working tool. `argus check ./src` produces real findings against a real projec
   - ≤1 page of prose; links carry the depth — the tour orients, it does not duplicate
 - **Effort:** S
 
+### [DOC-05] Documentation cadence — per-task increments, per-phase consolidation
+
+> **Why this exists.** Everything above makes the repo legible **at the M1 boundary**. This keeps it legible **if work continues**: the continuation track only pays off if a phase picked up months later ships documentation at the same rate the code lands, instead of accruing a docs debt someone must excavate later. Two gaps make that unlikely today. First, the per-task obligation in [`../03-documentation.md`](../03-documentation.md) is **prose with no mechanism** — precisely the class of gap OPS-06 closed for `THIRD-PARTY-NOTICES`, where six tracker rows asserted a freshness claim that nothing checked. Second, there is **no third-party-legible progress surface at all**: `IMPLEMENTATION.md`'s Recently Completed rows are agent-facing forensics (several run past a thousand words) — the right depth for the next picker, and unusable for anyone asking "what has this project actually delivered, and when?"
+
+- **Deps:** DOC-03 + DOC-04 (both create surfaces the first consolidation pass must audit — running it earlier audits a knowingly incomplete tree). Runs **before** OPS-05, which stays the phase's final task.
+- **Outputs:**
+  - `docs/progress.md` — the third-party tier: one entry per merged task, dated, PR-linked, ≤5 lines of plain language ("what can be done now that could not before"). **Seeded retroactively across Phases 0–2** so the log starts complete rather than from the day it was created.
+  - A `docs-delta` job in `.github/workflows/ci.yml`, modelled on the existing `review-gate` job (which fails a non-draft PR carrying no review evidence): a non-draft PR touching `packages/*/src/**`, `apps/*/src/**` or `scripts/**` while touching **no** documentation surface fails, unless its body carries an explicit `no docs delta — <reason>` line. Shell + `gh`, no new dependency.
+  - [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/) — the per-phase consolidation checklist, so the pass is repeatable and its reports are comparable across phases.
+  - The cadence written **once** into [`../03-documentation.md`](../03-documentation.md); [`../protocols/agentic-execution.md`](../protocols/agentic-execution.md) §Task Completion Checklist and §Phase Transitions link it rather than restating it.
+  - The consolidation pass added as an **exit criterion in every remaining phase file (3–11)**, so the gate travels with the phase and not only with the protocol.
+  - One executed Phase 2 audit report, committed under `docs/audits/`.
+- **Acceptance:**
+  - **The per-task tier is mechanical, not prose:** `docs-delta` is negative-tested **in both directions** — a source-only PR with no doc surface and no justification line fails, and the same PR passes once either is present — with the evidence recorded in the PR, the standard every dependency-cruiser rule and the gitleaks gate are already held to. It fails closed, and applies from its merge forward; it never retro-judges already-merged work.
+  - **The per-phase tier is a checklist with an oracle, not a vibe:** `architecture.md` verified against the real package graph (dependency-cruiser's module/dependency counts are the oracle, so drift is _measured_, not eyeballed) · every package/app `README.md` matches its actual public surface · every user-facing capability the phase shipped has a [`../../guide/`](../../guide/) line · every first-of-a-pattern has a [`../../dev/`](../../dev/) recipe · every decision has an ADR · `docs/README.md`'s document map matches the real tree · the phase's section of `docs/progress.md` reads as a coherent story to someone who has never seen the repo.
+  - **The pass is executed once against Phase 2 itself before this task is called done** — the cadence proves itself on the phase that installs it rather than shipping as an untested checklist. Whatever it finds is fixed in the same PR or filed as its own task: a "known stale" line left standing in a report is a failed audit, and a first report that finds _nothing_ is evidence the pass was not really run.
+  - **A reader who has never seen the repo can follow `docs/progress.md` alone** and say what shipped, when, and in what order. The file states its division of labour with `IMPLEMENTATION.md` in one line, so the two tiers never collapse into each other.
+- **Effort:** M
+
 ### [OPS-05] Go-public readiness sweep
 
-- **Deps:** none (re-verify as the phase's final task)
+- **Deps:** none (re-verify as the phase's final task — after DOC-05, so the sweep sees the cadence in place)
 - **Outputs:** all agent-preparable items of the [go-public runbook](../../go-public-runbook.md) executed/verified; a readiness report (checked list) in the PR and tracker
 - **Acceptance:**
   - Paranoia check re-run and recorded (0 personal-email hits on `origin/main`); docs tree passes the SECURITY-NOTES personal-data rules (no private paths/identifiers)
@@ -150,7 +169,8 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - [ ] **MVP demo recorded:** `pnpm install -g @argus/cli && argus check .` produces findings on a real-world TS project
 - [ ] 10 rules in production with full fixture coverage
 - [x] CI of Argus itself runs Argus on Argus — dogfooding starts here
-- [ ] **Milestone M1 — Showcase-Ready reached:** DOC-02/DOC-03/DOC-04/OPS-05 shipped and the [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2) criteria all hold
+- [ ] **Milestone M1 — Showcase-Ready reached:** DOC-02/DOC-03/DOC-04/DOC-05/OPS-05 shipped and the [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2) criteria all hold
+- [ ] **Phase documentation consolidation pass executed and its report committed** (the DOC-05 cadence, applied to this phase first — this criterion is what every later phase inherits)
 - [ ] Phase handover written with rule authoring tutorial and performance benchmarks against typical codebases — **plus the maintainer's continuation decision recorded** (pause at M1 or proceed to Phase 3)
 
 ---
