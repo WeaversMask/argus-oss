@@ -36,10 +36,42 @@ const SOURCE = resolve(DOCS_DIR, "HANDOVER.md");
 // can be replaced without disturbing the label.
 const LINK = /(\[[^\]]*\]\()([^)\s]+)(\))/g;
 
+/** Opening or closing fence of a code block: ``` or ~~~, optional info string. */
+const FENCE = /^\s{0,3}(?:```|~~~)/;
+
 // Deliberately identical to the audit template's oracle, so the two agree on
 // which links are in scope. Anything with a scheme, or a bare fragment, is not
 // a path this script can re-resolve.
 const isExternal = (href) => /^(https?:|mailto:|#)/.test(href);
+
+/**
+ * Walk `markdown` a line at a time, passing only prose lines to `transform`
+ * and returning the reassembled document.
+ *
+ * A fenced block is sample text, not navigation: `docs/HANDOVER.md` routinely
+ * carries a "Files Touched" block, and a shell or markdown example inside one
+ * could well contain something shaped like a link. Rewriting that would edit an
+ * example rather than fix a path. No archived handover contains such a case
+ * today — checked — so this guards a future one.
+ *
+ * Not detected, and deliberately: inline code spans, and code blocks indented
+ * by four spaces (indistinguishable, line by line, from a wrapped list item).
+ * Both are far rarer in these documents than fenced blocks, and neither has
+ * ever occurred; a link in one would still be rewritten.
+ */
+function mapProseLines(markdown, transform) {
+  let inFence = false;
+  return markdown
+    .split("\n")
+    .map((line) => {
+      if (FENCE.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      return inFence ? line : transform(line);
+    })
+    .join("\n");
+}
 
 /** Split a link target into its path and its `#fragment` (either may be empty). */
 function splitFragment(href) {
@@ -82,14 +114,16 @@ function retarget(href, fromDir, toDir) {
  */
 function reresolveLinks(markdown, { fromDir, toDir, onlyBroken }) {
   let rewritten = 0;
-  const out = markdown.replace(LINK, (whole, open, href, close) => {
-    if (isExternal(href)) return whole;
-    if (onlyBroken && resolves(href, toDir)) return whole;
-    const next = retarget(href, fromDir, toDir);
-    if (next === href) return whole;
-    rewritten += 1;
-    return open + next + close;
-  });
+  const out = mapProseLines(markdown, (line) =>
+    line.replace(LINK, (whole, open, href, close) => {
+      if (isExternal(href)) return whole;
+      if (onlyBroken && resolves(href, toDir)) return whole;
+      const next = retarget(href, fromDir, toDir);
+      if (next === href) return whole;
+      rewritten += 1;
+      return open + next + close;
+    }),
+  );
   return { out, rewritten };
 }
 
@@ -98,10 +132,13 @@ function verifyArchive() {
   const broken = [];
   for (const file of archiveFiles()) {
     const abs = resolve(ARCHIVE_DIR, file);
-    for (const [, , href] of readFileSync(abs, "utf8").matchAll(LINK)) {
-      if (isExternal(href)) continue;
-      if (!resolves(href, ARCHIVE_DIR)) broken.push([file, href]);
-    }
+    mapProseLines(readFileSync(abs, "utf8"), (line) => {
+      for (const [, , href] of line.matchAll(LINK)) {
+        if (isExternal(href)) continue;
+        if (!resolves(href, ARCHIVE_DIR)) broken.push([file, href]);
+      }
+      return line;
+    });
   }
   return broken;
 }
