@@ -196,3 +196,6 @@ Argus becomes a tool you can run. The phase also turns it on itself.
 
 - **2026-08-02 — Progress log ruled over a changelog** ([#46](https://github.com/WeaversMask/argus-oss/pull/46))
   The maintainer settled how per-task history should be recorded — this file rather than a hand-written `CHANGELOG.md`, since changesets already generates changelogs and nothing is released. Recorded with its reasoning so it is not reopened.
+
+- **2026-08-02 — DOC-05 Documentation cadence** ([#47](https://github.com/WeaversMask/argus-oss/pull/47))
+  This file, and the machinery that keeps it honest. A CI job now fails any pull request that changes source without touching documentation or explaining why, so the documentation obligation is checked rather than remembered. Every phase from here on must pass a documentation audit before it can be called complete — and the first one, run against Phase 2, found a user-facing page telling readers the opposite of what the tool does, plus a hundred broken links nobody had clicked.
