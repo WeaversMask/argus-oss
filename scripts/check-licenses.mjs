@@ -262,3 +262,6 @@ console.log(
   `license-check OK — ${records.size} third-party packages, all on the ADR-0002 §G allowlist` +
     (summary.length > 0 ? `\n${summary}` : ""),
 );
+
+// DOC-05 negative test — temporary branch, will be deleted.
+// A // line comment is deliberately NOT a documentation delta.
