@@ -47,6 +47,11 @@ const DIFF_FLAGS: readonly string[] = [
   // scan of nothing (#50 MED-2). Only visible when the project root is below
   // the repo root, which is why no test in this repo would have caught it.
   "--no-relative",
+  // `diff.submodule=diff` inlines the submodule's own diff, context lines and
+  // all, straight past `--unified=0` — a second config route into the
+  // desynced walk, and one needing no environment variable (#50 second pass,
+  // MED-1). `short` is git's default: one `-`/`+` pair of commit ids.
+  "--submodule=short",
   // A pure rename produces no hunks, so a renamed file would arrive with zero
   // changed lines and have all of its violations suppressed. Disabling
   // detection reports it as an addition instead — the whole new path is

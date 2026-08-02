@@ -127,6 +127,46 @@ describe("check --diff", () => {
     expect(sites(io)).toEqual(["src/has space.ts:5"]);
   });
 
+  /**
+   * The end-to-end half of the second review pass's MED-1. `GIT_DIFF_OPTS`
+   * is the one context-reintroducing vector the flags cannot pin, and with
+   * the walk desynced a file whose own content forges a `---`/`+++` pair used
+   * to hand its remaining hunks to the forged path — losing the violation on
+   * them entirely. Only a real `git` honours the variable, so only a real
+   * repository can prove the parser now holds.
+   */
+  it("keeps its bearings when content forges a header and git reintroduces context", async () => {
+    // The forged pair needs the *rendered* lines to be `--- …` / `+++ …`, so
+    // the source lines themselves must begin `-- ` and `++ `. Both are valid
+    // TypeScript (prefix decrement/increment), so the file still parses —
+    // writing them as comments, as the first attempt did, renders `-// -- …`
+    // and forges nothing, which made the test pass without testing anything.
+    const head = "const b = 1;\nconst evil = { ts: 2 };\nlet x = 3;\n\n";
+    const filler = Array.from({ length: 40 }, (_, i) => `const v${i + 6} = ${i};`).join("\n");
+    write("src/a.ts", `${head}-- x;\n${filler}\nexport const tail = 1;\n`);
+    commit("baseline");
+    write("src/a.ts", `${head}++ b/evil.ts;\n${filler}\n${undocumented("added")}`);
+
+    // `gitRunner` gives the child no explicit env, so it inherits this
+    // process's — `captureIO`'s env would never reach git, and a test written
+    // that way passes without exercising anything.
+    const io = captureIO(dir);
+    const previous = process.env["GIT_DIFF_OPTS"];
+    process.env["GIT_DIFF_OPTS"] = "-u3";
+    try {
+      expect(await runCheck(".", JSON_DIFF("main"), io)).toBe(1);
+    } finally {
+      if (previous === undefined) {
+        delete process.env["GIT_DIFF_OPTS"];
+      } else {
+        process.env["GIT_DIFF_OPTS"] = previous;
+      }
+    }
+    // The violation lives ~46 lines below the forged header. Before the fix it
+    // was attributed to `evil.ts` and silently dropped.
+    expect(sites(io)).toEqual(["src/a.ts:46"]);
+  });
+
   it("scans a file that is still untracked", async () => {
     write("src/committed.ts", "export const value = 1;\n");
     commit("baseline");

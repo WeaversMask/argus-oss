@@ -32,12 +32,21 @@ export function parseDiff(text: string): ReadonlyMap<string, readonly LineRange[
   const found = new Map<string, LineRange[]>();
   const lines = text.split("\n");
   let file: string | undefined;
+  // Set when a hunk body did not match its header's counts, cleared at the
+  // next file entry. While it holds, no `+++` line may change the current
+  // target — see the note above FILE_ENTRY.
+  let desynced = false;
   let index = 0;
 
   while (index < lines.length) {
     const line = lines[index] ?? "";
 
-    if (isTargetHeader(lines, index)) {
+    if (line.startsWith(FILE_ENTRY)) {
+      desynced = false;
+      index++;
+      continue;
+    }
+    if (!desynced && isTargetHeader(lines, index)) {
       file = targetPath(line.slice(4));
       index++;
       continue;
@@ -51,12 +60,10 @@ export function parseDiff(text: string): ReadonlyMap<string, readonly LineRange[
       index++;
       continue;
     }
-    if (file !== undefined && hunk.newCount > 0) {
-      const ranges = found.get(file) ?? [];
-      ranges.push({ start: hunk.newStart, end: hunk.newStart + hunk.newCount - 1 });
-      found.set(file, ranges);
-    }
-    index = skipHunkBody(lines, index + 1, hunk.oldCount + hunk.newCount);
+    record(found, file, hunk);
+    const body = skipHunkBody(lines, index + 1, hunk.oldCount + hunk.newCount);
+    desynced = desynced || !body.aligned;
+    index = body.index;
   }
 
   const merged = new Map<string, readonly LineRange[]>();
@@ -67,17 +74,41 @@ export function parseDiff(text: string): ReadonlyMap<string, readonly LineRange[
 }
 
 /**
+ * The line that opens each file's entry in `git diff` output. Content can
+ * never impersonate it — a body line always carries its own `+`, `-` or `\` —
+ * which makes it the one marker that is trustworthy even mid-desync.
+ *
+ * That matters because the `---`/`+++` pairing is **not** sufficient on its
+ * own. A removed line reading `-- x` is emitted as `--- x`, and an added line
+ * reading `++ b/evil.ts` right after it as `+++ b/evil.ts` — a pair the
+ * pairing check accepts. Reproduced (independent review, #50 second pass):
+ * with the walk desynced, that spoof stole the file's remaining hunks and the
+ * violations on them vanished. Refusing to re-target until the next real file
+ * entry means a desync can only ever over-report, which is the claim the
+ * counting comment above has always made.
+ */
+const FILE_ENTRY = "diff --git ";
+
+/** Adds a hunk's new-side range to `file`'s list, if there is a file and a new side. */
+function record(found: Map<string, LineRange[]>, file: string | undefined, hunk: Hunk): void {
+  if (file === undefined || hunk.newCount === 0) {
+    return;
+  }
+  const ranges = found.get(file) ?? [];
+  ranges.push({ start: hunk.newStart, end: hunk.newStart + hunk.newCount - 1 });
+  found.set(file, ranges);
+}
+
+/**
  * Whether the line at `index` is a real `+++` header rather than added
  * content that looks like one.
  *
  * git always emits the `---`/`+++` pair on adjacent lines, so requiring the
- * partner is what tells them apart. Counting hunk bodies normally means
- * content is never walked as structure at all — but once `skipHunkBody`'s
- * backstop has re-synchronised (context reappearing via `GIT_DIFF_OPTS`, the
- * one vector `DIFF_FLAGS` cannot pin), the remaining body lines *are* walked,
- * and a bare `+++ ` check re-attributed the file's next hunk to whatever path
- * that line named. Verified: without this, a diff of a patch file silently
- * lost its own later hunks.
+ * partner is what tells them apart, and it is a necessary check — but **not
+ * a sufficient one**, which is why `parseDiff` also refuses to re-target
+ * while desynced. Content can forge the pair: a removed line `-- x` renders
+ * as `--- x` and an added line `++ b/evil.ts` right after it as
+ * `+++ b/evil.ts`. See FILE_ENTRY for the guard that actually closes it.
  */
 function isTargetHeader(lines: readonly string[], index: number): boolean {
   return (lines[index] ?? "").startsWith("+++ ") && (lines[index - 1] ?? "").startsWith("--- ");
@@ -114,20 +145,27 @@ function parseHunkHeader(line: string): Hunk | undefined {
  * (independent review, #50 MED-1). Counting context as changed over-reports,
  * which is the safe direction for a linter; losing a whole file is not.
  */
-function skipHunkBody(lines: readonly string[], start: number, count: number): number {
+function skipHunkBody(lines: readonly string[], start: number, count: number): BodyWalk {
   let index = start;
   let remaining = count;
   while (remaining > 0 && index < lines.length) {
     const line = lines[index] ?? "";
     if (!isBodyLine(line)) {
-      return index;
+      return { index, aligned: false };
     }
     if (!line.startsWith("\\")) {
       remaining--;
     }
     index++;
   }
-  return index;
+  return { index, aligned: true };
+}
+
+/** Where a hunk body ended, and whether it ended where its header promised. */
+interface BodyWalk {
+  readonly index: number;
+  /** `false` when the body held a line the pinned flags say cannot be in one. */
+  readonly aligned: boolean;
 }
 
 /** Whether a line can belong to a hunk body produced with {@link DIFF_FLAGS}. */

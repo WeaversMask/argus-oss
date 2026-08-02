@@ -69,6 +69,8 @@ The last two are the ones that make it usable. Argus compares against the **merg
 
 **It fails rather than guesses.** A ref that does not exist, a directory that is not inside a git work tree, or a `git` that will not run is exit `2` with the reason on stderr — never a quiet fall back to scanning everything (which reads as a regression) or to scanning nothing (which reads as a pass). `--diff` also requires its value: bare `--diff` is a usage error, not an implied `main`.
 
+Diff mode reads git's output directly, so it pins the diff into one shape — including `--no-relative`, `--inter-hunk-context` and `--submodule`, which override local git config that would otherwise change what Argus sees. A git too old to know one of those options exits `2` carrying git's own `unknown option` message; it never produces a partial scan.
+
 > `--diff` applies to `check`. `argus fix` always works on the whole path.
 
 ### Colour

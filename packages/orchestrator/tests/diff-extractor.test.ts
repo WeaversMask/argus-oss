@@ -43,6 +43,7 @@ describe("extractChangeSet — git invocation", () => {
         // reintroduces context, and diff.relative re-bases the paths.
         "--inter-hunk-context=0",
         "--no-relative",
+        "--submodule=short",
         "--no-renames",
         "--no-ext-diff",
         "--no-textconv",
@@ -247,7 +248,7 @@ describe("extractChangeSet — reading hunks", () => {
   it("strips the tab from a quoted path, where it follows the closing quote", async () => {
     const changes = await extract({
       diff: diffText(
-        String.raw`--- a/sp ace and \"q\".ts` + "\t",
+        String.raw`--- "a/sp ace and \"q\".ts"` + "\t",
         String.raw`+++ "b/sp ace and \"q\".ts"` + "\t",
         "@@ -0,0 +1,1 @@",
         "+x",
@@ -327,6 +328,78 @@ describe("extractChangeSet — reading hunks", () => {
     expect(changes.has("evil.ts")).toBe(false);
   });
 
+  /**
+   * The `---`/`+++` pairing is necessary but not sufficient: a removed line
+   * `-- x` renders as `--- x`, and an added `++ b/evil.ts` right after it as
+   * `+++ b/evil.ts`, forging the pair. Reproduced against real git (#50
+   * second pass) — with the walk desynced, the forged header stole the file's
+   * remaining hunks and every violation on them vanished. The fix is that a
+   * desynced walk re-targets for nothing but a real `diff --git` entry.
+   *
+   * This is the diff real git 2.49 emits for that source, verbatim.
+   */
+  it("ignores a --- / +++ pair forged by the file's own content", async () => {
+    const changes = await extract({
+      diff: diffText(
+        "diff --git a/aaa.ts b/aaa.ts",
+        "index 39e0c0a..08ae7f8 100644",
+        "--- a/aaa.ts",
+        "+++ b/aaa.ts",
+        "@@ -2,7 +2,7 @@ line1",
+        " line2",
+        " line3",
+        " line4",
+        "--- old signature",
+        "+++ b/evil.ts",
+        " line6",
+        " line7",
+        " line8",
+        "@@ -43,4 +43,4 @@ line42",
+        " line43",
+        " line44",
+        " line45",
+        "-tailX",
+        "+tailX-CHANGED",
+      ),
+    });
+
+    // Both hunks stay on the real file — including line 46, whose violation
+    // would otherwise have been silently suppressed.
+    expect(rangesOf(changes, "aaa.ts")).toEqual([
+      [2, 8],
+      [43, 46],
+    ]);
+    expect(changes.has("evil.ts")).toBe(false);
+  });
+
+  /**
+   * `diff.submodule=diff` inlines the submodule's own diff, context and all,
+   * straight past `--unified=0` — a route into the desynced walk needing no
+   * environment variable. `--submodule=short` now pins it; this asserts the
+   * parser is also safe if some future setting gets past the flags.
+   */
+  it("keeps its place when a submodule's own diff is inlined", async () => {
+    const changes = await extract({
+      diff: diffText(
+        "Submodule sub 49c8701..5b1611a:",
+        "diff --git a/sub/f.txt b/sub/f.txt",
+        "index 5626abf..814f4a4 100644",
+        "--- a/sub/f.txt",
+        "+++ b/sub/f.txt",
+        "@@ -1 +1,2 @@",
+        " one",
+        "+two",
+        "diff --git a/top.ts b/top.ts",
+        "--- a/top.ts",
+        "+++ b/top.ts",
+        "@@ -0,0 +9,1 @@",
+        "+t",
+      ),
+    });
+
+    expect(rangesOf(changes, "top.ts")).toEqual([[9, 9]]);
+  });
+
   it("decodes a path git wrote in C-quoted form", async () => {
     const changes = await extract({
       diff: diffText(
@@ -343,7 +416,7 @@ describe("extractChangeSet — reading hunks", () => {
   it("decodes the simple escapes too", async () => {
     const changes = await extract({
       diff: diffText(
-        String.raw`--- a/say \"hi\".ts`,
+        String.raw`--- "a/say \"hi\".ts"`,
         String.raw`+++ "b/say \"hi\".ts"`,
         "@@ -0,0 +1,1 @@",
         "+x",
