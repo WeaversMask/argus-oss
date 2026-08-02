@@ -30,6 +30,28 @@ Brief notes on design choices. Link to relevant ADRs.
 - [x] `IMPLEMENTATION.md` updated
 - [x] `HANDOVER.md` updated for next picker
 - [x] ADR added/updated (if architectural)
+- [x] **Documentation delta** — name the streams this change touched (package `README.md` · TSDoc · `guide/` · `dev/` recipe · ADR), or state that it has none
+
+<!--
+The documentation delta is enforced from DOC-05 onward. The CI `Documentation
+delta` job fails a non-draft PR that changes source (`packages/*/src`,
+`apps/*/src`, `scripts/`) while touching no documentation surface and changing
+no doc comments.
+
+If the change genuinely has none, the job accepts an explicit justification
+line in this description instead. The exact wording is in
+docs/plan/03-documentation.md §Per merged task, and the job's own error message
+prints it. It is deliberately NOT pre-printed here, for the same reason the
+review heading below is not: an unedited template must fail, never pass
+vacuously.
+
+Also add this task's entry to docs/progress.md — one dated, PR-linked, plain-
+language paragraph saying what a reader can do now that they could not before.
+-->
+
+## Progress log
+
+- [x] `docs/progress.md` entry added for this task
 
 ## Notes for Reviewer
 
