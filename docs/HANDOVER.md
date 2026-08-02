@@ -44,8 +44,8 @@ DOC-02/03/04 made the repo legible **at** the M1 boundary. DOC-05 keeps it legib
 
 - ✅ Docs + CI only — no executable source, no dependency, no schema touched
 - ✅ `ci.yml` parses as YAML; the new job's four regexes unit-tested locally against 34 cases (all pass)
-- ⬜ **`docs-delta` not yet negative-tested against a live PR** — the acceptance criterion demands both directions. Open a throwaway branch touching only `packages/*/src/**`, confirm the job **fails**, add the justification line, re-run, confirm it **passes**, record both in the PR, then close the throwaway.
-- ⬜ Root gates + self-scan: to run before push
+- ✅ **`docs-delta` negative-tested in both directions** on throwaway PR #48, now closed and its branch deleted. Direction 1 failed with the intended annotation; direction 2 passed after a description edit and a **job re-run with no new commit** — which also proves the live-body fetch. Evidence comment on the PR. **Two attempts failed first, both instructive: (a)** a temp commit on the DOC-05 branch cannot test the fail direction, because the gate evaluates the PR's whole file set and a documentation PR always contains docs — the gate was right, the test was wrong; **(b)** a throwaway branched from `main` runs no gate at all, since `main` lacks the job. The branch must carry `ci.yml` but **not** `PR.template.md`, which lives under `docs/` and would satisfy the gate by itself.
+- ✅ Root gates + self-scan green; all 12 CI checks green on the PR
 - ⚠️ Weekly Stryker still red since 2026-07-28 — report-only; do not cite 85.74% as current
 - ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`)
 - ⬜ Awaiting the maintainer's merge decision — agents never merge
@@ -89,6 +89,6 @@ docs/handovers/doc-04-developer-tour-handover.md  [created — rotation snapshot
 
 ## Sign-off
 
-The cadence is installed and it has already earned its place: the first execution of the per-phase pass found a user-facing page telling readers the opposite of what the tool does, and 101 broken links nobody had clicked. Both were the same failure — a claim that was true when written — which is why every check in the audit template carries a command rather than an instruction to look carefully. The one thing left undone is the gate's own negative test, and it is called out above rather than quietly skipped.
+The cadence is installed and it has already earned its place twice over. The first execution of the per-phase pass found a user-facing page telling readers the opposite of what the tool does, and 101 broken links nobody had clicked — both the same failure, a claim that was true when written, which is why every check in the audit template carries a command rather than an instruction to look carefully. And the gate's own negative test failed twice before it worked, neither time because the gate was wrong: the first attempt proved nothing and would have shipped as "verified" had it not been run for real. That is the whole argument for negative-testing a guardrail, made against the guardrail that exists to make documentation claims checkable.
 
 — claude-opus-5
