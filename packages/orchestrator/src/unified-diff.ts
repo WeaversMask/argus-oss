@@ -86,12 +86,26 @@ function parseHunkHeader(line: string): Hunk | undefined {
  * Index of the first line after a hunk body of `count` changed lines.
  * "\ No newline at end of file" is a note about the preceding line, not a
  * line of its own, so it does not count against the total.
+ *
+ * The count is the primary mechanism; the shape check is a backstop. Under
+ * the pinned flags a body line can only be `+`, `-`, or `\`, so anything else
+ * means the header's count and the body have disagreed — and continuing to
+ * count would swallow the *next* file's `+++` line and attribute its changes
+ * to this one. Stopping instead re-synchronises the walk on the next header.
+ * That is not hypothetical: `diff.interHunkContext` and `GIT_DIFF_OPTS` both
+ * reintroduce context lines that `--unified=0` is supposed to have removed
+ * (independent review, #50 MED-1). Counting context as changed over-reports,
+ * which is the safe direction for a linter; losing a whole file is not.
  */
 function skipHunkBody(lines: readonly string[], start: number, count: number): number {
   let index = start;
   let remaining = count;
   while (remaining > 0 && index < lines.length) {
-    if (!(lines[index] ?? "").startsWith("\\")) {
+    const line = lines[index] ?? "";
+    if (!isBodyLine(line)) {
+      return index;
+    }
+    if (!line.startsWith("\\")) {
       remaining--;
     }
     index++;
@@ -99,11 +113,24 @@ function skipHunkBody(lines: readonly string[], start: number, count: number): n
   return index;
 }
 
+/** Whether a line can belong to a hunk body produced with {@link DIFF_FLAGS}. */
+function isBodyLine(line: string): boolean {
+  return line.startsWith("+") || line.startsWith("-") || line.startsWith("\\");
+}
+
 /**
  * The new-side path from a `+++ ` line, or `undefined` when the diff has no
  * new side (`/dev/null`, i.e. a deletion) or the line is unreadable.
+ *
+ * **The trailing tab is not decoration.** When a path contains a blank, git
+ * appends a TAB after it — after the closing quote, for a quoted one — for
+ * GNU-patch compatibility, and no flag turns that off. Keeping it produced a
+ * change-set key of `"has space.ts\t"`, which matches no discovered file, so
+ * every changed file whose name contains a space was silently dropped from
+ * the scan (independent review, #50 HIGH-1 — reproduced on git 2.49).
  */
-function targetPath(target: string): string | undefined {
+function targetPath(line: string): string | undefined {
+  const target = line.endsWith("\t") ? line.slice(0, -1) : line;
   const unquoted = target.startsWith('"') ? unquotePath(target) : target;
   if (unquoted === undefined || !unquoted.startsWith("b/")) {
     return undefined;

@@ -37,6 +37,16 @@ const DIFF_FLAGS: readonly string[] = [
   "--dst-prefix=b/",
   // Zero context: every emitted line is a line that actually changed.
   "--unified=0",
+  // `--unified=0` alone does NOT get there: `diff.interHunkContext` fuses
+  // hunks that are close together and emits the lines between them as
+  // context anyway (independent review, #50 MED-1 — reproduced on git 2.49).
+  "--inter-hunk-context=0",
+  // `diff.relative` makes paths relative to the *invocation* directory and
+  // drops everything outside it. The change set would then be re-based
+  // against a prefix its keys no longer carry, emptying it — a clean exit-0
+  // scan of nothing (#50 MED-2). Only visible when the project root is below
+  // the repo root, which is why no test in this repo would have caught it.
+  "--no-relative",
   // A pure rename produces no hunks, so a renamed file would arrive with zero
   // changed lines and have all of its violations suppressed. Disabling
   // detection reports it as an addition instead — the whole new path is

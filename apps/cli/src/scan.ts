@@ -4,7 +4,6 @@ import { ConfigLoader } from "@argus/config";
 import type { ConfigError, ResolvedConfig } from "@argus/config";
 import { LANGUAGES, filePath } from "@argus/core";
 import type { AstParserPort, FilePath, RuleActivation, RuleRunInput } from "@argus/core";
-import { extractChangeSet } from "@argus/orchestrator";
 import type { ChangeSet } from "@argus/orchestrator";
 import { Engine } from "@argus/rule-engine";
 import { builtinRules } from "@argus/rules-builtin";
@@ -12,9 +11,10 @@ import { resolveActivations } from "./activations.js";
 import { discoverFiles } from "./discover.js";
 import type { DiscoveredFile } from "./discover.js";
 import { EXIT_ERROR } from "./exit-codes.js";
-import { gitRunner } from "./git.js";
 import type { CliIO } from "./io.js";
 import { findProjectRoot } from "./project-root.js";
+import { escapesProjectRoot, narrowToChanges, resolveChanges } from "./scan-scope.js";
+import type { ScanScope } from "./scan-scope.js";
 import type { ScanFailure } from "./report.js";
 
 /**
@@ -54,12 +54,6 @@ export interface ScanPlan {
   readonly changes?: ChangeSet | undefined;
 }
 
-/** Anything that narrows a scan below "every source file under the path". */
-export interface ScanScope {
-  /** `--diff <ref>`: the base ref to compare the working tree against. */
-  readonly diffBase?: string | undefined;
-}
-
 /**
  * Resolves everything a scan needs before any parsing happens: the root path,
  * configuration, the active rule set, and the file list. Returns an exit code
@@ -93,6 +87,15 @@ export async function planScan(
   const changes = await resolveChanges(scope.diffBase, projectRoot, io);
   if (typeof changes === "number") {
     return changes;
+  }
+  if (changes !== undefined && escapesProjectRoot(discovery.value)) {
+    // A `../` path can never be a change-set key, so every file would be
+    // narrowed away and the scan would report "nothing changed" — a false
+    // green (independent review, #50 LOW-1). Reachable only when nothing on
+    // the path's ancestry holds a config, so the root falls back to the cwd.
+    io.stderr(`argus: --diff cannot scan ${rawPath}: it is outside the project root\n`);
+    io.stderr(`Run argus from a directory containing ${rawPath}, or add an argus.yaml there.\n`);
+    return EXIT_ERROR;
   }
 
   const files = narrowToChanges(discovery.value, changes, { rawPath, scope }, io);
@@ -138,62 +141,6 @@ async function resolveContext(rawPath: string, io: CliIO): Promise<ScanContext |
   const projectRoot = await findProjectRoot(searchFrom, io.cwd);
 
   return { config, projectRoot, activations, rootPath };
-}
-
-/**
- * The discovered files a scan will actually read, narrowed to the change set
- * under `--diff`, with an empty result explained on stderr.
- *
- * An empty list is not an error: a path with nothing scannable under it is a
- * successful scan of zero files. The plan continues with it rather than
- * returning early, so stdout still carries a report — a `--format json`
- * consumer must never receive an empty stream from a scan that succeeded.
- */
-function narrowToChanges(
-  discovered: readonly DiscoveredFile[],
-  changes: ChangeSet | undefined,
-  invocation: { readonly rawPath: string; readonly scope: ScanScope },
-  io: CliIO,
-): readonly DiscoveredFile[] {
-  const { rawPath, scope } = invocation;
-  const files =
-    changes === undefined
-      ? discovered
-      : discovered.filter((file) => changes.has(file.relativePath));
-
-  if (files.length === 0) {
-    io.stderr(
-      scope.diffBase === undefined
-        ? `argus: no matching source files under ${rawPath}\n`
-        : `argus: no source files under ${rawPath} changed since ${scope.diffBase}\n`,
-    );
-  }
-  return files;
-}
-
-/**
- * The change set for `--diff <ref>`, `undefined` when the flag was not
- * passed, or an exit code once the failure has been reported.
- *
- * Every git failure is fatal rather than a fall-back to a full scan: a user
- * who asked for a diff and silently received all 152 files would read the
- * extra findings as a regression, and one who received *none* would read a
- * false green.
- */
-async function resolveChanges(
-  diffBase: string | undefined,
-  projectRoot: string,
-  io: CliIO,
-): Promise<ChangeSet | number | undefined> {
-  if (diffBase === undefined) {
-    return undefined;
-  }
-  const extracted = await extractChangeSet(diffBase, gitRunner(projectRoot));
-  if (extracted.isErr()) {
-    io.stderr(`argus: --diff ${diffBase}: ${extracted.error}\n`);
-    return EXIT_ERROR;
-  }
-  return extracted.value;
 }
 
 /** `true`/`false` for an existing path, `undefined` when it does not exist. */

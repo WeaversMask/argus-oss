@@ -39,6 +39,10 @@ describe("extractChangeSet — git invocation", () => {
     expect(git.argsFor("diff")).toEqual(
       expect.arrayContaining([
         "--unified=0",
+        // `--unified=0` is not sufficient on its own: diff.interHunkContext
+        // reintroduces context, and diff.relative re-bases the paths.
+        "--inter-hunk-context=0",
+        "--no-relative",
         "--no-renames",
         "--no-ext-diff",
         "--no-textconv",
@@ -224,6 +228,65 @@ describe("extractChangeSet — reading hunks", () => {
     expect(rangesOf(changes, "x.ts")).toEqual([[1, 3]]);
     expect(rangesOf(changes, "y.ts")).toEqual([[50, 50]]);
     expect(changes.has("evil.ts")).toBe(false);
+  });
+
+  /**
+   * git appends a TAB after a path containing a blank, for GNU-patch
+   * compatibility, and no flag suppresses it. Keeping it produced a key no
+   * discovered file could ever match, so every changed file with a space in
+   * its name was silently dropped (#50 HIGH-1).
+   */
+  it("strips the tab git appends to a path containing a space", async () => {
+    const changes = await extract({
+      diff: diffText("--- a/has space.ts\t", "+++ b/has space.ts\t", "@@ -0,0 +4,1 @@", "+x"),
+    });
+
+    expect(rangesOf(changes, "has space.ts")).toEqual([[4, 4]]);
+  });
+
+  it("strips the tab from a quoted path, where it follows the closing quote", async () => {
+    const changes = await extract({
+      diff: diffText(String.raw`+++ "b/sp ace and \"q\".ts"` + "\t", "@@ -0,0 +1,1 @@", "+x"),
+    });
+
+    expect(rangesOf(changes, 'sp ace and "q".ts')).toEqual([[1, 1]]);
+  });
+
+  /**
+   * `diff.interHunkContext` fuses nearby hunks and emits the lines between
+   * them as context, so the header's counts exceed the body length. Counting
+   * blindly would run past the body and swallow the next file's `+++` line,
+   * attributing its changes to this one and losing it entirely (#50 MED-1).
+   * The flags now prevent this; the backstop keeps a *lost file* from being
+   * the failure mode if some other setting reintroduces context.
+   */
+  it("re-synchronises when context lines appear despite --unified=0", async () => {
+    const changes = await extract({
+      diff: diffText(
+        "--- a/fused.ts",
+        "+++ b/fused.ts",
+        "@@ -2,7 +2,7 @@ a",
+        "-b",
+        "+B",
+        " c",
+        " d",
+        " e",
+        " f",
+        " g",
+        "-h",
+        "+H",
+        "diff --git a/next.ts b/next.ts",
+        "--- a/next.ts",
+        "+++ b/next.ts",
+        "@@ -0,0 +30,1 @@",
+        "+n",
+      ),
+    });
+
+    // Over-reporting the context lines is the safe direction for a linter.
+    expect(rangesOf(changes, "fused.ts")).toEqual([[2, 8]]);
+    // The point of the test: the second file survives.
+    expect(rangesOf(changes, "next.ts")).toEqual([[30, 30]]);
   });
 
   it("decodes a path git wrote in C-quoted form", async () => {

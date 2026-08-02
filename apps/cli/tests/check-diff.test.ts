@@ -112,6 +112,21 @@ describe("check --diff", () => {
     expect(sites(io)).toEqual(["src/changed.ts:5"]);
   });
 
+  /**
+   * The end-to-end half of #50 HIGH-1. Only a real `git` produces the
+   * trailing tab, so only a real repository can prove it is handled.
+   */
+  it("scans a changed file whose name contains a space", async () => {
+    write("src/has space.ts", undocumented("spaced"));
+    commit("baseline");
+    write("src/has space.ts", `${undocumented("spaced")}\n${undocumented("added")}`);
+
+    const io = captureIO(dir);
+
+    expect(await runCheck(".", JSON_DIFF("main"), io)).toBe(1);
+    expect(sites(io)).toEqual(["src/has space.ts:5"]);
+  });
+
   it("scans a file that is still untracked", async () => {
     write("src/committed.ts", "export const value = 1;\n");
     commit("baseline");
@@ -194,6 +209,29 @@ describe("check --diff — failures", () => {
     expect(await runCheck(".", JSON_DIFF("mian"), io)).toBe(2);
     expect(io.err()).toContain("argus: --diff mian:");
     expect(io.out()).toBe("");
+  });
+
+  /**
+   * A `../` path can never be a change-set key, so every file would be
+   * narrowed away and the run would exit 0 claiming nothing changed (#50
+   * LOW-1). Without `--diff` the same invocation still scans normally.
+   */
+  it("fails on a scan path above the project root rather than reporting nothing", async () => {
+    write("src/inside.ts", "export const value = 1;\n");
+    write("above.ts", undocumented("above"));
+    commit("baseline");
+    write("above.ts", `${undocumented("above")}\n${undocumented("added")}`);
+
+    // No config anywhere, so the project root falls back to the cwd — and the
+    // scan target is its parent, putting `above.ts` at `../above.ts`.
+    const io = captureIO(path.join(dir, "src"));
+
+    expect(await runCheck("..", JSON_DIFF("main"), io)).toBe(2);
+    expect(io.err()).toContain("outside the project root");
+
+    // The same invocation without --diff is unaffected.
+    const full = captureIO(path.join(dir, "src"));
+    expect(await runCheck("..", FULL_SCAN, full)).toBe(1);
   });
 
   it("fails when the scan is not inside a git work tree", async () => {
