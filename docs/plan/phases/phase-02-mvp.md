@@ -173,6 +173,22 @@ A working tool. `argus check ./src` produces real findings against a real projec
 
 ---
 
+## Follow-up tasks (filed by the Phase 2 documentation audit)
+
+Not part of the M1 showcase tail — maintenance the [audit](../../audits/phase-02-doc-audit.md) found and filed rather than fixed in DOC-05's own PR.
+
+### [DOC-06] Close the audit's three filed findings
+
+- **Deps:** DOC-05 (the audit that filed them)
+- **Outputs:** `scripts/rotate-handover.mjs` + `pnpm handover:rotate|check`; the archive's links repaired; [`../../dev/adding-an-adapter.md`](../../dev/adding-an-adapter.md); [`../../adr/0007-api-contracts-boundary.md`](../../adr/0007-api-contracts-boundary.md)
+- **Acceptance:**
+  - Findings 2, 3 and 5 closed; the repo-wide link oracle reports zero broken relative links
+  - **The rotation fix is mechanical, not procedural** — a protocol step telling the next agent to re-resolve links by hand is the same good intention that produced the rot. The script re-resolves as it copies and fails closed
+  - The adapter recipe covers the `packages/adapters/*` shape that actually shipped (`FormatterPort`, in-process, MIT). `ToolAdapterPort`'s specifics — `_shared/`, subprocess handling, copyleft isolation — stay unwritten until P4-01 builds them, and get their own page
+- **Effort:** S
+
+---
+
 ## Phase 2 Exit Criteria
 
 - [ ] **MVP demo recorded:** `pnpm install -g @argus/cli && argus check .` produces findings on a real-world TS project
