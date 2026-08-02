@@ -125,6 +125,19 @@ Read as someone who has never seen the repo, Phase 2 section only.
 | 5   | major    | §6    | 101 broken relative links — 1 live, 100 systematic rot in `docs/handovers/`                 | Live one **fixed in this PR**; archive + protocol cause filed       |
 | 6   | minor    | §7    | The `progress.md` section audited here was written by this same task                        | Accepted for the first pass; recorded so Phase 3 does not repeat it |
 
+## Post-review addendum (2026-08-02)
+
+The independent review of this PR (cross-family, full tier) found a **MAJOR fail-open in the gate this audit shipped alongside**, plus three smaller defects. None changes a finding above, but one changes how much §4's finding should worry you.
+
+- **`SOURCE_RE` missed nested packages.** `^(packages|apps)/[^/]+/src/` matches one segment before `src/`, so `packages/adapters/prettier/src/**` — the repo's only adapter package — took the "no source paths touched" branch and passed. Fail-open on 1 of 9 packages, and precisely the package family Phase 4 multiplies. Fixed to `^(packages|apps)/.+/src/`. The spec's own glob has the same blind spot; recorded in the phase file rather than edited.
+- **A patch-less file masked a real TSDoc delta.** The sentinel branch was ordered before the doc-comment grep, so one binary/rename/mode-only file would demand a `no docs delta` line from a PR that visibly had one — the exact lie the gate is built to avoid. Branches swapped.
+- **The failure message's own placeholder passed the gate.** `no docs delta — <one-line reason>`, pasted verbatim, satisfied the mandatory-reason check because `<` is non-space. Now rejected per line.
+- **[`../plan/protocols/quality-gates.md`](../plan/protocols/quality-gates.md) had no row for the new gate** — the canonical per-PR registry. Added, with the pending branch-protection admin note.
+
+**This is the audit's own lesson turned on the auditor.** §1 insists that a countable claim be counted; the gate shipped with a path claim that had never been tested against the one path shape that breaks it, and the 34 regex cases used flat layouts only. **A pattern is a claim about paths — enumerate the real ones.** The nested-package case is now a regression test.
+
+It also sharpens Finding 2: the missing `packages/adapters/*` recipe is no longer only a documentation gap. Nothing in the repo — prose or mechanism — was treating that directory shape as a first-class thing, and the gate inherited the same blind spot independently.
+
 ## What this pass did not cover
 
 The next auditor inherits these.

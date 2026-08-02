@@ -34,9 +34,9 @@ Brief notes on design choices. Link to relevant ADRs.
 
 <!--
 The documentation delta is enforced from DOC-05 onward. The CI `Documentation
-delta` job fails a non-draft PR that changes source (`packages/*/src`,
-`apps/*/src`, `scripts/`) while touching no documentation surface and changing
-no doc comments.
+delta` job fails a non-draft PR that changes source (any `src/` under
+`packages/` or `apps/`, at any nesting depth, plus `scripts/`) while touching no
+documentation surface and changing no doc comments.
 
 If the change genuinely has none, the job accepts an explicit justification
 line in this description instead. The exact wording is in

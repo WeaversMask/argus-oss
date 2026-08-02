@@ -407,9 +407,10 @@ jobs:
   # for the first false positive to discover:
   #   - `//` line comments deliberately do NOT count. Including them would pass
   #     nearly every diff and gut the gate.
-  #   - a plain `/* … */` block comment DOES count. It shares the doc-comment
-  #     shape, and explanatory prose added to source is a documentation delta on
-  #     any honest reading.
+  #   - only STARRED shapes count: `/**`, a ` * ` continuation, `*/`, or a bare
+  #     `*`. A single-line `/* explanation */` does NOT match (its first two
+  #     characters are `/*`, not `/**`), and an unstarred multi-line block
+  #     matches only its closing line. Fails closed.
   #   - a markdown bullet inside a template literal (`+  * item`) can match.
   #     Fails open, narrowly, and only on a PR that touched source and no
   #     documentation file at all.
@@ -429,11 +430,20 @@ jobs:
           PR_DRAFT: ${{ github.event.pull_request.draft }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           REPO: ${{ github.repository }}
-          # Defined once, read by both grep and jq (via $ENV) so the two can
-          # never drift. Oniguruma and POSIX ERE agree on these two patterns.
+          # SOURCE_RE is read by both grep (POSIX ERE) and jq (gh bundles gojq,
+          # an RE2-class engine) via $ENV, defined once so the two cannot drift.
+          # Both engines agree on this pattern — keep it to that common subset;
+          # gojq rejects Oniguruma-only syntax such as lookarounds.
           #
-          # Source: the paths the per-task obligation is about.
-          SOURCE_RE: "^(packages|apps)/[^/]+/src/|^scripts/"
+          # Source: the paths the per-task obligation is about. `.+` rather than
+          # `[^/]+` between the workspace root and `src/` is deliberate and was
+          # a review finding: packages nest. `packages/adapters/prettier/` is
+          # already two segments deep, and Phase 4 grows that family — a
+          # single-segment pattern silently skipped it, so a source-only PR to
+          # the repo's only adapter package took the "no source paths touched"
+          # branch and passed. Fail-open on 1 of 9 packages, in exactly the
+          # place the continuation track expands.
+          SOURCE_RE: "^(packages|apps)/.+/src/|^scripts/"
           # Documentation surface: the five capture streams that live outside
           # source. docs/** carries the guide, the recipes, the ADRs and the
           # architecture map; any README.md is the per-package "what / why /
@@ -480,14 +490,23 @@ jobs:
           patches="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
             --jq '.[] | select(.filename | test($ENV.SOURCE_RE)) | .patch // "###ARGUS_PATCH_UNAVAILABLE###"')"
 
-          if printf '%s\n' "${patches}" | grep -q '###ARGUS_PATCH_UNAVAILABLE###'; then
-            # GitHub omits .patch on very large diffs. We cannot see the
-            # content, so we cannot claim a TSDoc delta — fall through to the
-            # justification check rather than guess. Fails closed.
-            echo "::warning title=Diff too large to inspect::GitHub omitted the patch for at least one source file, so the TSDoc content check could not run on it. An explicit justification line is required."
-          elif printf '%s\n' "${patches}" | grep -qE '^[+-][[:space:]]*(/\*\*|\*/|\*[[:space:]]|\*$)'; then
+          # Grep the patches we DID get before worrying about any we did not.
+          # Review finding: with the sentinel checked first, a single
+          # patch-less file suppressed the doc-comment check for the whole PR
+          # — so a change carrying a real, visible TSDoc delta would be told to
+          # assert "no docs delta", which is the very lie this gate refuses to
+          # make people tell. The sentinel line starts with `#` and cannot match
+          # the doc-comment pattern, so checking content first is safe.
+          if printf '%s\n' "${patches}" | grep -qE '^[+-][[:space:]]*(/\*\*|\*/|\*[[:space:]]|\*$)'; then
             echo "Changed doc-comment (TSDoc) lines in source. Passing."
             exit 0
+          elif printf '%s\n' "${patches}" | grep -q '###ARGUS_PATCH_UNAVAILABLE###'; then
+            # GitHub omits .patch for very large diffs, and also for binaries,
+            # pure renames and mode-only changes. Nothing we could see carried a
+            # doc comment and something was invisible, so we cannot claim a
+            # TSDoc delta — fall through to the justification check rather than
+            # guess. Fails closed.
+            echo "::warning title=Patch unavailable::GitHub omitted the patch for at least one source file (too large, or a binary/rename/mode-only change), so the TSDoc content check could not run on it, and no other changed source file carried a doc comment. An explicit justification line is required."
           fi
 
           # The escape hatch. Fetched LIVE rather than read from
@@ -506,8 +525,18 @@ jobs:
           # same reason the review heading is not: an unedited template must
           # fail, never pass vacuously.
           hatch='^[[:space:]]*[-*>_[:space:]]*no docs delta[*_[:space:]]*(—|–|-|:)[[:space:]]*[^[:space:]]'
+          # …and the un-edited placeholder is not a reason. The failure message
+          # below prints the literal line to add, `<one-line reason>` and all;
+          # pasted verbatim it satisfied `hatch`, because `<` is a non-space
+          # character. That is the same vacuous pass the template is written to
+          # avoid, arriving via the error message instead. Review finding.
+          placeholder='^[[:space:]]*[-*>_[:space:]]*no docs delta[*_[:space:]]*(—|–|-|:)[[:space:]]*<'
 
-          if printf '%s' "${body}" | grep -qiE "${hatch}"; then
+          # Per line, not per body: a description may legitimately quote the
+          # placeholder (this workflow's own error text, say) alongside a real
+          # justification. Keep the lines that satisfy `hatch`, then require at
+          # least one of them to be something other than the placeholder.
+          if printf '%s' "${body}" | grep -iE "${hatch}" | grep -qivE "${placeholder}"; then
             echo "Explicit 'no docs delta' justification found in the PR description. Passing."
             exit 0
           fi
