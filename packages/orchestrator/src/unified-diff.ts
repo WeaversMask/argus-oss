@@ -37,7 +37,7 @@ export function parseDiff(text: string): ReadonlyMap<string, readonly LineRange[
   while (index < lines.length) {
     const line = lines[index] ?? "";
 
-    if (line.startsWith("+++ ")) {
+    if (isTargetHeader(lines, index)) {
       file = targetPath(line.slice(4));
       index++;
       continue;
@@ -64,6 +64,23 @@ export function parseDiff(text: string): ReadonlyMap<string, readonly LineRange[
     merged.set(path, mergeRanges(ranges));
   }
   return merged;
+}
+
+/**
+ * Whether the line at `index` is a real `+++` header rather than added
+ * content that looks like one.
+ *
+ * git always emits the `---`/`+++` pair on adjacent lines, so requiring the
+ * partner is what tells them apart. Counting hunk bodies normally means
+ * content is never walked as structure at all — but once `skipHunkBody`'s
+ * backstop has re-synchronised (context reappearing via `GIT_DIFF_OPTS`, the
+ * one vector `DIFF_FLAGS` cannot pin), the remaining body lines *are* walked,
+ * and a bare `+++ ` check re-attributed the file's next hunk to whatever path
+ * that line named. Verified: without this, a diff of a patch file silently
+ * lost its own later hunks.
+ */
+function isTargetHeader(lines: readonly string[], index: number): boolean {
+  return (lines[index] ?? "").startsWith("+++ ") && (lines[index - 1] ?? "").startsWith("--- ");
 }
 
 function parseHunkHeader(line: string): Hunk | undefined {

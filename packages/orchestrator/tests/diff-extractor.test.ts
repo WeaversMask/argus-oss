@@ -246,7 +246,12 @@ describe("extractChangeSet — reading hunks", () => {
 
   it("strips the tab from a quoted path, where it follows the closing quote", async () => {
     const changes = await extract({
-      diff: diffText(String.raw`+++ "b/sp ace and \"q\".ts"` + "\t", "@@ -0,0 +1,1 @@", "+x"),
+      diff: diffText(
+        String.raw`--- a/sp ace and \"q\".ts` + "\t",
+        String.raw`+++ "b/sp ace and \"q\".ts"` + "\t",
+        "@@ -0,0 +1,1 @@",
+        "+x",
+      ),
     });
 
     expect(rangesOf(changes, 'sp ace and "q".ts')).toEqual([[1, 1]]);
@@ -289,6 +294,39 @@ describe("extractChangeSet — reading hunks", () => {
     expect(rangesOf(changes, "next.ts")).toEqual([[30, 30]]);
   });
 
+  /**
+   * The two hardenings have to hold *together*. Once the backstop above has
+   * re-synchronised, the rest of the hunk body is walked line by line — so a
+   * file that adds a line reading `+++ b/…` (a patch file, say) would have
+   * had its own later hunks attributed to that name, losing them. Requiring
+   * the `---` partner git always emits alongside a real header is what stops
+   * it: reproduced before the fix, where line 20-22 landed on `evil.ts`.
+   */
+  it("does not mistake added content for a header even after re-synchronising", async () => {
+    const changes = await extract({
+      diff: diffText(
+        "--- a/x.ts",
+        "+++ b/x.ts",
+        "@@ -1,6 +1,6 @@",
+        " ctx1",
+        " ctx2",
+        " ctx3",
+        "-old",
+        "+++ b/evil.ts",
+        "@@ -20,0 +20,3 @@",
+        "+a",
+        "+b",
+        "+c",
+      ),
+    });
+
+    expect(rangesOf(changes, "x.ts")).toEqual([
+      [1, 6],
+      [20, 22],
+    ]);
+    expect(changes.has("evil.ts")).toBe(false);
+  });
+
   it("decodes a path git wrote in C-quoted form", async () => {
     const changes = await extract({
       diff: diffText(
@@ -304,7 +342,12 @@ describe("extractChangeSet — reading hunks", () => {
 
   it("decodes the simple escapes too", async () => {
     const changes = await extract({
-      diff: diffText(String.raw`+++ "b/say \"hi\".ts"`, "@@ -0,0 +1,1 @@", "+x"),
+      diff: diffText(
+        String.raw`--- a/say \"hi\".ts`,
+        String.raw`+++ "b/say \"hi\".ts"`,
+        "@@ -0,0 +1,1 @@",
+        "+x",
+      ),
     });
 
     expect(rangesOf(changes, 'say "hi".ts')).toEqual([[1, 1]]);
@@ -321,7 +364,9 @@ describe("extractChangeSet — reading hunks", () => {
     ["a trailing backslash", String.raw`+++ "b/x.ts\"`],
     ["an escape that is neither known nor octal", String.raw`+++ "b/x\9zz.ts"`],
   ])("drops a file whose quoted path has %s", async (_case, header) => {
-    const changes = await extract({ diff: diffText(header, "@@ -0,0 +1,1 @@", "+x") });
+    const changes = await extract({
+      diff: diffText("--- a/x.ts", header, "@@ -0,0 +1,1 @@", "+x"),
+    });
 
     expect(changes.size).toBe(0);
   });
@@ -349,7 +394,12 @@ describe("extractChangeSet — path vocabulary", () => {
   it("re-expresses repo-relative paths against the directory git ran in", async () => {
     const changes = await extract({
       "rev-parse": "sub/project/\n",
-      diff: diffText("+++ b/sub/project/src/a.ts", "@@ -0,0 +1,1 @@", "+a"),
+      diff: diffText(
+        "--- a/sub/project/src/a.ts",
+        "+++ b/sub/project/src/a.ts",
+        "@@ -0,0 +1,1 @@",
+        "+a",
+      ),
       "ls-files": nulSeparated("sub/project/new.ts"),
     });
 
@@ -360,9 +410,11 @@ describe("extractChangeSet — path vocabulary", () => {
     const changes = await extract({
       "rev-parse": "sub/\n",
       diff: diffText(
+        "--- a/elsewhere/a.ts",
         "+++ b/elsewhere/a.ts",
         "@@ -0,0 +1,1 @@",
         "+a",
+        "--- a/sub/b.ts",
         "+++ b/sub/b.ts",
         "@@ -0,0 +1,1 @@",
         "+b",
@@ -375,7 +427,7 @@ describe("extractChangeSet — path vocabulary", () => {
   it("leaves paths alone at the repo root, where the prefix is empty", async () => {
     const changes = await extract({
       "rev-parse": "\n",
-      diff: diffText("+++ b/src/a.ts", "@@ -0,0 +1,1 @@", "+a"),
+      diff: diffText("--- a/src/a.ts", "+++ b/src/a.ts", "@@ -0,0 +1,1 @@", "+a"),
     });
 
     expect([...changes.keys()]).toEqual(["src/a.ts"]);
