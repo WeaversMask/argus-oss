@@ -19,6 +19,7 @@ export default defineConfig({
       "packages/config/vitest.config.ts",
       "packages/rules-builtin/vitest.config.ts",
       "packages/api-contracts/vitest.config.ts",
+      "packages/orchestrator/vitest.config.ts",
       "packages/adapters/prettier/vitest.config.ts",
       "apps/cli/vitest.config.ts",
     ],

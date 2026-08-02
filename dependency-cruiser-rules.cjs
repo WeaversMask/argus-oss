@@ -187,6 +187,32 @@ module.exports = [
     },
   },
   {
+    name: "orchestrator-public-entry-only",
+    severity: "error",
+    comment:
+      "@argus/orchestrator exports only '.' — imports from outside the " +
+      "package must land on src/index.ts. Anything else is a deep import " +
+      "into internals.",
+    from: { pathNot: "^packages/orchestrator/" },
+    to: {
+      path: "^packages/orchestrator/",
+      pathNot: "^packages/orchestrator/src/index\\.ts$",
+    },
+  },
+  {
+    name: "orchestrator-no-infrastructure",
+    severity: "error",
+    comment:
+      "packages/orchestrator/src decides what a scan covers; it does not " +
+      "perform I/O. Git, the filesystem and the network arrive through " +
+      "injected collaborators (GitRunner), so the scope decisions stay " +
+      "testable without a repository on disk — and so a second app can " +
+      "reuse them (P6-01: routes call orchestrators). Node builtins here " +
+      "mean an app-layer concern has leaked down.",
+    from: { path: "^packages/orchestrator/src" },
+    to: { dependencyTypes: ["core"] },
+  },
+  {
     name: "rule-engine-never-imports-adapters",
     severity: "error",
     comment:

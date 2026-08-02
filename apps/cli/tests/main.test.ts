@@ -115,6 +115,25 @@ describe("run", () => {
     expect(io.out()).toBe("");
   });
 
+  it("exits 2 on --diff without a ref rather than assuming main", async () => {
+    const io = captureIO(dir);
+    expect(await run(["check", ".", "--diff"], io)).toBe(2);
+    expect(io.err()).toContain("--diff");
+    expect(io.out()).toBe("");
+  });
+
+  it("routes --diff's ref through to the scan", async () => {
+    const full = path.join(dir, "src/bad.ts");
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, "export function foo() {\n  return 1;\n}\n");
+
+    // `dir` is a plain temp directory, so the failure proves the ref reached
+    // the extractor — a flag parsed and dropped would scan and exit 1.
+    const io = captureIO(dir);
+    expect(await run(["check", ".", "--diff", "main"], io)).toBe(2);
+    expect(io.err()).toContain("argus: --diff main:");
+  });
+
   it("colours check output on a terminal, and --no-color turns it off", async () => {
     const full = path.join(dir, "src/bad.ts");
     mkdirSync(path.dirname(full), { recursive: true });

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -94,4 +95,37 @@ export function makeViolation(spec: ViolationSpec): Violation {
 export function tempDir(): { readonly dir: string; cleanup: () => void } {
   const dir = mkdtempSync(path.join(tmpdir(), "argus-cli-"));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+/** Runs one git command in `dir` and returns its stdout. */
+export type Git = (...args: readonly string[]) => string;
+
+/**
+ * Turns a temp directory into a git repository on `main`, and returns a runner
+ * for it.
+ *
+ * Identity, signing and hooks are pinned per invocation rather than left to
+ * the developer's global config: a machine with `commit.gpgsign = true` or a
+ * global `core.hooksPath` (this repo's own husky setup is one) would otherwise
+ * make these tests hang or fail for reasons that have nothing to do with them.
+ */
+export function gitRepo(dir: string): Git {
+  const git: Git = (...args) =>
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Argus Test",
+        "-c",
+        "user.email=test@example.invalid",
+        "-c",
+        "commit.gpgsign=false",
+        "-c",
+        "core.hooksPath=",
+        ...args,
+      ],
+      { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  git("init", "-b", "main");
+  return git;
 }

@@ -84,6 +84,12 @@ A working tool. `argus check ./src` produces real findings against a real projec
   - `--diff main` analyses only files changed since `main`
   - Line-level filtering — violations outside changed line ranges are suppressed
 - **Effort:** M
+- **Rulings taken while implementing (2026-08-02):**
+  - **"Since `main`" means since the merge base, against the working tree.** A two-dot `git diff main` reports post-branch-point work on `main` as reversals, attributing a colleague's changes to the caller; comparing against `HEAD` instead of the working tree puts the line numbers out of step with the bytes the scanner reads
+  - **Untracked files count, in full.** Git diffs only what it tracks, so a brand-new file has no diff — skipping it reports zero violations for the newest code in the change
+  - **Every git failure is fatal (exit `2`), never a fall back to a full scan.** Silently scanning everything reads as a regression; silently scanning nothing reads as a pass
+  - **Git is injected, not a core port** — the domain has no VCS concept, so `GitRunner` is declared in the orchestrator ([ADR-0008](../../adr/0008-scan-scope-orchestration.md)). Revisit if a second consumer appears
+  - `--diff` is `check`-only; `fix` still works on the whole path
 
 ### [P2-06] Auto-fix engine (formatting only)
 
