@@ -387,6 +387,134 @@ jobs:
           echo "::error title=Independent review pass missing::No review evidence on this PR. Post an '## Independent review packet' comment (full tier) or add an '## Independent review' block to the description (light tier), then RE-RUN this job — comments and description edits do not re-trigger CI. See docs/plan/protocols/agentic-execution.md and docs/plan/protocols/quality-gates.md."
           exit 1
 
+  # Per-task documentation delta (DOC-05). docs/plan/03-documentation.md has
+  # required a delta from every task since DOC-01, but the obligation was prose
+  # in a checklist and nothing checked it — the same shape of gap OPS-06 closed
+  # for THIRD-PARTY-NOTICES, where tracker rows asserted a freshness claim
+  # against no mechanism at all. This is that obligation made mechanical.
+  # Modelled on review-gate above: no checkout, one job, fails closed. It
+  # applies from its merge forward and never retro-judges already-merged work.
+  #
+  # THE TSDoc PROBLEM — resolved by CONTENT inspection (the DOC-05 spec required
+  # an explicit ruling either way). Five of the six capture streams live outside
+  # source, so a path match finds them. The sixth — TSDoc on public exports —
+  # lives INSIDE packages/*/src/**, the very paths this gate treats as source. A
+  # path-only gate cannot tell a TSDoc-only PR from one with no delta at all,
+  # and would force a false "no docs delta" onto a change that is nothing but
+  # documentation. A gate you must lie to in order to pass trains exactly the
+  # reflex it exists to prevent, so this one reads the diff content for changed
+  # doc-comment lines. Three accepted imprecisions, recorded rather than left
+  # for the first false positive to discover:
+  #   - `//` line comments deliberately do NOT count. Including them would pass
+  #     nearly every diff and gut the gate.
+  #   - a plain `/* … */` block comment DOES count. It shares the doc-comment
+  #     shape, and explanatory prose added to source is a documentation delta on
+  #     any honest reading.
+  #   - a markdown bullet inside a template literal (`+  * item`) can match.
+  #     Fails open, narrowly, and only on a PR that touched source and no
+  #     documentation file at all.
+  docs-delta:
+    name: Documentation delta
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Require a documentation delta (or an explicit justification)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          # Defined once, read by both grep and jq (via $ENV) so the two can
+          # never drift. Oniguruma and POSIX ERE agree on these two patterns.
+          #
+          # Source: the paths the per-task obligation is about.
+          SOURCE_RE: "^(packages|apps)/[^/]+/src/|^scripts/"
+          # Documentation surface: the five capture streams that live outside
+          # source. docs/** carries the guide, the recipes, the ADRs and the
+          # architecture map; any README.md is the per-package "what / why /
+          # surface" stream; a root-level *.md is the repo's own front matter
+          # (README, CONTRIBUTING, SECURITY). The sixth stream, TSDoc, lives
+          # inside source and is handled by content inspection below.
+          DOCS_RE: "^docs/|(^|/)README\\.md$|^[^/]+\\.md$"
+        run: |
+          set -eu
+
+          # Drafts are WIP — the delta is recorded at completion, exactly as
+          # the review pass is.
+          if [ "${PR_DRAFT}" = "true" ]; then
+            echo "Draft PR — documentation delta deferred until ready. Passing."
+            exit 0
+          fi
+
+          # Bot-authored dependency/release PRs never carry a task's doc delta
+          # and are maintainer-reviewed at merge — don't deadlock them. Same
+          # exemption list as review-gate; quoted patterns match the literal
+          # "[bot]" login (no glob).
+          case "${PR_AUTHOR}" in
+            'dependabot[bot]' | 'github-actions[bot]' | 'dependabot-preview[bot]')
+              echo "Bot author ${PR_AUTHOR} — docs-delta not applicable. Passing."
+              exit 0
+              ;;
+          esac
+
+          # One paginated call, filenames only. Fails closed: set -e aborts the
+          # job if the API errors, matching review-gate and the pre-push gate.
+          files="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
+
+          if ! printf '%s\n' "${files}" | grep -qE "${SOURCE_RE}"; then
+            echo "No source paths touched — docs-delta not applicable. Passing."
+            exit 0
+          fi
+
+          if printf '%s\n' "${files}" | grep -qE "${DOCS_RE}"; then
+            echo "Documentation surface touched. Passing."
+            exit 0
+          fi
+
+          # TSDoc — the sixth stream, inside the source paths. See the header.
+          patches="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[] | select(.filename | test($ENV.SOURCE_RE)) | .patch // "###ARGUS_PATCH_UNAVAILABLE###"')"
+
+          if printf '%s\n' "${patches}" | grep -q '###ARGUS_PATCH_UNAVAILABLE###'; then
+            # GitHub omits .patch on very large diffs. We cannot see the
+            # content, so we cannot claim a TSDoc delta — fall through to the
+            # justification check rather than guess. Fails closed.
+            echo "::warning title=Diff too large to inspect::GitHub omitted the patch for at least one source file, so the TSDoc content check could not run on it. An explicit justification line is required."
+          elif printf '%s\n' "${patches}" | grep -qE '^[+-][[:space:]]*(/\*\*|\*/|\*[[:space:]]|\*$)'; then
+            echo "Changed doc-comment (TSDoc) lines in source. Passing."
+            exit 0
+          fi
+
+          # The escape hatch. Fetched LIVE rather than read from
+          # github.event.pull_request.body: the event payload freezes the
+          # description at trigger time, so a re-run after editing the body
+          # would replay the stale text and fail again. (review-gate reads the
+          # frozen payload and has that trap for its light tier — its "RE-RUN
+          # this job" advice only really works for the comment path.) Author-
+          # controlled text: read into a variable and grep it, never eval it.
+          body="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq '.body // ""')"
+
+          # Anchored to a line start, tolerant of markdown decoration around
+          # it, and a reason is mandatory — "no docs delta" with nothing after
+          # the dash is the vacuous answer this gate exists to refuse. The
+          # phrase is deliberately NOT pre-printed in PR.template.md, for the
+          # same reason the review heading is not: an unedited template must
+          # fail, never pass vacuously.
+          hatch='^[[:space:]]*[-*>_[:space:]]*no docs delta[*_[:space:]]*(—|–|-|:)[[:space:]]*[^[:space:]]'
+
+          if printf '%s' "${body}" | grep -qiE "${hatch}"; then
+            echo "Explicit 'no docs delta' justification found in the PR description. Passing."
+            exit 0
+          fi
+
+          echo "::error title=Documentation delta missing::This PR changes source (packages/*/src, apps/*/src or scripts/) but touches no documentation surface and changed no doc comments. Either record the delta — a docs/ page, a README.md, or TSDoc on the exports you changed — or add a line reading 'no docs delta — <one-line reason>' to the PR description, then RE-RUN this job (a description edit does not re-trigger CI). Standard: docs/plan/03-documentation.md."
+          exit 1
+
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
