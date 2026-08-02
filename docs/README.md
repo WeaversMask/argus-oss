@@ -44,6 +44,7 @@ argus/
     ├── risks.md                 risk register
     ├── guide/                   user-facing guide (fills in from Phase 2)
     ├── dev/                     contributor/maintainer recipes
+    │   └── tour.md              15-minute ordered read of the codebase
 │
 ├── plan/
 │   ├── 00-principles.md         engineering principles (always load)
@@ -83,7 +84,7 @@ argus/
 - **Using Argus** → [`guide/`](./guide/) (fills in from Phase 2).
 - **How it fits together** → [`architecture.md`](./architecture.md).
 - **How it was built, and why the output can be trusted** → [`workflow.md`](./workflow.md).
-- **Working on the internals** → [`dev/`](./dev/), then the package's own `README.md`.
+- **Working on the internals** → [`dev/tour.md`](./dev/tour.md) first, then [`dev/`](./dev/) and the package's own `README.md`.
 
 New contributor? Read these in order:
 

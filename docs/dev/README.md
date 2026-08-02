@@ -4,6 +4,7 @@
 
 ## Start here
 
+- **New to the codebase? Take [`the 15-minute tour`](./tour.md) first** — five stops, in order, ending where the `adding-a-rule` recipe below reads as instructions rather than new concepts.
 - **How the work is done — the loop, the gates, and what they don't cover:** [`../workflow.md`](../workflow.md). Read this before your first PR; it is the "why" behind the rules in `CONTRIBUTING.md`.
 - **How it fits together:** [`../architecture.md`](../architecture.md).
 - **Where code goes + forbidden imports:** [`../plan/01-repo-structure.md`](../plan/01-repo-structure.md).
