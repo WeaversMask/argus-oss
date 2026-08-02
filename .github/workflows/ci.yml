@@ -77,6 +77,20 @@ jobs:
       - name: Prettier (check)
         run: pnpm format:check
 
+      # Archived-handover link integrity (DOC-06). `docs/HANDOVER.md` is
+      # authored at `docs/`, so its relative links break when rotation copies
+      # it one level deeper into `docs/handovers/`. That went unnoticed for
+      # months and reached 100 broken links, because nobody clicks links in an
+      # archive. `pnpm handover:rotate` re-resolves them as it copies; this
+      # step is what makes a hand-rolled `cp` fail loudly instead of silently,
+      # which is the only reason the rot lasted. Zero-install — the script uses
+      # node: builtins only — so it costs nothing to run here.
+      #
+      # Inline links only: reference-style definitions and raw HTML anchors are
+      # invisible to it. See the script header.
+      - name: Check archived handover links resolve (DOC-06)
+        run: pnpm handover:check
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest

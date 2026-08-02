@@ -18,6 +18,11 @@
 //   pnpm handover:rotate --repair re-resolve broken links across every snapshot
 //   pnpm handover:check           verify only; changes nothing
 //
+// The final verification covers the whole archive, so a rotation can write its
+// snapshot and still exit non-zero over a break somewhere else. The new file is
+// left in place when that happens; delete it before retrying the same slug, or
+// the overwrite guard refuses.
+//
 // The verifier is the same check the per-phase documentation audit runs
 // (docs/plan/templates/PHASE-DOC-AUDIT.template.md §6), narrowed to the archive.
 
@@ -36,8 +41,8 @@ const SOURCE = resolve(DOCS_DIR, "HANDOVER.md");
 // can be replaced without disturbing the label.
 const LINK = /(\[[^\]]*\]\()([^)\s]+)(\))/g;
 
-/** Opening or closing fence of a code block: ``` or ~~~, optional info string. */
-const FENCE = /^\s{0,3}(?:```|~~~)/;
+/** Opening or closing fence of a code block, capturing the marker run itself. */
+const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 
 // Deliberately identical to the audit template's oracle, so the two agree on
 // which links are in scope. Anything with a scheme, or a bare fragment, is not
@@ -54,21 +59,33 @@ const isExternal = (href) => /^(https?:|mailto:|#)/.test(href);
  * example rather than fix a path. No archived handover contains such a case
  * today — checked — so this guards a future one.
  *
- * Not detected, and deliberately: inline code spans, and code blocks indented
- * by four spaces (indistinguishable, line by line, from a wrapped list item).
- * Both are far rarer in these documents than fenced blocks, and neither has
- * ever occurred; a link in one would still be rewritten.
+ * Fences close per CommonMark — same character, at least as long as the opener
+ * — so a three-backtick block nested inside a four-backtick one does not end it
+ * early. Anything else that looks like a fence while one is open is content.
+ *
+ * Not detected, and deliberately: inline code spans; code blocks indented by
+ * four spaces (indistinguishable, line by line, from a wrapped list item);
+ * reference-style definitions (`[label]: /path`); raw HTML anchors; and link
+ * text containing nested brackets, which `LINK` cannot match. None has ever
+ * appeared in a handover. Note the consequence for the last three: they are
+ * invisible to `--check` as well as to the rewriter, so "all links resolve" is
+ * a statement about inline links only.
  */
 function mapProseLines(markdown, transform) {
-  let inFence = false;
+  let openFence = null;
   return markdown
     .split("\n")
     .map((line) => {
-      if (FENCE.test(line)) {
-        inFence = !inFence;
+      const marker = FENCE.exec(line)?.[1];
+      if (marker) {
+        if (openFence === null) {
+          openFence = marker;
+        } else if (marker[0] === openFence[0] && marker.length >= openFence.length) {
+          openFence = null;
+        }
         return line;
       }
-      return inFence ? line : transform(line);
+      return openFence === null ? transform(line) : line;
     })
     .join("\n");
 }

@@ -16,14 +16,14 @@ All three landed on one branch deliberately: they are docs-tier, they came from 
 
 ## What I Did
 
-- **Handover link rot — fixed at the cause.** [`scripts/rotate-handover.mjs`](../scripts/rotate-handover.mjs) (`pnpm handover:rotate <slug>` · `pnpm handover:check`) re-resolves every relative link as it copies, refuses to overwrite an existing snapshot, and fails closed. Its `--repair` mode fixed the existing archive with the same code. [§Handover Rotation](./plan/protocols/agentic-execution.md) now calls the script and says why `cp` is wrong.
+- **Handover link rot — fixed at the cause.** [`scripts/rotate-handover.mjs`](../scripts/rotate-handover.mjs) (`pnpm handover:rotate <slug>` · `pnpm handover:check`) re-resolves every relative link as it copies, refuses to overwrite an existing snapshot, and fails closed. Its `--repair` mode fixed the existing archive with the same code. [§Handover Rotation](./plan/protocols/agentic-execution.md) now calls the script and says why `cp` is wrong, and **`pnpm handover:check` runs as a step in CI's `lint` job** so a hand-rolled `cp` fails loudly. Registered in [`quality-gates.md`](./plan/protocols/quality-gates.md).
 - **[`dev/adding-an-adapter.md`](./dev/adding-an-adapter.md)** — the `packages/adapters/*` recipe, from P2-06. Package shape, the repo-wiring checklist, the contract-test split.
 - **[ADR-0007](./adr/0007-api-contracts-boundary.md)** — the zod-only `@argus/api-contracts` boundary, its three rejected alternatives, and its permanent cost. Cross-linked from `architecture.md` and the package README, which previously carried the rationale in prose alone.
 
 ## What I Did NOT Do (Deferred)
 
 - **`adding-a-tool-adapter.md` stays unwritten.** `dev/README.md` still reserves it for Phase 4. Everything specific to `ToolAdapterPort` — `packages/adapters/_shared/`, subprocess timeouts, severity translation, secret redaction, the copyleft subprocess boundary — does not exist yet, and writing it now would be precisely the true-when-written claim this audit exists to catch. `adding-an-adapter.md` covers what is real and links forward.
-- **The link check is still not a CI gate** — DOC-05's open question, still open. `pnpm handover:check` now exists and covers the archive only; the repo-wide oracle still lives in the audit template.
+- **The repo-wide link check is still not a CI gate.** DOC-05's open question is now half-answered: the **archive** is gated (`handover:check`, `lint` job), because that is where rotation does its damage. All of `docs/` is not — the repo-wide oracle still runs only per-phase, from the audit template. Widening it is a small, separate decision.
 - **Snapshots carry no "this is a dated snapshot" banner.** The audit noted nothing on the files says so. 36 files; not attempted here.
 - **`scripts/` still has no automated coverage** — this is now the **fourth** script in it. See Gotcha 3.
 - **Still inherited, still each needing their own task:** the missing `FormatterPort` fake (10 fakes for 11 ports), the weekly Stryker job red since 2026-07-28, `argus explain` not reporting fixability, `ci.yml`'s stale `license` job comment, and `review-gate`'s frozen-PR-body trap (Gotcha 2 of the previous handover).
@@ -35,6 +35,8 @@ All three landed on one branch deliberately: they are docs-tier, they came from 
 3. **A pure-text transform is easy to verify exactly, so verify it exactly.** With every link target masked to a constant, 27 of the 28 rewritten snapshots are byte-identical to `HEAD` (the 28th is `p2-02`, where I intentionally removed a link). That check is worth more than reading diffs, and it is two lines of shell — the diff was 86 insertions and 86 deletions across files nobody would have proofread.
 4. **`scripts/` is inside the `docs-delta` gate's definition of source** (`^(packages|apps)/.+/src/|^scripts/`), which surprised me — the PR template says so, `03-documentation.md` is where I'd have looked. Irrelevant here (this PR is almost all documentation), but a future `scripts/`-only change must record a delta or justify none.
 5. **ADR-0007's real content turned out to be the cost, not the decision.** The rationale was already written in four places and enforced by `api-contracts-only-zod`; restating it adds nothing. What nothing recorded: **severity is the only shared vocabulary with an agreement test.** `positionSchema` re-implements ADR-0004's 1-based end-exclusive semantics independently of core's `position` factory and **nothing asserts they agree** — verified, not assumed. Phases 6–8 widen this payload a lot. Every shared vocabulary needs its own agreement test at its mapping site, or the boundary quietly becomes drift that presents as a consumer parsing a valid document into wrong values.
+
+6. **The review's most useful finding was about what the fix does not cover, not what it gets wrong.** Cross-family full-packet review returned APPROVE WITH NITS, no HIGH findings; it re-verified the recipe's wiring claims and ADR-0007's central claim independently and both held. Its MED was that `handover:check` existed but nothing ran it — the repo gates every comparable script in CI (`format:check`, `license-check`, `notices:check`), and a mechanism invoked only when an agent remembers to invoke it is the same class of thing as the checklist step it replaced. Acted on: it is now a `lint` step. Three LOWs also acted on — nested fences (a four-backtick block containing a three-backtick one closed early; now tracks marker character and length per CommonMark), the invisibility of reference-style/HTML links to **both** the rewriter and `--check` (documented — "all links resolve" is a claim about inline links only), and the non-atomic retry path. One LOW declined: wrapping every `readFileSync` in `try`/`catch`. An uncaught I/O error still exits non-zero, so the script still fails closed; the noise would buy nothing.
 
 ## State of the System
 
@@ -54,7 +56,7 @@ All three landed on one branch deliberately: they are docs-tier, they came from 
 
 ## Open Questions for the Next Agent
 
-- **Should the repo-wide link check become a CI gate?** Carried from DOC-05, and cheaper to answer now: `handover:check` exists and covers the archive, so the remaining question is only whether to widen it to all of `docs/` and run it per PR.
+- **Should the link check widen from the archive to all of `docs/`?** The archive half is now gated per PR. The rest of `docs/` is still checked only at phase boundaries, and DOC-05's audit found its one live break there, not in the archive.
 - **Should TSDoc coverage get an oracle?** Still nothing counts "every public export carries TSDoc"; `docs-delta` watches it per task, which is not the same as measuring it.
 - **Should `scripts/` get a test project?** Now four scripts, still zero automated coverage. `rotate-handover.mjs` is a pure text transform and would be the easiest of the four to test.
 - Should `notices:check` join the pre-push hook? ~3s per push to catch drift before CI.
@@ -64,6 +66,8 @@ All three landed on one branch deliberately: they are docs-tier, they came from 
 ```
 scripts/rotate-handover.mjs                       [created — rotation + archive repair, fails closed]
 package.json                                      [modified — handover:rotate / handover:check]
+.github/workflows/ci.yml                          [modified — handover:check step in the lint job]
+docs/plan/protocols/quality-gates.md              [modified — registry row for the new check]
 docs/dev/adding-an-adapter.md                     [created — the packages/adapters/* recipe]
 docs/adr/0007-api-contracts-boundary.md           [created — the zod-only boundary + its cost]
 docs/handovers/*.md                               [modified ×28 — 99 links re-resolved, 1 unlinked]
