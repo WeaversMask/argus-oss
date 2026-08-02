@@ -174,7 +174,7 @@ A working tool. `argus check ./src` produces real findings against a real projec
 - [ ] 10 rules in production with full fixture coverage
 - [x] CI of Argus itself runs Argus on Argus — dogfooding starts here
 - [ ] **Milestone M1 — Showcase-Ready reached:** DOC-02/DOC-03/DOC-04/DOC-05/OPS-05 shipped and the [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2) criteria all hold
-- [ ] **Phase documentation consolidation pass executed and its report committed** (the DOC-05 cadence, applied to this phase first — this criterion is what every later phase inherits)
+- [x] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed. Applied to this phase first, under DOC-05 — this criterion is what every later phase inherits ([`phase-02-doc-audit.md`](../../audits/phase-02-doc-audit.md))
 - [ ] Phase handover written with rule authoring tutorial and performance benchmarks against typical codebases — **plus the maintainer's continuation decision recorded** (pause at M1 or proceed to Phase 3)
 
 ---

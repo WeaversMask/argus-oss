@@ -65,6 +65,7 @@ Real-time IDE feedback while typing. A single LSP server serves VS Code, JetBrai
 - [ ] IDE demo recorded
 - [ ] Extension published to VS Code Marketplace
 - [ ] LSP server documented for non-VS Code editors (Neovim setup example, JetBrains setup example)
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover documents debounce strategy and performance budget
 
 ---

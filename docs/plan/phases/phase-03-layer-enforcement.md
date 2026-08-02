@@ -110,6 +110,7 @@ Architectural conformance checking — the platform's differentiating capability
 
 - [ ] Architect demo: fixture project with deliberate architecture violations, tool catches every one
 - [ ] Documentation includes "How to define your layer manifest" guide with full examples
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover captures classifier precedence rules and performance considerations for very large graphs
 
 ---

@@ -76,6 +76,7 @@ Scan results persist; trends can be calculated; suppressions work across runs. S
 - [ ] Run two scans; trend delta shown
 - [ ] Suppressions survive across scans
 - [ ] Database persistence layer fully swappable (SQLite ↔ Postgres via config only)
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover documents schema, migration policy, and known limits
 
 ---

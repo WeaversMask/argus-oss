@@ -86,6 +86,7 @@ Production-ready 1.0. Performance verified, security audited, documentation comp
 - [ ] Beta partners promoted to GA customers
 - [ ] Marketing site live
 - [ ] Launch announcements published
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed. The final pass also confirms the site assembled by P11-03 matches what the streams actually captured
 
 ---
 

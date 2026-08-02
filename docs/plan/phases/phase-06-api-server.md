@@ -83,6 +83,7 @@ Headless, network-accessible platform. Remote scans, multi-project, async execut
 
 - [ ] API demo: POST a scan via curl, GET results, all via authenticated tRPC
 - [ ] 50 concurrent scans handled without degradation on M2 hardware
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover documents API contracts, auth strategy, and Redis operational notes
 
 ---

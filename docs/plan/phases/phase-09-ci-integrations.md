@@ -64,6 +64,7 @@ Native PR decoration on GitHub, GitLab, Bitbucket. Public Docker image (`TODO(li
 - [ ] Public Marketplace listings live (GitHub and GitLab)
 - [ ] End-to-end PR review on a real OSS project
 - [ ] Docker image signed and published (`TODO(licensing:)` — gated on the ADR-0002 §D redistribution review, see [P9-04])
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover documents release process and integration testing strategy
 
 ---

@@ -77,7 +77,8 @@ Before marking a task complete:
 - [ ] Lint, type-check, and build clean at the **root** (`pnpm lint && pnpm typecheck && pnpm build`) — `pnpm --filter` runs bypass turbo's task graph and cannot catch graph-level failures (P1-02's workspace dependency cycle reached CI exactly that way)
 - [ ] Coverage threshold met for new code (≥85% line, ≥80% branch)
 - [ ] Dogfooding scan of Argus on itself shows no new issues (from Phase 2 onwards)
-- [ ] **Documentation delta recorded** (see [`../03-documentation.md`](../03-documentation.md)) — for each stream the change touched: package `README.md` current · public exports carry TSDoc · user-facing change reflected in [`../../guide/`](../../guide/) · first-of-a-pattern gets a [`../../dev/`](../../dev/) recipe. If none apply, record **"no docs delta"** with a one-line reason.
+- [ ] **Documentation delta recorded** — for each stream the change touched: package `README.md` current · public exports carry TSDoc · user-facing change reflected in [`../../guide/`](../../guide/) · first-of-a-pattern gets a [`../../dev/`](../../dev/) recipe. **Mechanically enforced** since DOC-05: the CI `Documentation delta` job fails a non-draft PR that changes source while touching no documentation surface and changing no doc comments. If the change genuinely has none, the job takes an explicit justification line in the PR description instead. Definitions, the exact line, and the TSDoc ruling: [`../03-documentation.md` §Cadence](../03-documentation.md).
+- [ ] **[`../../progress.md`](../../progress.md) entry added** — one dated, PR-linked, plain-language paragraph: what a reader can _do_ now that they could not before. The third-party tier; `IMPLEMENTATION.md`'s row is the agent-facing one and does not substitute for it ([`../03-documentation.md` §Cadence](../03-documentation.md)).
 - [ ] If architectural: ADR written or updated (the decision-rationale stream of [`../03-documentation.md`](../03-documentation.md))
 - [ ] **Independent review pass done:** a fresh-context agent reviewed the diff against [`00-principles.md`](../00-principles.md) + [`quality-gates.md`](./quality-gates.md). **Mechanically enforced** since OPS-04: the CI `Independent review pass` job fails a non-draft PR that carries no review evidence, keyed on the `## Independent review` heading stem (doc-based process gates fail under momentum — P1-02's pass was skipped until the maintainer asked). Depth is tiered by diff risk (maintainer-approved 2026-07-04 — P0-12's review spent most of its budget re-verifying results the author had already documented):
   - **Light** — docs-only or config-only diffs with no executable logic: bugs-only findings + verdict, recorded as an **`## Independent review`** block in the PR description; no packet boilerplate.
@@ -104,12 +105,13 @@ This ensures continuity even when sessions are short or agents change.
 When a phase is complete:
 
 1. Verify every task is merged and the phase exit criteria are met
-2. Update `IMPLEMENTATION.md`:
+2. **Run the documentation consolidation pass** and commit its report to [`../../audits/`](../../audits/) — copy [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md) and work its oracles. **The phase cannot move to ✅ Complete until the report reads ✅ pass**, and every finding is fixed or filed. The pass is the per-phase tier of [`../03-documentation.md` §Cadence](../03-documentation.md); it is also carried as an exit criterion in each phase file, so a transition that skips this step still trips the checklist.
+3. Update `IMPLEMENTATION.md`:
    - Phase status → ✅ Complete
    - Current phase → next phase
    - Active phase doc link → next phase file
-3. Write a phase-completion handover (more comprehensive than a task handover)
-4. Archive any phase-specific working notes
+4. Write a phase-completion handover (more comprehensive than a task handover)
+5. Archive any phase-specific working notes
 
 ## Escalation Rules
 
