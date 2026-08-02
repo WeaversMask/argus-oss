@@ -6,7 +6,7 @@
 
 This package owns the shapes that cross a process boundary — today the JSON scan report `argus check --format json` prints, later the HTTP payloads the API server (Phase 6) and the web UI (Phase 7) will share. One schema, validated on both sides, so producer and consumer cannot drift apart silently.
 
-It deliberately does **not** depend on `@argus/core`. A consumer of the wire format — a CI script, an HTTP client, a browser — has no domain layer to import, and the whole value of a contract package is that it can be adopted alone. That means the domain and the contract each own their vocabulary, and the code that maps between them owns the agreement: `apps/cli/tests/formatters/json.test.ts` asserts that core's `SEVERITIES` and this package's `severitySchema` describe exactly the same set.
+It deliberately does **not** depend on `@argus/core` — the rationale, the alternatives rejected, and the standing cost are recorded in [ADR-0007](../../docs/adr/0007-api-contracts-boundary.md). A consumer of the wire format — a CI script, an HTTP client, a browser — has no domain layer to import, and the whole value of a contract package is that it can be adopted alone. That means the domain and the contract each own their vocabulary, and the code that maps between them owns the agreement: `apps/cli/tests/formatters/json.test.ts` asserts that core's `SEVERITIES` and this package's `severitySchema` describe exactly the same set.
 
 It holds no logic either — no serialisation, no formatting, no I/O. It is a description of shapes, and its only dependency is zod.
 
@@ -28,7 +28,7 @@ Every schema is **strict**: an unknown key is a contract violation, not somethin
 
 ## How it fits
 
-- **Depends on:** `zod` only. No internal packages — by design (see Purpose).
+- **Depends on:** `zod` only. No internal packages — by design ([ADR-0007](../../docs/adr/0007-api-contracts-boundary.md)), enforced by `api-contracts-only-zod` in [`.dependency-cruiser.cjs`](../../.dependency-cruiser.cjs).
 - **Consumed by:** `@argus/cli` (`--format json`); the API server and web UI when they land.
 - **Boundary rules:** `api-contracts-public-entry-only` in [`.dependency-cruiser.cjs`](../../.dependency-cruiser.cjs) — imports must land on `src/index.ts`.
 
