@@ -120,6 +120,7 @@ All seven output formats (PDF, DOCX, HTML, CSV/Excel, JSON, SARIF, Markdown) and
 - [ ] Every report type renders in every format
 - [ ] Branded PDFs render with logo and custom header
 - [ ] SARIF output passes official schema validation
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover documents the formatter contract and how to add a new format
 
 ---

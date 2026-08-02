@@ -120,7 +120,7 @@ A clean monorepo with CI, linting, formatting, type checking, testing, and Docke
 ### [P0-10] Project license & third-party integration policy
 
 - **Deps:** none (foundational; relates to P0-07 / P0-08)
-- **Outputs:** `LICENSE` (MIT); `package.json` `"license": "MIT"`; [`ADR-0002`](../adr/0002-third-party-integration-and-licensing-policy.md); risk-register updates (R-006, R-011)
+- **Outputs:** `LICENSE` (MIT); `package.json` `"license": "MIT"`; [`ADR-0002`](../../adr/0002-third-party-integration-and-licensing-policy.md); risk-register updates (R-006, R-011)
 - **Acceptance:**
   - `LICENSE` present (MIT) and the `package.json` license field agrees
   - ADR-0002 records the posture: copyleft engines (TruffleHog AGPL-3.0, Semgrep LGPL-2.1) are **subprocess-only**; no vendored binaries/source/submodules; no embedded Semgrep rules; Docker is a recipe (no published baked-in image); MIT project license; SPDX allowlist

@@ -1,6 +1,6 @@
 # Built-in rules
 
-> The checks Argus ships with. Ten rules for **TypeScript and JavaScript**, in [`@argus/rules-builtin`](../../packages/rules-builtin/README.md) (P2-01). Each is off until a config activates it (rule-config wiring lands with the CLI); until then this page is the catalogue and the reference. **(fixable)** marks a rule `argus fix` (P2-06) can resolve mechanically, at least some of the time — see [the CLI guide](./cli.md#argus-fix-path) for what `fix` does and does not touch.
+> The checks Argus ships with. Ten rules for **TypeScript and JavaScript**, in [`@argus/rules-builtin`](../../packages/rules-builtin/README.md) (P2-01). **Every rule is on by default**, at the default severity noted in its entry — a fresh `argus check` on a project with no `argus.yaml` at all runs all ten. Use a [`rules:` block](./configuration.md) to override a severity or switch one `off`. **(fixable)** marks a rule `argus fix` (P2-06) can resolve mechanically, at least some of the time — see [the CLI guide](./cli.md#argus-fix-path) for what `fix` does and does not touch.
 
 Every rule is identified by a `category/name` id, reports at a default severity you can override, and — where noted — takes options. A rule reports a **violation** with a message and a `file:line:col` position; the engine assigns the severity you configured (not the rule's default) to each one.
 

@@ -86,6 +86,7 @@ Security, secrets, CVEs, and duplication — delivered by proven third-party too
 
 - [ ] Each adapter is a drop-in replacement candidate (contract tests passing)
 - [ ] Security demo recorded
+- [ ] **Documentation consolidation pass executed and its report committed** under [`../../audits/`](../../audits/) — the per-phase tier of the [documentation cadence](../03-documentation.md), worked against [`../templates/PHASE-DOC-AUDIT.template.md`](../templates/PHASE-DOC-AUDIT.template.md). **This phase cannot be marked ✅ Complete until that report reads ✅ pass** and every finding is fixed or filed
 - [ ] Phase handover captures subprocess gotchas (signal handling, exit codes per tool) and tool version pinning policy
 
 ---
