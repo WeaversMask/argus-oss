@@ -10,16 +10,17 @@ It is the first `apps/*` workspace member. Nothing imports it (`packages-never-i
 
 ## Commands
 
-| Command                  | Does                                                                               |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `argus check [path]`     | Scans a file or directory (default `.`) and reports violations                     |
-| `argus check --no-color` | Same, with ANSI escapes suppressed regardless of terminal                          |
-| `argus fix [path]`       | Applies fixes for violations that offer one, then Prettier-formats what it touched |
-| `argus fix --dry-run`    | Shows a diff of what `fix` would change, without writing anything                  |
-| `argus init`             | Writes a starter `argus.yaml` listing every built-in rule at its default           |
-| `argus explain <rule>`   | Prints a rule's name, default severity, docs link, and full description            |
-| `argus --version`, `-v`  | Prints the CLI version (read from this package's `package.json`)                   |
-| `argus --help`           | Usage; also available per command (`argus check --help`)                           |
+| Command                    | Does                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `argus check [path]`       | Scans a file or directory (default `.`) and reports violations                     |
+| `argus check --no-color`   | Same, with ANSI escapes suppressed regardless of terminal                          |
+| `argus check --diff <ref>` | Only the files and lines changed since `<ref>`'s merge base with `HEAD`            |
+| `argus fix [path]`         | Applies fixes for violations that offer one, then Prettier-formats what it touched |
+| `argus fix --dry-run`      | Shows a diff of what `fix` would change, without writing anything                  |
+| `argus init`               | Writes a starter `argus.yaml` listing every built-in rule at its default           |
+| `argus explain <rule>`     | Prints a rule's name, default severity, docs link, and full description            |
+| `argus --version`, `-v`    | Prints the CLI version (read from this package's `package.json`)                   |
+| `argus --help`             | Usage; also available per command (`argus check --help`)                           |
 
 ### Exit codes
 
@@ -44,16 +45,22 @@ resolveActivations()       this app         → RuleActivation[] (+ unknown ids)
         ↓
 discoverFiles()            this app         → files, filtered by language + ignore globs
         ↓
+extractChangeSet()         @argus/orchestrator → --diff only: narrows those files to the change set
+        ↓
 TreeSitterAstParser.parse() @argus/ast      → ParsedFile per file (one parser per process)
         ↓
 Engine + Runner.runAll()   @argus/rule-engine → violations + per-file failures
         ↓
+filterToChangedLines()     @argus/orchestrator → --diff only: drops violations off the changed lines
+        ↓
 renderReport()             this app         → stdout text, then an exit code
 ```
 
+**`--diff` narrows twice, and both are needed.** Dropping unchanged files is the cheap half; the second is what makes the output usable, because a file with a one-line edit is still parsed and analysed whole and would otherwise report every finding that was already in it. [`src/git.ts`](./src/git.ts) supplies the `GitRunner` and nothing else — which commands to run, and what their output means, belong to the orchestrator ([ADR-0008](../../docs/adr/0008-scan-scope-orchestration.md)). Any git failure is exit `2`: falling back to a full scan reads as a regression, and falling back to none reads as a pass.
+
 **Default rule posture:** with no config, every rule in `builtinRules` runs at its own `defaultSeverity`, so a fresh `argus check .` finds things immediately. Config overrides severity and options per rule id, including `off` (kept in the activation list so what was explicitly disabled stays visible; the engine skips it). A configured id matching no built-in rule is a hard error, never a silent no-op.
 
-**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` (P2-05) is a separate follow-up.
+**Not wired yet:** suppressions and layer classification. Config v1 exposes neither section (deferred — see `@argus/config`), so there is nothing to feed core's `matchingSuppression` / `classifyLayer` yet. `--diff` belongs to `check` alone; `fix` still works on the whole path.
 
 A path with nothing scannable under it is a **successful scan of zero files**, not an early exit: the notice goes to stderr and the pipeline still renders a report, so `--format json` can never hand a consumer an empty stream for a scan that succeeded.
 

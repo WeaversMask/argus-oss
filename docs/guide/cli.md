@@ -1,6 +1,6 @@
 # The `argus` command line
 
-> Shipped in P2-02, colour output added in P2-03, JSON output in P2-04, `argus fix` in P2-06. Covers the four MVP commands, both output formats, and the exit-code contract. Diff-only scanning (P2-05) arrives later in Phase 2 and will be documented here as it lands.
+> Shipped in P2-02, colour output added in P2-03, JSON output in P2-04, `argus fix` in P2-06, diff-only scanning in P2-05. Covers the four MVP commands, both output formats, and the exit-code contract.
 
 ## Running it
 
@@ -40,6 +40,36 @@ Findings are grouped by file, ordered by position within each file, and followed
 > Python parses, but the ten built-in rules are TS/JS-tuned, so `.py` files currently produce no findings.
 
 **Which rules run.** With no config file, **every built-in rule runs at its default severity** — a fresh `argus check .` finds things immediately. Add an `argus.yaml` to change severities, pass options, or switch rules off; see [configuration.md](./configuration.md) and the [rule reference](./rules.md). A rule id in your config that Argus does not recognise is an error, not a silent no-op — it usually means a typo.
+
+### Only what changed — `--diff <ref>`
+
+`--diff` narrows a scan to the work on your branch: the files it changed, and the violations that land on the lines it changed.
+
+```bash
+node apps/cli/bin/argus.mjs check . --diff main
+```
+
+That is the difference between a CI comment a reviewer reads and one they learn to scroll past. A file you touched on one line is still parsed and analysed in full — but a pre-existing finding forty lines above your edit is not your change to answer for, and it is not reported.
+
+**What counts as changed:**
+
+| Situation                                    | Reported                                                       |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| Lines your branch added or rewrote           | Yes                                                            |
+| A new file, committed or not yet added       | Yes, in full                                                   |
+| A file you did not touch                     | No — it is not even scanned                                    |
+| A finding elsewhere in a file you did touch  | No                                                             |
+| A finding spanning one of your changed lines | Yes — a long-function warning is yours once you edit inside it |
+| Work committed to `main` after you branched  | No                                                             |
+| Lines you deleted                            | No — nothing new is there to report                            |
+
+The last two are the ones that make it usable. Argus compares against the **merge base** of `<ref>` and `HEAD` — the commit you branched from — so a colleague's changes to `main` since then are never attributed to you. And it compares against your **working tree**, not your last commit, so uncommitted edits are included: the line numbers always match the file on disk.
+
+`<ref>` is anything git can resolve — `main`, `origin/main`, a tag, a commit sha.
+
+**It fails rather than guesses.** A ref that does not exist, a directory that is not inside a git work tree, or a `git` that will not run is exit `2` with the reason on stderr — never a quiet fall back to scanning everything (which reads as a regression) or to scanning nothing (which reads as a pass). `--diff` also requires its value: bare `--diff` is a usage error, not an implied `main`.
+
+> `--diff` applies to `check`. `argus fix` always works on the whole path.
 
 ### Colour
 
@@ -221,11 +251,11 @@ An unknown id prints the full list of known rule ids.
 
 Designed for CI: a non-zero exit fails the job, and `1` versus `2` distinguishes "the code has problems" from "Argus could not do its job". `fix` reuses the same three codes, but reinterprets `0`/`1` for a mutating command — see [`--dry-run`](#--dry-run) above for exactly how.
 
-| Code | Meaning for `check`                                                                                                         | Meaning for `fix`                                                    |
-| ---- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `0`  | Success — no violations found. Also `--help`, `--version`, `init`, a successful `explain`, and a scan that matched no files | No violations remain (real run) / nothing would change (`--dry-run`) |
-| `1`  | Violations were found                                                                                                       | Violations remain (real run) / something would change (`--dry-run`)  |
-| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, or a file it could not parse | Every `check` case, plus a file whose fix could not be written       |
+| Code | Meaning for `check`                                                                                                                                               | Meaning for `fix`                                                    |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `0`  | Success — no violations found. Also `--help`, `--version`, `init`, a successful `explain`, and a scan that matched no files                                       | No violations remain (real run) / nothing would change (`--dry-run`) |
+| `1`  | Violations were found                                                                                                                                             | Violations remain (real run) / something would change (`--dry-run`)  |
+| `2`  | Argus could not complete: bad usage, unknown command or rule id, invalid config, missing path, a file it could not parse, or a `--diff` ref git could not resolve | Every `check` case, plus a file whose fix could not be written       |
 
 If some files could not be analysed, `check` reports each one on stderr, notes the count in the summary, and exits `2` even when the files it _could_ read were clean — an incomplete scan never reports itself as a pass.
 
@@ -238,4 +268,4 @@ If some files could not be analysed, `check` reports each one on stderr, notes t
 | `-v`, `--version` | Print the Argus version                |
 | `--help`          | Print usage; works on every subcommand |
 
-`check` additionally takes `--no-color` (see [Colour](#colour) above) and `-f, --format <console|json>` (see [Machine-readable output](#machine-readable-output--format-json)). `fix` additionally takes `--dry-run` (see [above](#--dry-run)). All three belong to their subcommand, so they go after the command name; an unrecognised `--format` value is a usage error (exit `2`), never a silent fallback.
+`check` additionally takes `--no-color` (see [Colour](#colour) above), `-f, --format <console|json>` (see [Machine-readable output](#machine-readable-output--format-json)), and `--diff <ref>` (see [Only what changed](#only-what-changed--diff-ref)). `fix` additionally takes `--dry-run` (see [above](#--dry-run)). All of them belong to their subcommand, so they go after the command name; an unrecognised `--format` value is a usage error (exit `2`), never a silent fallback.

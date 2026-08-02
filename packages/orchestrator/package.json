@@ -1,0 +1,33 @@
+{
+  "name": "@argus/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Argus scan orchestration — decides what a scan covers. Currently: diff mode, which turns a git base ref into the set of changed files and lines, and narrows a scan's violations to them.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf coverage .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@argus/core": "workspace:*",
+    "neverthrow": "8.2.0"
+  },
+  "devDependencies": {
+    "@argus/testing": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.9",
+    "rimraf": "^5.0.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

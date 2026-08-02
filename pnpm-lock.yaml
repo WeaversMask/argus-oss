@@ -92,6 +92,9 @@ importers:
       '@argus/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@argus/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
       '@argus/rule-engine':
         specifier: workspace:*
         version: link:../../packages/rule-engine
@@ -278,6 +281,34 @@ importers:
       fast-check:
         specifier: 4.9.0
         version: 4.9.0
+      rimraf:
+        specifier: ^5.0.10
+        version: 5.0.10
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.9
+        version: 4.1.9(@types/node@22.19.19)(@vitest/coverage-v8@4.1.9)(vite@8.0.16(@types/node@22.19.19)(jiti@2.6.1)(yaml@2.9.0))
+
+  packages/orchestrator:
+    dependencies:
+      '@argus/core':
+        specifier: workspace:*
+        version: link:../core
+      neverthrow:
+        specifier: 8.2.0
+        version: 8.2.0
+    devDependencies:
+      '@argus/testing':
+        specifier: workspace:*
+        version: link:../testing
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vitest/coverage-v8':
+        specifier: 4.1.9
+        version: 4.1.9(vitest@4.1.9)
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10

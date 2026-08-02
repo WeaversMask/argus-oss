@@ -1,4 +1,5 @@
 import { TreeSitterAstParser } from "@argus/ast";
+import { filterToChangedLines } from "@argus/orchestrator";
 import { Runner } from "@argus/rule-engine";
 import { EXIT_ERROR, EXIT_OK, EXIT_VIOLATIONS } from "./exit-codes.js";
 import { renderReport } from "./formatters/render.js";
@@ -7,12 +8,14 @@ import type { CliIO } from "./io.js";
 import type { ScanReport } from "./report.js";
 import { buildEngine, parseAll, planScan } from "./scan.js";
 
-/** Invocation-level presentation choices for `check`. */
+/** Invocation-level choices for `check`. */
 export interface CheckOptions {
   /** `false` when `--no-color` was passed; `true` leaves the decision to the environment. */
   readonly colour: boolean;
   /** What `--format` selected. Console output for humans, JSON for everything else. */
   readonly format: OutputFormat;
+  /** `--diff <ref>`: report only what changed since this ref. */
+  readonly diffBase?: string | undefined;
 }
 
 /**
@@ -28,7 +31,7 @@ export interface CheckOptions {
  * `matchingSuppression`/`classifyLayer` yet.
  */
 export async function runCheck(rawPath: string, options: CheckOptions, io: CliIO): Promise<number> {
-  const plan = await planScan(rawPath, io);
+  const plan = await planScan(rawPath, io, { diffBase: options.diffBase });
   if (typeof plan === "number") {
     return plan;
   }
@@ -52,19 +55,23 @@ export async function runCheck(rawPath: string, options: CheckOptions, io: CliIO
       })),
     ];
 
+    // Under `--diff` the file list is already narrowed, but each of those
+    // files was still analysed whole — so a violation that predates the
+    // change is reported unless the lines are narrowed too.
+    const violations =
+      plan.changes === undefined
+        ? summary.violations
+        : filterToChangedLines(summary.violations, plan.changes);
+
     for (const failure of failures) {
       io.stderr(`argus: failed to analyse ${failure.file}: ${failure.message}\n`);
     }
-    emit(
-      { violations: summary.violations, failures, filesScanned: plan.files.length },
-      options,
-      io,
-    );
+    emit({ violations, failures, filesScanned: plan.files.length }, options, io);
 
     if (failures.length > 0) {
       return EXIT_ERROR;
     }
-    return summary.violations.length > 0 ? EXIT_VIOLATIONS : EXIT_OK;
+    return violations.length > 0 ? EXIT_VIOLATIONS : EXIT_OK;
   } finally {
     parser.dispose();
   }

@@ -20,6 +20,8 @@ interface CheckFlags {
   readonly color: boolean;
   /** Constrained by `.choices()`, so no runtime validation is needed here. */
   readonly format: OutputFormat;
+  /** The `--diff <ref>` argument; absent when the flag was not passed. */
+  readonly diff?: string | undefined;
 }
 
 /** The flags commander hands `fix`'s action. */
@@ -130,8 +132,16 @@ function addCheckCommand(program: Command, io: CliIO, outcome: Outcome): void {
         .choices([...OUTPUT_FORMATS])
         .default(DEFAULT_OUTPUT_FORMAT),
     )
+    // Deliberately no default: `--diff` with no value is a usage error rather
+    // than an implicit `main`, because guessing the base ref wrong reports
+    // either nothing or everything, and both look like the tool working.
+    .option("--diff <ref>", "report only violations on lines changed since <ref>")
     .action(async (target: string, options: CheckFlags) => {
-      outcome.code = await runCheck(target, { colour: options.color, format: options.format }, io);
+      outcome.code = await runCheck(
+        target,
+        { colour: options.color, format: options.format, diffBase: options.diff },
+        io,
+      );
     });
 }
 

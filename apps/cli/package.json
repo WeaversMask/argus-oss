@@ -21,6 +21,7 @@
     "@argus/ast": "workspace:*",
     "@argus/config": "workspace:*",
     "@argus/core": "workspace:*",
+    "@argus/orchestrator": "workspace:*",
     "@argus/rule-engine": "workspace:*",
     "@argus/rules-builtin": "workspace:*",
     "commander": "15.0.0",

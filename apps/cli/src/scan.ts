@@ -4,12 +4,15 @@ import { ConfigLoader } from "@argus/config";
 import type { ConfigError, ResolvedConfig } from "@argus/config";
 import { LANGUAGES, filePath } from "@argus/core";
 import type { AstParserPort, FilePath, RuleActivation, RuleRunInput } from "@argus/core";
+import { extractChangeSet } from "@argus/orchestrator";
+import type { ChangeSet } from "@argus/orchestrator";
 import { Engine } from "@argus/rule-engine";
 import { builtinRules } from "@argus/rules-builtin";
 import { resolveActivations } from "./activations.js";
 import { discoverFiles } from "./discover.js";
 import type { DiscoveredFile } from "./discover.js";
 import { EXIT_ERROR } from "./exit-codes.js";
+import { gitRunner } from "./git.js";
 import type { CliIO } from "./io.js";
 import { findProjectRoot } from "./project-root.js";
 import type { ScanFailure } from "./report.js";
@@ -43,6 +46,18 @@ export interface ScanPlan {
   readonly projectRoot: string;
   readonly files: readonly DiscoveredFile[];
   readonly activations: readonly RuleActivation[];
+  /**
+   * Present only under `--diff`. `files` is already narrowed to these, but a
+   * command that reports positions must narrow its violations to the changed
+   * *lines* as well — a one-line edit still parses the whole file.
+   */
+  readonly changes?: ChangeSet | undefined;
+}
+
+/** Anything that narrows a scan below "every source file under the path". */
+export interface ScanScope {
+  /** `--diff <ref>`: the base ref to compare the working tree against. */
+  readonly diffBase?: string | undefined;
 }
 
 /**
@@ -51,7 +66,50 @@ export interface ScanPlan {
  * instead when the scan cannot proceed — every such case has already been
  * reported to the user.
  */
-export async function planScan(rawPath: string, io: CliIO): Promise<ScanPlan | number> {
+export async function planScan(
+  rawPath: string,
+  io: CliIO,
+  scope: ScanScope = {},
+): Promise<ScanPlan | number> {
+  const context = await resolveContext(rawPath, io);
+  if (typeof context === "number") {
+    return context;
+  }
+  const { config, projectRoot, activations, rootPath } = context;
+
+  const discovery = await discoverFiles(rootPath, {
+    cwd: projectRoot,
+    languages: config?.languages ?? LANGUAGES,
+    ignore: config?.ignore ?? [],
+  });
+  if (discovery.isErr()) {
+    io.stderr(`argus: ${discovery.error}\n`);
+    return EXIT_ERROR;
+  }
+
+  // git runs in the project root, so the change set is keyed the same way
+  // discovery names its files and `Position.file` records them — one relative
+  // vocabulary across the whole scan.
+  const changes = await resolveChanges(scope.diffBase, projectRoot, io);
+  if (typeof changes === "number") {
+    return changes;
+  }
+
+  const files = narrowToChanges(discovery.value, changes, { rawPath, scope }, io);
+  return { projectRoot, files, activations, changes };
+}
+
+/** What a scan resolves before it knows which files exist. */
+interface ScanContext {
+  readonly config: ResolvedConfig | undefined;
+  readonly projectRoot: string;
+  readonly activations: readonly RuleActivation[];
+  /** The absolute path the scan walks — `rawPath` resolved against the cwd. */
+  readonly rootPath: string;
+}
+
+/** Config, rule activations and the root every path is expressed against. */
+async function resolveContext(rawPath: string, io: CliIO): Promise<ScanContext | number> {
   const rootPath = path.resolve(io.cwd, rawPath);
 
   const rootIsDirectory = await isDirectory(rootPath);
@@ -79,25 +137,63 @@ export async function planScan(rawPath: string, io: CliIO): Promise<ScanPlan | n
   // from a subdirectory. See findProjectRoot.
   const projectRoot = await findProjectRoot(searchFrom, io.cwd);
 
-  const discovery = await discoverFiles(rootPath, {
-    cwd: projectRoot,
-    languages: config?.languages ?? LANGUAGES,
-    ignore: config?.ignore ?? [],
-  });
-  if (discovery.isErr()) {
-    io.stderr(`argus: ${discovery.error}\n`);
+  return { config, projectRoot, activations, rootPath };
+}
+
+/**
+ * The discovered files a scan will actually read, narrowed to the change set
+ * under `--diff`, with an empty result explained on stderr.
+ *
+ * An empty list is not an error: a path with nothing scannable under it is a
+ * successful scan of zero files. The plan continues with it rather than
+ * returning early, so stdout still carries a report — a `--format json`
+ * consumer must never receive an empty stream from a scan that succeeded.
+ */
+function narrowToChanges(
+  discovered: readonly DiscoveredFile[],
+  changes: ChangeSet | undefined,
+  invocation: { readonly rawPath: string; readonly scope: ScanScope },
+  io: CliIO,
+): readonly DiscoveredFile[] {
+  const { rawPath, scope } = invocation;
+  const files =
+    changes === undefined
+      ? discovered
+      : discovered.filter((file) => changes.has(file.relativePath));
+
+  if (files.length === 0) {
+    io.stderr(
+      scope.diffBase === undefined
+        ? `argus: no matching source files under ${rawPath}\n`
+        : `argus: no source files under ${rawPath} changed since ${scope.diffBase}\n`,
+    );
+  }
+  return files;
+}
+
+/**
+ * The change set for `--diff <ref>`, `undefined` when the flag was not
+ * passed, or an exit code once the failure has been reported.
+ *
+ * Every git failure is fatal rather than a fall-back to a full scan: a user
+ * who asked for a diff and silently received all 152 files would read the
+ * extra findings as a regression, and one who received *none* would read a
+ * false green.
+ */
+async function resolveChanges(
+  diffBase: string | undefined,
+  projectRoot: string,
+  io: CliIO,
+): Promise<ChangeSet | number | undefined> {
+  if (diffBase === undefined) {
+    return undefined;
+  }
+  const extracted = await extractChangeSet(diffBase, gitRunner(projectRoot));
+  if (extracted.isErr()) {
+    io.stderr(`argus: --diff ${diffBase}: ${extracted.error}\n`);
     return EXIT_ERROR;
   }
-  if (discovery.value.length === 0) {
-    // Not an error: a path with nothing scannable under it is a successful
-    // scan of zero files. The plan continues with an empty file list rather
-    // than returning early, so stdout still carries a report — a `--format
-    // json` consumer must never receive an empty stream from a scan that
-    // succeeded.
-    io.stderr(`argus: no matching source files under ${rawPath}\n`);
-  }
-
-  return { projectRoot, files: discovery.value, activations };
+  return extracted.value;
 }
 
 /** `true`/`false` for an existing path, `undefined` when it does not exist. */
