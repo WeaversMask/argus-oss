@@ -10,7 +10,7 @@
 
 ## Context
 
-The licensing arc (P0-10 policy → P0-11 notices/docs → P0-12 enforcement) is **closed** pending the merge of [#17](https://github.com/WeaversMask/argus/pull/17). **Next: P0-13 — CI supply-chain hardening (config-only)** — it edits `ci.yml` like P0-12 did, so branch from `main` only **after #17 merges** (last leg of the P0-07 → P0-12 → P0-13 serialization). Spec in [phase-00 §P0-13](./plan/phases/phase-00-foundation.md); it needs no new dependencies, so the ADR-0003 dance doesn't apply.
+The licensing arc (P0-10 policy → P0-11 notices/docs → P0-12 enforcement) is **closed** pending the merge of [#17](https://github.com/WeaversMask/argus/pull/17). **Next: P0-13 — CI supply-chain hardening (config-only)** — it edits `ci.yml` like P0-12 did, so branch from `main` only **after #17 merges** (last leg of the P0-07 → P0-12 → P0-13 serialization). Spec in [phase-00 §P0-13](../plan/phases/phase-00-foundation.md); it needs no new dependencies, so the ADR-0003 dance doesn't apply.
 
 **One decision rides on the #17 merge:** license-checker's own transitives include two SPDX-legal-team data packages under attribution licenses — `spdx-exceptions@2.5.0` (CC-BY-3.0) and `spdx-ranges@2.1.1` ((MIT AND CC-BY-3.0)). They are named, license-string-pinned exceptions in `scripts/check-licenses.mjs` (same mechanism as `lightningcss*`); the PR flags them prominently — **merging #17 is the maintainer sign-off**. If the maintainer objects instead, that reopens the locked "license-checker powers the gate" decision → escalate, don't improvise.
 
@@ -26,7 +26,7 @@ The licensing arc (P0-10 policy → P0-11 notices/docs → P0-12 enforcement) is
 ## What I Did NOT Do (Deferred)
 
 - **P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **Notices freshness check** (recommended fold-in since P0-11): deferred again — the platform-variance gotcha ([archived P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3) makes a naive regenerate-and-diff false-positive on Linux CI. Recipe if picked up: compare `name@version` sets (lockfile vs `THIRD-PARTY-NOTICES`), normalizing away platform-suffix packages (`*-darwin-*`, `*-linux-*`, `*-win32-*`); don't diff file bytes.
+- **Notices freshness check** (recommended fold-in since P0-11): deferred again — the platform-variance gotcha ([archived P0-11 handover](./p0-11-third-party-notices-handover.md) §Gotcha 3) makes a naive regenerate-and-diff false-positive on Linux CI. Recipe if picked up: compare `name@version` sets (lockfile vs `THIRD-PARTY-NOTICES`), normalizing away platform-suffix packages (`*-darwin-*`, `*-linux-*`, `*-win32-*`); don't diff file bytes.
 - **No tests for `scripts/check-licenses.mjs`** — consistent with the P0-11 generator precedent (scripts/ sit outside vitest coverage; the documented negative tests are the verification). If scripts grow more logic, revisit.
 - **Maintainer decisions still open:** D-1 (remote cache — P0-13's `remoteCache.signature` step touches this, see spec); `LICENSE` copyright placeholder; `nvm alias default 22`.
 
@@ -54,7 +54,7 @@ The licensing arc (P0-10 policy → P0-11 notices/docs → P0-12 enforcement) is
 
 Pick up **P0-13 — CI supply-chain hardening** (branch after #17 merges; config-only, effort S):
 
-1. Read [phase-00 §P0-13](./plan/phases/phase-00-foundation.md). Outputs: every `uses:` SHA-pinned (+version comment), `.github/dependabot.yml` (github-actions + npm, grouped minor/patch, cooldown ≈3 days), concrete Node version in CI (today `node-version-file: package.json` resolves a floating `>=` range — pin it), SHA256 verification in `scripts/install-gitleaks.sh`, `remoteCache.signature: true` in `turbo.json`.
+1. Read [phase-00 §P0-13](../plan/phases/phase-00-foundation.md). Outputs: every `uses:` SHA-pinned (+version comment), `.github/dependabot.yml` (github-actions + npm, grouped minor/patch, cooldown ≈3 days), concrete Node version in CI (today `node-version-file: package.json` resolves a floating `>=` range — pin it), SHA256 verification in `scripts/install-gitleaks.sh`, `remoteCache.signature: true` in `turbo.json`.
 2. Resolve SHAs from the upstream repos yourself (don't trust marketplace listings); the tampered-checksum negative test for install-gitleaks.sh must be documented in the PR.
 3. Acceptance: no mutable action tags anywhere, CI green, dependabot config validates.
 4. Tracker + handover rotation, review packet, PR.

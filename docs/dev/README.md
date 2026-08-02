@@ -20,7 +20,8 @@ One page per repeatable extension point. Each is a placeholder until the first i
 | ---------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------- |
 | [`adding-a-language.md`](./adding-a-language.md)                 | supported source language (tree-sitter grammar + wiring)  | ✅ P1-03 (`@argus/ast`)                                                    |
 | [`adding-a-rule.md`](./adding-a-rule.md)                         | rule module against the engine                            | 🟡 P1-04 (module contract) · fixture conventions with first rule (Phase 2) |
-| `adding-a-tool-adapter.md`                                       | external-tool adapter (behind the `ToolAdapter` boundary) | first adapter (Phase 4)                                                    |
+| [`adding-an-adapter.md`](./adding-an-adapter.md)                 | `packages/adapters/*` member behind a core port           | ✅ P2-06 (`@argus/adapters-prettier`, the first)                           |
+| `adding-a-tool-adapter.md`                                       | external-tool adapter (behind the `ToolAdapter` boundary) | first adapter (Phase 4) — builds on `adding-an-adapter.md`                 |
 | [`adding-a-report-formatter.md`](./adding-a-report-formatter.md) | output format for `argus check --format`                  | ✅ P2-04 (`--format json`) · widens to `reports/formatters/` in Phase 8    |
 | `adding-a-persistence-backend.md`                                | storage backend behind the repository ports               | first backend (Phase 5)                                                    |
 | [`testing.md`](./testing.md)                                     | fakes, builders, property-based testing (fast-check)      | 🟡 P1-06 (property pattern) · expands from now                             |

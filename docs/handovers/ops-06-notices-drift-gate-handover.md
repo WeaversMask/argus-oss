@@ -12,7 +12,7 @@
 
 Found during the **DOC-02 independent review**: the README's license receipt claimed THIRD-PARTY-NOTICES was "regenerated and diffed on every change." It was not. The `license` job ran only `pnpm license-check`; neither husky hook ran `pnpm notices`; the only reference anywhere was the manual root script. DOC-02 removed the false claim. **This task makes the claim true instead**, so the several tracker rows that assert "notices regenerated, zero diff" (P2-06, the dogfooding row, P2-04, P2-02, P1-04, P1-03) finally sit on a mechanism.
 
-This gap was known and deferred twice — the [P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3 flagged platform variance, and P0-12 deferred the check again citing it. It is closed now.
+This gap was known and deferred twice — the [P0-11 handover](./p0-11-third-party-notices-handover.md) §Gotcha 3 flagged platform variance, and P0-12 deferred the check again citing it. It is closed now.
 
 ## What I Did
 

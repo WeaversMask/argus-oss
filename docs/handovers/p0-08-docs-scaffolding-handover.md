@@ -10,9 +10,9 @@
 
 ## Context
 
-P0-08 shipped as [#30](https://github.com/WeaversMask/argus/pull/30) (docs-only, light-tier review per OPS-02). **Next: P0-09 — Changesets release workflow — the LAST P0 task.** Its spec is two lines in [phase-00 §P0-09](./plan/phases/phase-00-foundation.md); on completion the **phase-transition protocol applies** (exit-criteria check against the phase file, phase-completion handover, tracker phase flip to P1). Also open: sibling maintenance PR [#29](https://github.com/WeaversMask/argus/pull/29) (notices regen after #25) — trivial, merge anytime.
+P0-08 shipped as [#30](https://github.com/WeaversMask/argus/pull/30) (docs-only, light-tier review per OPS-02). **Next: P0-09 — Changesets release workflow — the LAST P0 task.** Its spec is two lines in [phase-00 §P0-09](../plan/phases/phase-00-foundation.md); on completion the **phase-transition protocol applies** (exit-criteria check against the phase file, phase-completion handover, tracker phase flip to P1). Also open: sibling maintenance PR [#29](https://github.com/WeaversMask/argus/pull/29) (notices regen after #25) — trivial, merge anytime.
 
-> **Session addendum (2026-07-04, post-P0-08 — SEC-02, [argus-oss#8](https://github.com/WeaversMask/argus-oss/pull/8)):** the maintainer's personal email was scrubbed from git history (**every commit SHA before `53cd95f` changed**) and **all work migrated to `WeaversMask/argus-oss` — this repo**: local origin re-pointed, branch protection (6 required checks, required PRs, no bypass) + Dependabot alerts/updates replicated, and Dependabot re-opened its 7 version bumps clean here (#1–#7, maintainer parking them is fine). The retired `WeaversMask/argus` repo is a **frozen pre-scrub archive** — agents never push there, never make it public; going public = maintainer flips **this** repo's visibility, **never agentic** ([go-public-runbook](./go-public-runbook.md) + CLAUDE.md). #29/#30 merged pre-migration. Backup: `~/argus-pre-scrub-backup.bundle` (maintainer-owned).
+> **Session addendum (2026-07-04, post-P0-08 — SEC-02, [argus-oss#8](https://github.com/WeaversMask/argus-oss/pull/8)):** the maintainer's personal email was scrubbed from git history (**every commit SHA before `53cd95f` changed**) and **all work migrated to `WeaversMask/argus-oss` — this repo**: local origin re-pointed, branch protection (6 required checks, required PRs, no bypass) + Dependabot alerts/updates replicated, and Dependabot re-opened its 7 version bumps clean here (#1–#7, maintainer parking them is fine). The retired `WeaversMask/argus` repo is a **frozen pre-scrub archive** — agents never push there, never make it public; going public = maintainer flips **this** repo's visibility, **never agentic** ([go-public-runbook](../go-public-runbook.md) + CLAUDE.md). #29/#30 merged pre-migration. Backup: `~/argus-pre-scrub-backup.bundle` (maintainer-owned).
 
 ## What I Did
 
@@ -45,7 +45,7 @@ P0-08 shipped as [#30](https://github.com/WeaversMask/argus/pull/30) (docs-only,
 
 Pick up **P0-09** (branch from `main` after #30 — and ideally #29 — merge):
 
-1. Read [phase-00 §P0-09](./plan/phases/phase-00-foundation.md) and the phase exit criteria at the bottom of the phase file — P0-09's PR should leave the tree ready for the phase flip.
+1. Read [phase-00 §P0-09](../plan/phases/phase-00-foundation.md) and the phase exit criteria at the bottom of the phase file — P0-09's PR should leave the tree ready for the phase flip.
 2. `@changesets/cli` through the ADR-0003 dance; `.changeset/config.json`; release workflow SHA-pinned; `pnpm changeset` interactive-prompt acceptance verified locally.
 3. On completion: **phase-transition protocol** — exit-criteria verification, phase-completion handover (more comprehensive than a task handover), tracker Current-phase flip to P1, archive phase notes.
 4. Full-tier review (workflow + dependency = security-relevant), PR.

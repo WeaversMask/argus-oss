@@ -10,7 +10,7 @@
 
 ## Context
 
-Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](https://github.com/WeaversMask/argus/pull/18) — risk-tiered review passes, maintainer-requested token-cost reduction) and **P0-13** ([#19](https://github.com/WeaversMask/argus/pull/19) — this task). The P0-07 → P0-12 → P0-13 `ci.yml` serialization is complete; nothing in Up Next touches `ci.yml` next, so no branch-ordering constraint beyond waiting for #18/#19 to merge before rebasing doc edits. **Next: P0-06 — Docker development environment** (spec in [phase-00 §P0-06](./plan/phases/phase-00-foundation.md)); remember ADR-0002 §D — Docker is a **recipe**, never a published/redistributed image.
+Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](https://github.com/WeaversMask/argus/pull/18) — risk-tiered review passes, maintainer-requested token-cost reduction) and **P0-13** ([#19](https://github.com/WeaversMask/argus/pull/19) — this task). The P0-07 → P0-12 → P0-13 `ci.yml` serialization is complete; nothing in Up Next touches `ci.yml` next, so no branch-ordering constraint beyond waiting for #18/#19 to merge before rebasing doc edits. **Next: P0-06 — Docker development environment** (spec in [phase-00 §P0-06](../plan/phases/phase-00-foundation.md)); remember ADR-0002 §D — Docker is a **recipe**, never a published/redistributed image.
 
 ## What I Did
 
@@ -23,7 +23,7 @@ Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](
 - **P0-06, P0-08, P0-09** — unstarted, in Up Next order.
 - **`.nvmrc` left floating at `22`** (dev ergonomics; hooks have the floor guard). The concrete pin is CI-only. If the maintainer wants dev pinned too, that's a one-line change + note.
 - **Dependabot config validates server-side only** — after #19 merges, check Insights → Dependency graph → Dependabot for config errors, and that the first update PRs respect the 3-day cooldown (acceptance item verifiable only post-merge).
-- **Notices freshness check** — still deferred (recipe in [P0-12 handover](./handovers/p0-12-license-gate-handover.md)).
+- **Notices freshness check** — still deferred (recipe in [P0-12 handover](./p0-12-license-gate-handover.md)).
 - **Maintainer decisions open:** D-1 (remote cache — `signature: true` + secrets are ready when decided); `LICENSE` copyright placeholder; `nvm alias default 22`.
 
 ## Gotchas & Surprises
@@ -32,7 +32,7 @@ Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](
 2. **`NODE_VERSION` and `engines.node` are now two places** — bump together (comment in `ci.yml` says so). setup-node reads the env via `${{ env.NODE_VERSION }}`.
 3. **gitleaks bump procedure changed:** changing `GITLEAKS_VERSION` now also requires refreshing the four embedded SHA-256 values from the new release's `gitleaks_<ver>_checksums.txt` (URL pattern in the script comment). The script will hard-fail if you forget — that's the point.
 4. **pnpm 11 under nvm:** bare `pnpm` in fresh shells needs `source ~/.nvm/nvm.sh && nvm use --silent` first (nvm default is still Node 20).
-5. **P0-12 gotchas remain live** (license-checker sees only direct deps under pnpm; exceptions are license-string-pinned): [archived handover](./handovers/p0-12-license-gate-handover.md).
+5. **P0-12 gotchas remain live** (license-checker sees only direct deps under pnpm; exceptions are license-string-pinned): [archived handover](./p0-12-license-gate-handover.md).
 
 ## State of the System
 
@@ -45,7 +45,7 @@ Two PRs opened this session on top of the merged P0-12 (#17): **OPS-02** ([#18](
 
 Pick up **P0-06 — Docker development environment** (branch from `main` after #18/#19 merge — #19 owns the tracker rows):
 
-1. Read [phase-00 §P0-06](./plan/phases/phase-00-foundation.md) + ADR-0002 §D (recipe, not redistribution — no published image, no bundled engines).
+1. Read [phase-00 §P0-06](../plan/phases/phase-00-foundation.md) + ADR-0002 §D (recipe, not redistribution — no published image, no bundled engines).
 2. Respect the supply-chain posture: pin base images by digest (matches the P0-13 SHA-pinning spirit), no curl-pipe-sh installs.
 3. Tracker + handover rotation, review pass per the new OPS-02 tiering, PR.
 

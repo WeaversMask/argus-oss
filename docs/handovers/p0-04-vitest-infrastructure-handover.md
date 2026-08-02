@@ -81,8 +81,8 @@ PRs in this session:
 
 Pick up **P0-05 — GitHub Actions CI pipeline** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-05 section
-2. Look at the existing [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — it has four jobs (`lint`, `commitlint`, `secret-scan`); extend with `typecheck`, `test`, and `build`. Reuse the same `pnpm/action-setup@v4` + `setup-node@v4` + `node-version-file: package.json` boilerplate and the `ARGUS_SKIP_GITLEAKS_INSTALL=1` + `HUSKY=0` env that the existing jobs already use
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — P0-05 section
+2. Look at the existing [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — it has four jobs (`lint`, `commitlint`, `secret-scan`); extend with `typecheck`, `test`, and `build`. Reuse the same `pnpm/action-setup@v4` + `setup-node@v4` + `node-version-file: package.json` boilerplate and the `ARGUS_SKIP_GITLEAKS_INSTALL=1` + `HUSKY=0` env that the existing jobs already use
 3. Wire Turbo remote cache. Open Decision: Vercel Remote Cache (hosted, one click via `TURBO_TOKEN` + `TURBO_TEAM` secrets) vs self-hosted `turbo-cache` (Docker image, more setup, no vendor lock-in). Both work — Vercel is faster to ship. File this as an Open Decision in IMPLEMENTATION.md and pick one; if you defer, also defer the cache wiring to a follow-up
 4. Decide on a coverage gate. Recommend running `pnpm test` (aggregated) with `--coverage` and uploading `coverage/lcov.info` to a service (Codecov, Coveralls) OR using `vitest-coverage-report-action` to comment on PRs. Avoid blocking on diff-coverage tooling — the thresholds in vitest.config.ts are already enforced
 5. Add a `build` job that runs `pnpm build` (Turbo no-op today but real once packages ship source)

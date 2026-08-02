@@ -10,7 +10,7 @@
 
 ## Context
 
-Phase 0 is done. Exit criteria verified live this session: fresh `pnpm install` green, `pnpm test`/`lint`/`typecheck`/`build` all green, PR flow with 8 CI checks works (proven by ~30 PRs), and P1 needs no further setup. **Next: load [phase-01-domain-core.md](./plan/phases/phase-01-domain-core.md)** (deliberately not summarized here — load-on-pickup rule) and take its first unblocked task. Branch from `main` after #9 merges — #9 owns the tracker phase-flip.
+Phase 0 is done. Exit criteria verified live this session: fresh `pnpm install` green, `pnpm test`/`lint`/`typecheck`/`build` all green, PR flow with 8 CI checks works (proven by ~30 PRs), and P1 needs no further setup. **Next: load [phase-01-domain-core.md](../plan/phases/phase-01-domain-core.md)** (deliberately not summarized here — load-on-pickup rule) and take its first unblocked task. Branch from `main` after #9 merges — #9 owns the tracker phase-flip.
 
 ## What the foundation gives you (inventory, one line each)
 
@@ -26,7 +26,7 @@ Phase 0 is done. Exit criteria verified live this session: fresh `pnpm install` 
 
 ## Identity & repo topology (read before anything public-facing)
 
-Work lives in **`WeaversMask/argus-oss`** (may be renamed). The retired `WeaversMask/argus` is a frozen pre-scrub archive — **never push there, never make it public**; going public = maintainer flips THIS repo, **never agentic** ([runbook](./go-public-runbook.md) + CLAUDE.md). Repo-local git identity = WeaversMask noreply; never commit with the global email.
+Work lives in **`WeaversMask/argus-oss`** (may be renamed). The retired `WeaversMask/argus` is a frozen pre-scrub archive — **never push there, never make it public**; going public = maintainer flips THIS repo, **never agentic** ([runbook](../go-public-runbook.md) + CLAUDE.md). Repo-local git identity = WeaversMask noreply; never commit with the global email.
 
 ## Maintainer admin items (consolidated, pending)
 

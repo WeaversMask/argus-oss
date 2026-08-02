@@ -68,8 +68,8 @@ PRs merged in this session:
 
 Pick up **P0-03 — ESLint + Prettier + commitlint + gitleaks** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — specifically the P0-03 section
-2. Read [`docs/SECURITY-NOTES.md`](./SECURITY-NOTES.md) end to end. Pay attention to §"Test Fixtures with Secret-Like Content" — the gitleaks allowlist must cover `tests/fixtures/secret-detection/`
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — specifically the P0-03 section
+2. Read [`docs/SECURITY-NOTES.md`](../SECURITY-NOTES.md) end to end. Pay attention to §"Test Fixtures with Secret-Like Content" — the gitleaks allowlist must cover `tests/fixtures/secret-detection/`
 3. Install Husky v9+ (modern setup — older guides don't apply, per phase notes)
 4. Choose ESLint flat config (`eslint.config.js`) over the legacy `.eslintrc`. Wire `@typescript-eslint`, `@typescript-eslint/no-explicit-any` (P0-02 acceptance hand-off), `@typescript-eslint/consistent-type-imports` (so editors don't fight `verbatimModuleSyntax`), and a Prettier-compat layer (`eslint-config-prettier`)
 5. Wire commitlint with `@commitlint/config-conventional` matching the commit types listed in `00-principles.md` (`feat`, `fix`, `chore`, `refactor`, `docs`, `test`)

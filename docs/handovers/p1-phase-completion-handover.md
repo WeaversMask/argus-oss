@@ -13,7 +13,7 @@
 1. **Domain model complete and frozen** ✓ — entities/value objects/errors stable since P1-01a; P1-06 added services without touching the model.
 2. **Rule engine handles 100 fixture rules × 10 files without errors** ✓ — Runner stress test, `packages/rule-engine/tests/runner.test.ts` (20k violations).
 3. **All ports have in-memory fakes** ✓ — ten fakes in `@argus/testing` (P1-02).
-4. **Phase handover with glossary, rule-authoring guide, tree-sitter gotchas** ✓ — glossary below; rule authoring: [`dev/adding-a-rule.md`](./dev/adding-a-rule.md); tree-sitter version pinning: [`dev/adding-a-language.md`](./dev/adding-a-language.md) + [ADR-0005](./adr/0005-ast-adapter-wasm-tree-sitter.md) + `@argus/ast` README (grammar ABI window, smoke-test canary).
+4. **Phase handover with glossary, rule-authoring guide, tree-sitter gotchas** ✓ — glossary below; rule authoring: [`dev/adding-a-rule.md`](../dev/adding-a-rule.md); tree-sitter version pinning: [`dev/adding-a-language.md`](../dev/adding-a-language.md) + [ADR-0005](../adr/0005-ast-adapter-wasm-tree-sitter.md) + `@argus/ast` README (grammar ABI window, smoke-test canary).
 
 ## Domain glossary (ubiquitous language — use these words exactly)
 
@@ -31,7 +31,7 @@
 
 ## What P2 needs to know
 
-1. **P2-01 rules are `RuleModule`s** — recipe exists ([`dev/adding-a-rule.md`](./dev/adding-a-rule.md)); sync-only listeners, anonymous node types dispatch, `context.report({message, position})`. TDD: ≥5 valid + 5 invalid fixtures per rule **before** implementation. Property tests where the rule states a law.
+1. **P2-01 rules are `RuleModule`s** — recipe exists ([`dev/adding-a-rule.md`](../dev/adding-a-rule.md)); sync-only listeners, anonymous node types dispatch, `context.report({message, position})`. TDD: ≥5 valid + 5 invalid fixtures per rule **before** implementation. Property tests where the rule states a law.
 2. **Wiring order for `check`:** config (`ConfigLoader.search`) → parse (`TreeSitterAstParser`, **one instance per process** — grammar wasm is unfreeable) → engine per file → `Runner` aggregates → `matchingSuppression` filters (inject `now`) → `classifyLayer`/`scoreConformance` for reporting. Every piece exists; P2 composes them.
 3. **`ignore` globs:** use core's `matchGlob` (exported) — don't add a glob dependency.
 4. **Deferred into P2:** `suppressions:` config section (needs id/`createdAt` design — see P1-05 packet notes); orchestrator decides what config `ignore`/`languages` mean at scan time.

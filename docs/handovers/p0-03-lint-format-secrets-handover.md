@@ -80,8 +80,8 @@ PRs merged in this session:
 
 Pick up **P0-04 — Vitest test infrastructure** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-04 section
-2. Add `packages/testing/` as the first **persistent** workspace package. It's the testing infrastructure home — `packages/testing` per [`docs/plan/01-repo-structure.md`](./plan/01-repo-structure.md). Give it `package.json` (name `@argus/testing`, `type: "module"`, `exports` map), `tsconfig.json` extending the base, and a `src/` with at least `index.ts`
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — P0-04 section
+2. Add `packages/testing/` as the first **persistent** workspace package. It's the testing infrastructure home — `packages/testing` per [`docs/plan/01-repo-structure.md`](../plan/01-repo-structure.md). Give it `package.json` (name `@argus/testing`, `type: "module"`, `exports` map), `tsconfig.json` extending the base, and a `src/` with at least `index.ts`
 3. Install `vitest` + `@vitest/coverage-v8`. Vitest is on 3.x as of mid-2026 — verify `pnpm view vitest dist-tags`
 4. Create `packages/testing/src/vitest.config.ts` exporting a shared config factory. Pattern: `defineConfig({ coverage: { thresholds: { lines: 85, branches: 80 } } })`. Each downstream package imports and extends
 5. Wire a `test` script in `packages/testing/package.json` that runs `vitest run`

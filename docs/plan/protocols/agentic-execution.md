@@ -92,13 +92,22 @@ Before marking a task complete:
 
 After every significant task (and **always** at phase boundaries):
 
-1. **Copy** current `HANDOVER.md` to `docs/handovers/<phase>-<task-id>-handover.md` (snapshot)
+1. **Rotate** the current `HANDOVER.md` into the archive — **never copy it by hand:**
+
+   ```bash
+   pnpm handover:rotate <phase>-<task-id>-<slug>
+   ```
+
 2. **Rewrite** `HANDOVER.md` for the next picker using the template
 3. **Commit** handover changes in the same PR as the task
 
 This ensures continuity even when sessions are short or agents change.
 
+**Why the script, and not `cp`.** `HANDOVER.md` lives at `docs/`, so every relative link in it is written relative to `docs/`. The archive is one level deeper, so a plain copy breaks all of them on arrival — `./plan/…` starts meaning `docs/handovers/plan/…`. Nobody clicks links in an archive, so this is invisible: the Phase 2 documentation audit measured **100 broken links across 28 snapshots**, one cause, accumulated over months ([`../../audits/phase-02-doc-audit.md`](../../audits/phase-02-doc-audit.md), Finding 5). [`rotate-handover.mjs`](../../../scripts/rotate-handover.mjs) re-resolves the links as it copies, refuses to overwrite an existing snapshot, and fails closed if anything in the archive does not resolve afterwards. Verify the archive at any time with `pnpm handover:check` — the same check the per-phase audit runs, and a step in CI's `lint` job since DOC-06, so a hand-rolled `cp` fails loudly instead of silently.
+
 **Budget: ~100 lines.** The next picker pays for every line each session — trim by moving detail into the archived snapshot, not by omitting gotchas.
+
+**Snapshots are history, not live documents.** Once archived, a handover is edited only to keep its links resolving. Re-pointing a link at whatever replaced its target rewrites the past into something that was never true — when a target is genuinely gone (P2-02's `src/format.ts`, deleted by P2-03), drop the link and keep the prose.
 
 ## Phase Transitions
 

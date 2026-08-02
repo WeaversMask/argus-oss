@@ -1,6 +1,6 @@
 # Handover — Initial
 
-> **Active handover document.** Rewrite this for the next picker on every task completion. Archive the old version to [`handovers/`](./handovers/) before overwriting.
+> **Active handover document.** Rewrite this for the next picker on every task completion. Archive the old version to [`handovers/`](./) before overwriting.
 
 **From:** _project initialisation_
 **To:** _first agent to pick up P0-01_
@@ -12,9 +12,9 @@
 
 ## Context
 
-The project has just been initialised. The documentation tree is in place but no code exists yet. The first agent should pick up **P0-01 (initialise monorepo)** from [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).
+The project has just been initialised. The documentation tree is in place but no code exists yet. The first agent should pick up **P0-01 (initialise monorepo)** from [`plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md).
 
-Engineering principles are in [`plan/00-principles.md`](./plan/00-principles.md) — read them before touching anything. The full agentic workflow is in [`plan/protocols/agentic-execution.md`](./plan/protocols/agentic-execution.md).
+Engineering principles are in [`plan/00-principles.md`](../plan/00-principles.md) — read them before touching anything. The full agentic workflow is in [`plan/protocols/agentic-execution.md`](../plan/protocols/agentic-execution.md).
 
 ---
 
@@ -48,9 +48,9 @@ _None yet._
 
 ## Recommended Next Steps
 
-1. Read [`plan/00-principles.md`](./plan/00-principles.md)
-2. Read [`plan/protocols/agentic-execution.md`](./plan/protocols/agentic-execution.md)
-3. Open [`plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — this is the only phase file you need for now
+1. Read [`plan/00-principles.md`](../plan/00-principles.md)
+2. Read [`plan/protocols/agentic-execution.md`](../plan/protocols/agentic-execution.md)
+3. Open [`plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — this is the only phase file you need for now
 4. Pick up **P0-01** and follow the agentic workflow
 
 ---
