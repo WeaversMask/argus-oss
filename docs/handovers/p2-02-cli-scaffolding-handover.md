@@ -12,13 +12,13 @@
 
 **Argus runs now.** `node apps/cli/bin/argus.mjs check .` walks a real tree, parses it, runs the ten P2-01 rules, prints findings, and exits 0/1/2. Everything before this was libraries; this is the first task whose output a human can point at a codebase and use — and the first that could dogfood, which it did (see below).
 
-`apps/cli` is the first `apps/*` member. It owns **no analysis logic**: it wires `@argus/config` → `@argus/ast` → `@argus/rule-engine` + `@argus/rules-builtin` and maps outcomes to exit codes. Read [`apps/cli/README.md`](../apps/cli/README.md) for internals and [`docs/guide/cli.md`](./guide/cli.md) for the user-facing surface.
+`apps/cli` is the first `apps/*` member. It owns **no analysis logic**: it wires `@argus/config` → `@argus/ast` → `@argus/rule-engine` + `@argus/rules-builtin` and maps outcomes to exit codes. Read [`apps/cli/README.md`](../../apps/cli/README.md) for internals and [`docs/guide/cli.md`](../guide/cli.md) for the user-facing surface.
 
 ## The one decision that shapes everything here: how the CLI runs
 
 The workspace is **buildless** — packages export raw `.ts` and import internals with `.js` bundler specifiers. So `node anything.ts` cannot load a single `@argus/*` module: Node neither remaps `.js`→`.ts` **nor** accepts the domain's TS parameter properties (`constructor(private readonly x)`) in strip-only mode. Both were verified empirically, not assumed.
 
-**The maintainer ruled: zero-dependency hook** (over adding `tsx`, over a bundler). So [`bin/argus.mjs`](../apps/cli/bin/argus.mjs) re-execs node with `--experimental-transform-types --disable-warning=ExperimentalWarning --import loader/register.mjs`, where [`loader/hooks.mjs`](../apps/cli/loader/hooks.mjs) is a ~15-line resolve hook redirecting relative `.js` to its `.ts` sibling. Exit code and stdio pass through verbatim.
+**The maintainer ruled: zero-dependency hook** (over adding `tsx`, over a bundler). So [`bin/argus.mjs`](../../apps/cli/bin/argus.mjs) re-execs node with `--experimental-transform-types --disable-warning=ExperimentalWarning --import loader/register.mjs`, where [`loader/hooks.mjs`](../../apps/cli/loader/hooks.mjs) is a ~15-line resolve hook redirecting relative `.js` to its `.ts` sibling. Exit code and stdio pass through verbatim.
 
 **Consequences you inherit:**
 
@@ -28,8 +28,8 @@ The workspace is **buildless** — packages export raw `.ts` and import internal
 
 ## What P2-03/P2-04 (the next tasks) need to know
 
-1. **`run(argv, io)` in [`src/main.ts`](../apps/cli/src/main.ts) is the seam.** Every command is a pure function of args + an injected `CliIO` (`stdout`/`stderr`/`cwd`). Add a flag there; test it with `captureIO` from [`tests/support.ts`](../apps/cli/tests/support.ts). No test spawns a process or patches a global stream — keep it that way.
-2. **[`src/format.ts`](../apps/cli/src/format.ts) is a deliberate placeholder.** Plain text, no colour, no symbols — it exists so the exit-code contract is observable. P2-03 should replace/extend it (`NO_COLOR`, severity colours) and P2-04 add `formatters/json.ts`. `ScanReport` (`violations` + `failures` + `filesScanned`) is the shape to format; keep failures in it — the summary must keep telling the truth about unanalysed files.
+1. **`run(argv, io)` in [`src/main.ts`](../../apps/cli/src/main.ts) is the seam.** Every command is a pure function of args + an injected `CliIO` (`stdout`/`stderr`/`cwd`). Add a flag there; test it with `captureIO` from [`tests/support.ts`](../../apps/cli/tests/support.ts). No test spawns a process or patches a global stream — keep it that way.
+2. **`src/format.ts` is a deliberate placeholder.** Plain text, no colour, no symbols — it exists so the exit-code contract is observable. P2-03 should replace/extend it (`NO_COLOR`, severity colours) and P2-04 add `formatters/json.ts`. `ScanReport` (`violations` + `failures` + `filesScanned`) is the shape to format; keep failures in it — the summary must keep telling the truth about unanalysed files.
 3. **P2-04 names `@argus/api-contracts` for its zod schema. That package does not exist.** Creating it is part of P2-04 — run the full new-package checklist (below), and note `zod` is already vetted (P1-05).
 4. **commander is intercepted, not trusted to exit.** `exitOverride()` + `configureOutput` route everything through `CliIO`; help/version map to 0, other `CommanderError`s to 2. Bare `argus` calls `outputHelp()` explicitly — a commander _default action_ makes an unknown command report "too many arguments" instead, which is why it isn't one.
 
@@ -44,7 +44,7 @@ This is the phase's headline capability, so here is the real data rather than a 
 
 ## The review caught a real bug — worth knowing what it was
 
-The independent review (Sonnet, cross-family) returned **REQUEST CHANGES** on a HIGH finding, and it was right. `ignore:` globs were matched against paths relative to the **invocation directory**, but `ConfigLoader.search` walks _upward_ — so a root config saying `ignore: ["packages/*/generated/**"]` silently stopped excluding anything the moment you ran `argus` from inside `packages/foo`. Reproduced, then fixed by [`src/project-root.ts`](../apps/cli/src/project-root.ts): the nearest `argus.yaml` above the scan path anchors both glob matching and displayed paths, so a scan means the same thing from any directory. Two regression tests cover it.
+The independent review (Sonnet, cross-family) returned **REQUEST CHANGES** on a HIGH finding, and it was right. `ignore:` globs were matched against paths relative to the **invocation directory**, but `ConfigLoader.search` walks _upward_ — so a root config saying `ignore: ["packages/*/generated/**"]` silently stopped excluding anything the moment you ran `argus` from inside `packages/foo`. Reproduced, then fixed by [`src/project-root.ts`](../../apps/cli/src/project-root.ts): the nearest `argus.yaml` above the scan path anchors both glob matching and displayed paths, so a scan means the same thing from any directory. Two regression tests cover it.
 
 **The reusable lesson:** `@argus/config` returns a _merged_ config and never says which file it came from. Any consumer needing config-relative semantics has to re-derive the root (this one mirrors the walk via the public `CONFIG_FILE_NAMES`). If a second consumer needs it, that's the signal to widen the config API instead of duplicating the walk.
 

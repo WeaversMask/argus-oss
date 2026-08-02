@@ -10,7 +10,7 @@
 
 ## Context
 
-The maintainer ruled **option (a) on all of D-2/D-3/D-4** in session (2026-07-06) — recorded in [ADR-0004](./adr/0004-domain-model-boundary-semantics.md), implemented and tracker-flipped in [#11](https://github.com/WeaversMask/argus-oss/pull/11):
+The maintainer ruled **option (a) on all of D-2/D-3/D-4** in session (2026-07-06) — recorded in [ADR-0004](../adr/0004-domain-model-boundary-semantics.md), implemented and tracker-flipped in [#11](https://github.com/WeaversMask/argus-oss/pull/11):
 
 - **D-2a:** composite factories (`violation`, `finding`, `scanResult`, `layerManifest`) re-validate embedded components via the new internal `Validator.embed` (path-prefixed issues, factory's frozen copy embedded). Extended to `completeScan`, which rebuilds its `ScanResult` (re-derives `countsBySeverity`); its error union is now `ScanTransitionError | ValidationError`.
 - **D-3a:** `Position` is **1-based, end-exclusive** (LSP/SARIF/tree-sitter aligned). TSDoc-only change. Every adapter converts against this — P1-03 must ship `+1` conversion contract tests (in-range off-by-ones pass validation; that residual risk is in ADR-0004).

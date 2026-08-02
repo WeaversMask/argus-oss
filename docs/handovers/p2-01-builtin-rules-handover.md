@@ -16,7 +16,7 @@
 - **style:** `naming-convention`, `import-order`, `no-wildcard-imports`
 - **docs:** `require-jsdoc` · **testing:** `no-empty-test`
 
-Reference: [`docs/guide/rules.md`](./guide/rules.md) (what each flags, defaults, options). Package internals + coverage exceptions: [`packages/rules-builtin/README.md`](../packages/rules-builtin/README.md). How to add another rule: the extended [`docs/dev/adding-a-rule.md`](./dev/adding-a-rule.md).
+Reference: [`docs/guide/rules.md`](../guide/rules.md) (what each flags, defaults, options). Package internals + coverage exceptions: [`packages/rules-builtin/README.md`](../../packages/rules-builtin/README.md). How to add another rule: the extended [`docs/dev/adding-a-rule.md`](../dev/adding-a-rule.md).
 
 ## What P2-02 (CLI) needs to know — you are unblocked to make real findings
 

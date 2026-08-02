@@ -10,7 +10,7 @@
 
 ## Context
 
-The hexagon's hot path exists: `@argus/rule-engine` implements `RuleRunnerPort` — one iterative AST walk per file, node-type dispatch to registered `RuleModule`s, frozen `RuleContext`s, attributed `RuleExecutionError` containment, deterministic sorted violations; `Runner` aggregates across files (skip-and-collect). Benchmarked from day one: committed baseline in `tests/perf/baseline.ts` (0.5ms median M2 for 1000 nodes × 50 rules), CI gates at baseline ×20, gross regressions only. **Next: P1-05 — Config system or P1-06 — Domain services** (both dep on P1-01 ✅ only, parallel-eligible, spec in phase-01). Rule-author contract: [`docs/dev/adding-a-rule.md`](./dev/adding-a-rule.md).
+The hexagon's hot path exists: `@argus/rule-engine` implements `RuleRunnerPort` — one iterative AST walk per file, node-type dispatch to registered `RuleModule`s, frozen `RuleContext`s, attributed `RuleExecutionError` containment, deterministic sorted violations; `Runner` aggregates across files (skip-and-collect). Benchmarked from day one: committed baseline in `tests/perf/baseline.ts` (0.5ms median M2 for 1000 nodes × 50 rules), CI gates at baseline ×20, gross regressions only. **Next: P1-05 — Config system or P1-06 — Domain services** (both dep on P1-01 ✅ only, parallel-eligible, spec in phase-01). Rule-author contract: [`docs/dev/adding-a-rule.md`](../dev/adding-a-rule.md).
 
 ## Conventions established in P1-04 (follow, don't reinvent)
 

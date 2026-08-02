@@ -10,16 +10,16 @@
 
 ## Context
 
-Supply-chain hardening is now **live**: pnpm 11.5.3 (exact-pinned), `minimumReleaseAge: 4320` (3 days), dependency install scripts blocked (`allowBuilds: {}`), all recorded in [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md). The gate was verified on adoption day — resolving a 1-day-old `@types/node` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`. Server-side controls also went live this cycle: branch protection on `main` (PR required, 6 required checks, `enforce_admins` on), and the local agent allowlist no longer auto-permits `gh pr merge` — merging is human-only in practice, not just by rule.
+Supply-chain hardening is now **live**: pnpm 11.5.3 (exact-pinned), `minimumReleaseAge: 4320` (3 days), dependency install scripts blocked (`allowBuilds: {}`), all recorded in [ADR-0003](../adr/0003-supply-chain-hardening-baseline.md). The gate was verified on adoption day — resolving a 1-day-old `@types/node` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`. Server-side controls also went live this cycle: branch protection on `main` (PR required, 6 required checks, `enforce_admins` on), and the local agent allowlist no longer auto-permits `gh pr merge` — merging is human-only in practice, not just by rule.
 
-**Next: P0-16 (lint-staged pre-commit)** — it was hard-blocked on P0-14 precisely because it adds a dependency; that addition must now pass the release-age gate. After P0-16, the licensing arc resumes at P0-11 (read [its archived handover](./handovers/p0-10-license-policy-handover.md) first — that work's context is preserved there; the work itself is done and merged).
+**Next: P0-16 (lint-staged pre-commit)** — it was hard-blocked on P0-14 precisely because it adds a dependency; that addition must now pass the release-age gate. After P0-16, the licensing arc resumes at P0-11 (read [its archived handover](./p0-10-license-policy-handover.md) first — that work's context is preserved there; the work itself is done and merged).
 
 ---
 
 ## What I Did
 
 - `packageManager` → `pnpm@11.5.3` (newest 11.x ≥3 weeks old); `engines` → node `>=22.13.0` / pnpm `>=11.0.0`; `.nvmrc` (22) added. Lockfile byte-identical (v9.0 format spans pnpm 9–11).
-- `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, explicit `allowBuilds: {}` — override procedures documented in [SECURITY-NOTES §5](./SECURITY-NOTES.md).
+- `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, explicit `allowBuilds: {}` — override procedures documented in [SECURITY-NOTES §5](../SECURITY-NOTES.md).
 - ADR-0003 (accepted); full suite green under Node 22 + pnpm 11 (lint / format / typecheck / 9 tests at 100% cov / build); root `prepare` (husky + gitleaks) confirmed still running.
 - Earlier this cycle: stacked-merge incident fixed via PR #10 (see Gotchas #4), P0-15 merged (#9), remote branch cleanup.
 
@@ -57,7 +57,7 @@ Supply-chain hardening is now **live**: pnpm 11.5.3 (exact-pinned), `minimumRele
 
 Pick up **P0-16 — Hook ergonomics: lint-staged pre-commit** (dep P0-14 ✅ once this PR merges; branch from `main` after it lands):
 
-1. Read §[P0-16] in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).
+1. Read §[P0-16] in [`phase-00-foundation.md`](../plan/phases/phase-00-foundation.md).
 2. `pnpm view lint-staged time --json` → newest version ≥3 days old; verify name + repository; `pnpm add -Dw lint-staged@<exact>` (the gate enforces the age anyway — that's the point).
 3. Rewrite `.husky/pre-commit`: staged-scope ESLint + `prettier --write` via lint-staged; **keep the gitleaks staged scan and `SKIP=` semantics exactly as they are**.
 4. Test matrix from the spec: drifted file auto-formats and commits; `SKIP=lint`/`format`/`gitleaks` still work individually; a fake AWS key in a non-fixture file is still blocked; CI lint job untouched.

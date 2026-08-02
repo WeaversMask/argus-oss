@@ -4,7 +4,7 @@
 **To:** next picker (Phase 2 continues — M1 showcase tail)
 **Date:** 2026-08-01
 **Phase:** P2 — MVP (5/6 numbered · 4/7 added) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** DOC-03 — [`docs/workflow.md`](./workflow.md). PR open, awaiting merge.
+**Last task completed:** DOC-03 — [`docs/workflow.md`](../workflow.md). PR open, awaiting merge.
 
 ---
 
@@ -16,7 +16,7 @@ The page is deliberately not a second receipts table. The README answers "is thi
 
 ## What I Did
 
-- **Wrote [`docs/workflow.md`](./workflow.md)** and linked it from the README (after the receipts table, plus the closing pointer), [`dev/README.md`](./dev/README.md), and the [`README.md`](./README.md) document map.
+- **Wrote [`docs/workflow.md`](../workflow.md)** and linked it from the README (after the receipts table, plus the closing pointer), [`dev/README.md`](../dev/README.md), and the [`README.md`](../README.md) document map.
 - **Re-derived every receipt from the repo** instead of trusting the spec's shorthand. Two of the spec's own examples did not survive: see Gotcha 1.
 - **Ran the review, then acted on it.** Light tier, cross-family (claude-fable-5), CHANGES REQUESTED on two falsifiable overstatements. Both fixed; one became a new entry in the honesty section rather than a softened sentence.
 - **Closed the books:** tracker header, Up Next, Phase Status counter (`3/7` → `4/7`), and a Recently Completed row carrying the verification findings.
@@ -31,7 +31,7 @@ PRs merged in this session: none — this branch's PR is the session's output.
 
 ## Gotchas & Surprises
 
-1. **Two of DOC-03's own specced receipts were wrong, and checking beat citing.** The spec named "the gitleaks negative tests" — there are none in the tree. The real and better receipt is [#14](https://github.com/WeaversMask/argus-oss/pull/14)'s review finding that gitleaks **exits 0 when its own `git log` fails**, which is why [`.husky/pre-push`](../.husky/pre-push) now greps the output for `ERR` and fails closed. The spec also named "the mutation baseline", which cannot be a live receipt at all while the job is red — so it became the _lead entry in the honesty section_ instead. **A spec's parenthetical examples are a starting list, not a verified one.**
+1. **Two of DOC-03's own specced receipts were wrong, and checking beat citing.** The spec named "the gitleaks negative tests" — there are none in the tree. The real and better receipt is [#14](https://github.com/WeaversMask/argus-oss/pull/14)'s review finding that gitleaks **exits 0 when its own `git log` fails**, which is why [`.husky/pre-push`](../../.husky/pre-push) now greps the output for `ERR` and fails closed. The spec also named "the mutation baseline", which cannot be a live receipt at all while the job is red — so it became the _lead entry in the honesty section_ instead. **A spec's parenthetical examples are a starting list, not a verified one.**
 2. **PR numbers below ~#30 are ambiguous across two repos.** `main` carries **52 merge commits** but `argus-oss` has only **30 merged PRs** — the retired repo's numbering restarts, so `git log` shows two different "Merge pull request #11". Always cite the full `argus-oss` URL; a bare `#N` in prose can resolve to the wrong thing. This is also why "52 merges" and "30 PRs" are both true and not contradictory.
 3. **There are two dependency-cruiser files.** `.dependency-cruiser.cjs` is what `pnpm boundaries` actually runs; `dependency-cruiser-rules.cjs` holds the rule list, split out at P2-06 when the list tripped `quality/max-file-length`. Link the rules file when you mean the rules — that is what the README already does.
 4. **Any absolute claim in a public doc is a review finding waiting to happen.** Both MAJORs were universals: "reviews **every** diff" (bots are exempt, and `main` already has a merged Dependabot bump) and "**nothing** relies on the agent being careful" (the review gate matches a heading marker, not review quality). Neither was sloppy writing — both were true of the common case and false at an edge the linked file itself documents. On a page whose entire argument is "check this yourself", that is fatal. **Write the scope in, or expect to be caught.**
@@ -55,7 +55,7 @@ PRs merged in this session: none — this branch's PR is the session's output.
 
 ## Open Questions for the Next Agent
 
-- **For OPS-05 — not a question, a correction to inherit.** [Runbook](./go-public-runbook.md) item 7 describes **one** of two routes by which the maintainer's real name reaches history, so anyone auditing from it will find commits it cannot explain. Measured on `origin/main` this session: **79 of 205 commits** carry the name — 52 web-UI **merge** commits (name in the _author_ field, committer `GitHub`) **plus 26 + 1 dependabot commits rewritten by a web-UI "Update branch" / "Rebase and merge"** (name in the _committer_ field, author still correctly `WeaversMask`; invisible to a plain `git log`, needs `%cn`). **Zero** commits carry it in both fields — the signature of a bad local config — so nothing committed on the maintainer's machine is affected, and the repo-local identity override is doing its job. **The paranoia check itself passes: 0 hits for the personal email in commit metadata and in tracked file content.** The name is public on the GitHub profile by choice, so the "optional, cosmetic" rating stands; the lever is the **GitHub profile name field**, not git config, and it only affects commits made after it changes. Fix item 7's wording during OPS-05.
+- **For OPS-05 — not a question, a correction to inherit.** [Runbook](../go-public-runbook.md) item 7 describes **one** of two routes by which the maintainer's real name reaches history, so anyone auditing from it will find commits it cannot explain. Measured on `origin/main` this session: **79 of 205 commits** carry the name — 52 web-UI **merge** commits (name in the _author_ field, committer `GitHub`) **plus 26 + 1 dependabot commits rewritten by a web-UI "Update branch" / "Rebase and merge"** (name in the _committer_ field, author still correctly `WeaversMask`; invisible to a plain `git log`, needs `%cn`). **Zero** commits carry it in both fields — the signature of a bad local config — so nothing committed on the maintainer's machine is affected, and the repo-local identity override is doing its job. **The paranoia check itself passes: 0 hits for the personal email in commit metadata and in tracked file content.** The name is public on the GitHub profile by choice, so the "optional, cosmetic" rating stands; the lever is the **GitHub profile name field**, not git config, and it only affects commits made after it changes. Fix item 7's wording during OPS-05.
 - **Does `docs/progress.md` earn its keep, or should the per-task tier be a `CHANGELOG.md`?** Carried from the DOC-05 filing — still wants a maintainer opinion _before_ DOC-05 starts, since seeding it retroactively is most of the task's cost.
 - **Should the consolidation pass also gate the M1 boundary itself, or only phase transitions?** As specced it does both.
 

@@ -18,13 +18,13 @@ Next up is **P0-06 — Docker development environment**. Small task: `Dockerfile
 
 ## What I Did
 
-- Extended [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) with three new jobs:
+- Extended [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) with three new jobs:
   - **`typecheck`** — runs `pnpm typecheck` (Turbo `typecheck`), 10-minute timeout, `.turbo` cached via `actions/cache@v4`
   - **`test`** — runs `pnpm test` (aggregated `vitest run --coverage` via the root config), 15-minute timeout, uploads `coverage/` as a workflow artefact named `coverage-${{ github.run_id }}` with 14-day retention, `.turbo` cached
   - **`build`** — runs `pnpm build` (Turbo `build`, no-op today — no workspace package has a build script), 15-minute timeout, `.turbo` cached
 - Lifted shared env vars (`ARGUS_SKIP_GITLEAKS_INSTALL=1`, `HUSKY=0`) from per-job `env:` blocks to a workflow-level `env:` block so every job inherits them. Cleans up the file and prevents drift if a future job forgets to set them.
 - Added `TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_REMOTE_CACHE_SIGNATURE_KEY` at workflow scope, all sourced from `secrets.*`. Empty strings when the secrets are absent — Turbo silently treats that as "no remote cache" and falls back to local cache.
-- Filed Open Decision **D-1** in [`IMPLEMENTATION.md`](./IMPLEMENTATION.md): Vercel Remote Cache vs self-hosted `turborepo-remote-cache`. Recommended Vercel for the speed-to-ship.
+- Filed Open Decision **D-1** in [`IMPLEMENTATION.md`](../IMPLEMENTATION.md): Vercel Remote Cache vs self-hosted `turborepo-remote-cache`. Recommended Vercel for the speed-to-ship.
 - Reused the existing `lint` job's setup pattern (no composite action) — six near-identical setup blocks. At this size it's the right trade; revisit if jobs multiply.
 - Job names: `lint`, `typecheck`, `test`, `build`, `commitlint`, `secret-scan`. These are the names branch protection will refer to. Documented at the top of the YAML.
 
@@ -79,16 +79,16 @@ PRs in this session:
 
 Pick up **P0-06 — Docker development environment** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — P0-06 section
-2. Read [`docs/SECURITY-NOTES.md`](./SECURITY-NOTES.md) one more time before touching Docker — Dockerfile build args can leak secrets in image layers; the file flags that specifically
-3. Create `Dockerfile.dev` at the repo root (or under `docker/` if you prefer a folder — but the phase doc says root). Multi-stage isn't necessary for a dev image; use `node:20-alpine` or `node:22-alpine` (match `engines.node` in [`package.json`](../package.json)), `corepack enable && corepack prepare pnpm@$(jq -r .packageManager package.json | cut -d@ -f2) --activate`, copy lockfile + workspace files, `pnpm install --frozen-lockfile`, then `pnpm dev` as the default CMD
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — P0-06 section
+2. Read [`docs/SECURITY-NOTES.md`](../SECURITY-NOTES.md) one more time before touching Docker — Dockerfile build args can leak secrets in image layers; the file flags that specifically
+3. Create `Dockerfile.dev` at the repo root (or under `docker/` if you prefer a folder — but the phase doc says root). Multi-stage isn't necessary for a dev image; use `node:20-alpine` or `node:22-alpine` (match `engines.node` in [`package.json`](../../package.json)), `corepack enable && corepack prepare pnpm@$(jq -r .packageManager package.json | cut -d@ -f2) --activate`, copy lockfile + workspace files, `pnpm install --frozen-lockfile`, then `pnpm dev` as the default CMD
 4. Create `docker-compose.yml` with three services:
    - `app` — built from `Dockerfile.dev`, volume-mounts the repo, exposes whatever ports the future apps will need (none today — leave a comment)
    - `postgres` — `postgres:16-alpine`, volume for `/var/lib/postgresql/data`, env from `.env.example` (also commit a stub `.env.example` if not already present)
    - `redis` — `redis:7-alpine`, no auth for dev, volume for `/data`
 5. Add a `.dockerignore` mirroring `.gitignore` plus `node_modules`, `.turbo`, `coverage`, `dist`, `.git`
 6. Smoke test: `docker compose up -d postgres redis` should bring up just the data stores (the `app` service has nothing to do yet). `docker compose down -v` to tear down. Document this in the PR
-7. Update [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) + rewrite this `HANDOVER.md`, archive this one to `docs/handovers/p0-05-ci-pipeline-handover.md`
+7. Update [`IMPLEMENTATION.md`](../IMPLEMENTATION.md) + rewrite this `HANDOVER.md`, archive this one to `docs/handovers/p0-05-ci-pipeline-handover.md`
 8. Open PR — ideally merge P0-05 first so this one is rooted on main
 
 Estimated effort: **S** (matches the phase doc).

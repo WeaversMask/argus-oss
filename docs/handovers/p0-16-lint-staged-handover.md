@@ -10,16 +10,16 @@
 
 ## Context
 
-The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked dep scripts (P0-14, [ADR-0003](./adr/0003-supply-chain-hardening-baseline.md)), and the pre-commit hook is now staged-scope with Prettier auto-fix (P0-16) — the "Prettier dance" that bit every doc task is dead. lint-staged 17.0.8 was the first dependency added under the new gate (12-day-old version, passed cleanly; a 1-day-old version was refused in P0-14's negative test).
+The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked dep scripts (P0-14, [ADR-0003](../adr/0003-supply-chain-hardening-baseline.md)), and the pre-commit hook is now staged-scope with Prettier auto-fix (P0-16) — the "Prettier dance" that bit every doc task is dead. lint-staged 17.0.8 was the first dependency added under the new gate (12-day-old version, passed cleanly; a 1-day-old version was refused in P0-14's negative test).
 
-**Next: P0-11 — the licensing arc resumes.** Non-negotiable first step: read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) — it carries the arc's full context (locked decisions, MPL-2.0 exception handling, notices requirements). The P0-10 _work_ is done and merged (#7/#10); only its follow-up tasks P0-11/P0-12 remain. ADR-0002 is the governing contract.
+**Next: P0-11 — the licensing arc resumes.** Non-negotiable first step: read the [archived P0-10 handover](./p0-10-license-policy-handover.md) — it carries the arc's full context (locked decisions, MPL-2.0 exception handling, notices requirements). The P0-10 _work_ is done and merged (#7/#10); only its follow-up tasks P0-11/P0-12 remain. ADR-0002 is the governing contract.
 
 ---
 
 ## What I Did
 
-- `lint-staged@17.0.8` exact-pinned (name/repo verified; published 2026-06-20). [`lint-staged.config.mjs`](../lint-staged.config.mjs) is SKIP-aware — `SKIP=lint` / `SKIP=format` drop the matching task inside one lint-staged invocation; JSON config couldn't do that, which is why it's not in package.json (overrides the previous handover's lean, documented).
-- [`.husky/pre-commit`](../.husky/pre-commit) rewritten: lint-staged (ESLint check-only + `prettier --write` with auto-restage) → gitleaks staged scan **last**, so it scans post-Prettier content. `SKIP=` contract and gitleaks block unchanged.
+- `lint-staged@17.0.8` exact-pinned (name/repo verified; published 2026-06-20). [`lint-staged.config.mjs`](../../lint-staged.config.mjs) is SKIP-aware — `SKIP=lint` / `SKIP=format` drop the matching task inside one lint-staged invocation; JSON config couldn't do that, which is why it's not in package.json (overrides the previous handover's lean, documented).
+- [`.husky/pre-commit`](../../.husky/pre-commit) rewritten: lint-staged (ESLint check-only + `prettier --write` with auto-restage) → gitleaks staged scan **last**, so it scans post-Prettier content. `SKIP=` contract and gitleaks block unchanged.
 - Verified acceptance matrix with scratch commits (all removed): drift auto-formats (5→3 lines committed); `SKIP=format` preserves drift; `SKIP=lint` bypasses a staged lint error that otherwise blocks; a high-entropy fake AWS key is blocked (`leaks found: 1`).
 - Protocol amendment (maintainer-approved 2026-07-02): review passes run on a **cost-efficient model** by default (Sonnet-class); escalate only for high-risk diffs. In `agentic-execution.md` §Task Completion Checklist.
 
@@ -55,8 +55,8 @@ The hardening arc is complete: pnpm 11.5.3 + 3-day release-age gate + blocked de
 
 Pick up **P0-11 — Third-party notices, prerequisites & contributor guardrail** (branch from `main` after this PR merges):
 
-1. Read the [archived P0-10 handover](./handovers/p0-10-license-policy-handover.md) §Recommended Next Steps — it contains the complete P0-11 recipe (notices via `pnpm licenses list --json`, README prerequisites with re-verified tool licenses, CONTRIBUTING guardrail, phase-04/09/11 doc-consistency edits). Follow it; the locked decisions there are still binding.
-2. Also read [ADR-0002](./adr/0002-third-party-integration-and-licensing-policy.md) end to end — it is the spec.
+1. Read the [archived P0-10 handover](./p0-10-license-policy-handover.md) §Recommended Next Steps — it contains the complete P0-11 recipe (notices via `pnpm licenses list --json`, README prerequisites with re-verified tool licenses, CONTRIBUTING guardrail, phase-04/09/11 doc-consistency edits). Follow it; the locked decisions there are still binding.
+2. Also read [ADR-0002](../adr/0002-third-party-integration-and-licensing-policy.md) end to end — it is the spec.
 3. Note what has changed since that handover was written: gh auth **works** (push + `gh pr create` fine; merge is human-only), branch protection is live, Prettier auto-fixes at commit time now, and any tooling the notices generation needs must respect the release-age gate.
 4. Tracker + handover rotation, PR with a **Sonnet review packet** (per the new protocol line).
 

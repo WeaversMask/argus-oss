@@ -27,7 +27,7 @@ Locked decisions still binding (P0-10 checkpoint, do not re-litigate): `license-
 ## What I Did NOT Do (Deferred)
 
 - **P0-12, P0-13, P0-06, P0-08, P0-09** — unstarted, in Up Next order.
-- **Notices freshness check:** still recommended for P0-12's license job; mind the platform-variance gotcha in the [archived P0-11 handover](./handovers/p0-11-third-party-notices-handover.md) §Gotcha 3.
+- **Notices freshness check:** still recommended for P0-12's license job; mind the platform-variance gotcha in the [archived P0-11 handover](./p0-11-third-party-notices-handover.md) §Gotcha 3.
 - **Maintainer decisions still open:** D-1 (remote cache); `LICENSE` copyright placeholder; `nvm alias default 22` — init.sh + the guard now make it low-urgency for hooks, but bare `pnpm` in fresh shells still needs `nvm use`.
 
 ---
@@ -37,7 +37,7 @@ Locked decisions still binding (P0-10 checkpoint, do not re-litigate): `license-
 1. **pnpm 11 `audit`: `--audit-level` is the exit threshold** (verified, not doc-faith): advisories below the level print but exit 0. A clean tree exits 0 at every level. If you need to re-probe, use a scratch dir with a pinned old dep (lodash 4.17.15) and `pnpm install --lockfile-only` — don't touch the repo tree.
 2. **The weekly cron runs every job**, not only audit. If that ever gets noisy, gate non-audit jobs with `if: github.event_name != 'schedule'` — deliberately not done now.
 3. **Two PRs may be open simultaneously (#15, #16) with disjoint file sets;** tracker rows for both live in #16 (single-writer rule). If you arrive and either is unmerged: sync/check per the new onboarding step 1 — that's exactly what it's for.
-4. **P0-11 session gotchas remain live** (platform-dependent `pnpm licenses list`, MPL text has no © line, pnpm auto-sync before scripts): [archived handover](./handovers/p0-11-third-party-notices-handover.md).
+4. **P0-11 session gotchas remain live** (platform-dependent `pnpm licenses list`, MPL text has no © line, pnpm auto-sync before scripts): [archived handover](./p0-11-third-party-notices-handover.md).
 
 ---
 
@@ -54,7 +54,7 @@ Locked decisions still binding (P0-10 checkpoint, do not re-litigate): `license-
 
 Pick up **P0-12** (branch from `main` **after #15 and #16 merge** — it edits `ci.yml` like P0-07 did):
 
-1. Sync per onboarding step 1, then read [phase-00 §P0-12](./plan/phases/phase-00-foundation.md) and [ADR-0002 §G](./adr/0002-third-party-integration-and-licensing-policy.md).
+1. Sync per onboarding step 1, then read [phase-00 §P0-12](../plan/phases/phase-00-foundation.md) and [ADR-0002 §G](../adr/0002-third-party-integration-and-licensing-policy.md).
 2. Add `license-checker` as devDependency: exact-pin, **verify the package name against npm** (typosquats) and pick a version ≥3 days old (ADR-0003 gate); `allowBuilds` stays `{}` unless it genuinely needs a build (it shouldn't).
 3. `scripts/check-licenses` + `pnpm license-check`; new parallel `license` job beside `audit` in `ci.yml`; not a required check (document, same as P0-07).
 4. Acceptance: current tree passes (allowlist + `lightningcss*` MPL exception); an out-of-allowlist license fails the check (negative test — document it in the PR).

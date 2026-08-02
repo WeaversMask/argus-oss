@@ -12,13 +12,13 @@
 
 The licensing arc's notices/docs half is done: `THIRD-PARTY-NOTICES` (generated, 246 packages), root README with the "External tools / Prerequisites" section (all six tool licenses re-verified 2026-07-03 via the GitHub API — every one matches ADR-0002), CONTRIBUTING.md guardrails, a licensing principle + per-PR gate, and the phase-04/09/11 contradictions listed in ADR-0002 §Impact are reconciled. What remains of the arc is the enforcement half: **P0-12's SPDX-allowlist gate**, which is specced to sit beside P0-07's CI audit job — so P0-07 goes first.
 
-**Next: P0-07 — Lightweight dependency audit in CI** (XS, ~10 lines of YAML): an `audit` job running `pnpm audit --audit-level=high` on PRs, pushes to `main`, and a weekly cron. Full spec in [phase-00 §P0-07](./plan/phases/phase-00-foundation.md). Then P0-12 closes the arc.
+**Next: P0-07 — Lightweight dependency audit in CI** (XS, ~10 lines of YAML): an `audit` job running `pnpm audit --audit-level=high` on PRs, pushes to `main`, and a weekly cron. Full spec in [phase-00 §P0-07](../plan/phases/phase-00-foundation.md). Then P0-12 closes the arc.
 
 ---
 
 ## What I Did
 
-- [`scripts/generate-third-party-notices.mjs`](../scripts/generate-third-party-notices.mjs) (dependency-free, run as `pnpm notices`): per-license inventory with copyright lines extracted from each package's shipped license/notice files; falls back to the author field and explicitly marks the 9 packages whose published artifact carries no notice at all. **Fails the run if an MPL-2.0 package outside the named `lightningcss*` exception appears** — ADR-0002 §G teeth until P0-12's real gate lands.
+- [`scripts/generate-third-party-notices.mjs`](../../scripts/generate-third-party-notices.mjs) (dependency-free, run as `pnpm notices`): per-license inventory with copyright lines extracted from each package's shipped license/notice files; falls back to the author field and explicitly marks the 9 packages whose published artifact carries no notice at all. **Fails the run if an MPL-2.0 package outside the named `lightningcss*` exception appears** — ADR-0002 §G teeth until P0-12's real gate lands.
 - `README.md` (new): source-only / not-sold / not-hosted posture; external-tools table separating user-installed subprocess engines (TruffleHog, Semgrep, osv-scanner) from linked MIT libraries (jscpd, Prettier, Tree-sitter); dev setup. `CONTRIBUTING.md` (new): six licensing guardrails + ADR-0003 dependency rules + workflow rules.
 - `00-principles.md`: licensing-boundary principle (Architectural section). `quality-gates.md`: per-PR license gate.
 - Phase docs reconciled per ADR-0002 §Impact: P4-03 reworded (no bundled Semgrep rule pack → runtime-fetch / BYO / Opengrep / first-party), phase-04 pinning note now distinguishes linked libraries from subprocess-only engines, Docker-publish steps in phase-09 (goal, P9-04, exit criteria) and phase-11 (exit criteria) flagged `TODO(licensing:)` pending the §D redistribution review.
@@ -59,7 +59,7 @@ PRs this session: [#14](https://github.com/WeaversMask/argus/pull/14) — this t
 
 Pick up **P0-07 — Lightweight dependency audit in CI** (branch from `main` after #14 merges):
 
-1. Read [phase-00 §P0-07](./plan/phases/phase-00-foundation.md) — the spec is complete: parallel `audit` job, `pnpm audit --audit-level=high`, triggers = PR + push to `main` + weekly cron (`0 12 * * 1`), **not** added to required checks (admin step pending since P0-03 — document that in the PR).
+1. Read [phase-00 §P0-07](../plan/phases/phase-00-foundation.md) — the spec is complete: parallel `audit` job, `pnpm audit --audit-level=high`, triggers = PR + push to `main` + weekly cron (`0 12 * * 1`), **not** added to required checks (admin step pending since P0-03 — document that in the PR).
 2. Mind the serialization note: P0-07 → P0-12 → P0-13 all edit `ci.yml`; land in that order, no parallel lanes.
 3. Verify `pnpm audit` behavior on pnpm 11 before writing the YAML (flags/output changed across pnpm majors; check exit codes for the level threshold).
 4. Tracker + handover rotation, Sonnet review packet, PR.

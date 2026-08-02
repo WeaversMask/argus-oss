@@ -10,7 +10,7 @@
 
 ## Context
 
-P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](./plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
+P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfile.dev` + `docker-compose.yml` (app + redis + postgres), **verified live end-to-end** — stack healthy, the 9-test suite ran inside the container, and a host-side edit re-triggered vitest in-container (the volume acceptance criterion). 14/16. **Next: P0-08 — Documentation scaffolding** ([phase-00 §P0-08](../plan/phases/phase-00-foundation.md)): ADR-0001 (monorepo decision, retroactive), root `SECURITY.md` (fixes the dangling reference in `SECURITY-NOTES.md` §Reporting), `.github/PULL_REQUEST_TEMPLATE.md` matching `templates/PR.template.md`. Then P0-09 closes the phase — mind the phase-transition protocol (phase handover, exit-criteria check) when it does.
 
 ## What I Did
 
@@ -43,7 +43,7 @@ P0-06 shipped as [#28](https://github.com/WeaversMask/argus/pull/28): `Dockerfil
 
 Pick up **P0-08** (branch from `main` after #28 merges; no file overlap with anything in flight):
 
-1. Read [phase-00 §P0-08](./plan/phases/phase-00-foundation.md) fully (this handover only summarizes). ADR-0001 is retroactive — keep it short, date it honestly, reference P0-01/P0-02 PRs.
+1. Read [phase-00 §P0-08](../plan/phases/phase-00-foundation.md) fully (this handover only summarizes). ADR-0001 is retroactive — keep it short, date it honestly, reference P0-01/P0-02 PRs.
 2. `SECURITY.md`: resolve the dangling `SECURITY-NOTES.md` §Reporting reference; solo-maintainer disclosure process (GitHub private vulnerability reporting), no SLA promises the maintainer can't keep.
 3. PR-template acceptance is a byte-match against `templates/PR.template.md` — copy, don't paraphrase.
 4. Tracker + handover rotation, light-tier review (docs-only diff → OPS-02 light), PR.

@@ -14,12 +14,12 @@
 
 The substance of the session is a **maintainer directive**: if the project continues past the MVP, the documentation structure must be updated **comprehensively after every completed phase** and **iteratively after every task/story** — the smaller tier sized so that a third party can check progress without reading the tracker. Filed as **DOC-05** in the Phase 2 M1 tail. It is **specced, not built** — see What I Did NOT Do.
 
-Why it is a real gap and not ceremony: the per-task documentation obligation in [`plan/03-documentation.md`](./plan/03-documentation.md) is **prose that nothing checks**, the same shape as the notices-freshness claim OPS-06 had to close after six tracker rows asserted it against no mechanism. And there is no third-party-readable progress surface at all — this tracker's task rows are agent-facing forensics (several run past a thousand words), which is correct for the next picker and useless to anyone asking "what has this actually delivered, and when?"
+Why it is a real gap and not ceremony: the per-task documentation obligation in [`plan/03-documentation.md`](../plan/03-documentation.md) is **prose that nothing checks**, the same shape as the notices-freshness claim OPS-06 had to close after six tracker rows asserted it against no mechanism. And there is no third-party-readable progress surface at all — this tracker's task rows are agent-facing forensics (several run past a thousand words), which is correct for the next picker and useless to anyone asking "what has this actually delivered, and when?"
 
 ## What I Did
 
 - **Closed the books on the merged work:** DOC-02's `_pending_` → [#41](https://github.com/WeaversMask/argus-oss/pull/41), In Progress cleared, Up Next re-ranked, header and Phase Status corrected to post-merge reality.
-- **Filed DOC-05** in [`plan/phases/phase-02-mvp.md`](./plan/phases/phase-02-mvp.md) with deps, outputs, and acceptance criteria — two tiers: a mechanical per-task `docs-delta` CI gate plus a `docs/progress.md` entry per merged task, and a per-phase consolidation pass a phase must pass **before** it can be marked ✅ Complete.
+- **Filed DOC-05** in [`plan/phases/phase-02-mvp.md`](../plan/phases/phase-02-mvp.md) with deps, outputs, and acceptance criteria — two tiers: a mechanical per-task `docs-delta` CI gate plus a `docs/progress.md` entry per merged task, and a per-phase consolidation pass a phase must pass **before** it can be marked ✅ Complete.
 - **Wired it into the plan** so it cannot be forgotten: roadmap M1 gains criterion 7 (continuation stays _legible_), the Phase 2 exit criteria gain the consolidation pass, and `03-documentation.md` gains a short "Cadence — specced as DOC-05, not yet installed" section that names the gap in its own standard.
 - **Made the Phase Status counter legible** — `5/6+5` became `5/6 numbered · 3/7 added`, with the notation defined under the table (see Gotcha 1).
 

@@ -69,8 +69,8 @@ PRs merged in this session:
 
 Pick up **P0-02 — Base TypeScript configuration** in this order:
 
-1. Re-read [`docs/plan/phases/phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — specifically the P0-02 section
-2. Read [`docs/plan/00-principles.md`](./plan/00-principles.md) — note "Strict TypeScript everywhere" and "no `any` without disable comment"
+1. Re-read [`docs/plan/phases/phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — specifically the P0-02 section
+2. Read [`docs/plan/00-principles.md`](../plan/00-principles.md) — note "Strict TypeScript everywhere" and "no `any` without disable comment"
 3. Create `tsconfig.base.json` at the repo root with:
    - `strict: true`
    - `noUncheckedIndexedAccess: true`

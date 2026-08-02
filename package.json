@@ -25,6 +25,8 @@
     "license-check": "node scripts/check-licenses.mjs",
     "notices": "node scripts/generate-third-party-notices.mjs",
     "notices:check": "node scripts/generate-third-party-notices.mjs --check",
+    "handover:rotate": "node scripts/rotate-handover.mjs",
+    "handover:check": "node scripts/rotate-handover.mjs --check",
     "dev": "turbo run dev --parallel",
     "clean": "turbo run clean && rimraf node_modules .turbo coverage .stryker-tmp reports",
     "prepare": "husky && ./scripts/install-gitleaks.sh"

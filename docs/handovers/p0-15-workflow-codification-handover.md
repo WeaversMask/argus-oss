@@ -10,7 +10,7 @@
 
 ## Context
 
-This session ran the **supply-chain & workflow hardening arc**: a security/workflow review (maintainer-commissioned), the **B0 plan insertion** (tasks P0-13..P0-16, risks R-012/R-013, resequenced Up Next — PR #8), and **P0-15** (this handover's task). The backlog was deliberately resequenced: **P0-14 must merge before any task that adds a dependency** (P0-16, P0-12, P0-09), because pnpm 9 resolves brand-new registry versions with no age gate and runs their install scripts. The licensing arc (P0-11 → P0-12) is paused, **not** abandoned — its full context is archived at [`handovers/p0-10-license-policy-handover.md`](./handovers/p0-10-license-policy-handover.md); the P0-11 picker must read that plus ADR-0002.
+This session ran the **supply-chain & workflow hardening arc**: a security/workflow review (maintainer-commissioned), the **B0 plan insertion** (tasks P0-13..P0-16, risks R-012/R-013, resequenced Up Next — PR #8), and **P0-15** (this handover's task). The backlog was deliberately resequenced: **P0-14 must merge before any task that adds a dependency** (P0-16, P0-12, P0-09), because pnpm 9 resolves brand-new registry versions with no age gate and runs their install scripts. The licensing arc (P0-11 → P0-12) is paused, **not** abandoned — its full context is archived at [`handovers/p0-10-license-policy-handover.md`](./p0-10-license-policy-handover.md); the P0-11 picker must read that plus ADR-0002.
 
 There is an open **4-PR stack**, merge bottom-up: [#6](https://github.com/WeaversMask/argus/pull/6) (P0-07 plan) → [#7](https://github.com/WeaversMask/argus/pull/7) (P0-10 licensing) → [#8](https://github.com/WeaversMask/argus/pull/8) (B0 insertion) → #9 (P0-15, this task). CI only triggers on PRs whose base is `main`, so upper PRs show no checks until they retarget after the one below merges (delete each branch on merge; GitHub retargets automatically).
 
@@ -26,7 +26,7 @@ There is an open **4-PR stack**, merge bottom-up: [#6](https://github.com/Weaver
 
 ## What I Did NOT Do (Deferred)
 
-- **P0-14 (next task) — nothing started.** Spec in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) §[P0-14].
+- **P0-14 (next task) — nothing started.** Spec in [`phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) §[P0-14].
 - **P0-16, P0-13 — nothing started.** P0-16 hard-depends on P0-14.
 - **Track A (maintainer-only, still pending):** merge the stack in order; **enable branch protection** (highest-leverage single action, now urgent since agents can push); decide D-1 (remote cache); copyright/identity decision before the repo goes public (mixed real-name/pseudonym author identities exist in git history); optionally narrow the local `Bash(gh pr *)` allowlist to create/view/diff/status.
 - **Doc compaction** (IMPLEMENTATION notes, completed-task specs) — deliberately deferred to the Phase-0 exit review per B0.
@@ -57,7 +57,7 @@ There is an open **4-PR stack**, merge bottom-up: [#6](https://github.com/Weaver
 
 Pick up **P0-14 — pnpm 11 upgrade, minimum release age & install-script blocking** (deps: none, but see Gotcha 2 — wait for the stack to merge, then branch from `main`):
 
-1. Read the §[P0-14] spec in [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md) — it is complete, including acceptance and rollback.
+1. Read the §[P0-14] spec in [`phase-00-foundation.md`](../plan/phases/phase-00-foundation.md) — it is complete, including acceptance and rollback.
 2. Pick the pnpm version: `pnpm view pnpm time --json` → newest 11.x **published ≥3 weeks ago**; check its Node floor against `engines.node` (bump both together if needed, and note P0-13 will pin CI's Node).
 3. `packageManager` bump → regenerate lockfile → full local suite.
 4. `pnpm-workspace.yaml`: `minimumReleaseAge: 4320`, empty `minimumReleaseAgeExclude`, `allowBuilds` allowlist (likely empty — verify no current dep needs build scripts; root `prepare` is unaffected).
