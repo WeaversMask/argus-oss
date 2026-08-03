@@ -1,5 +1,26 @@
 # Argus
 
+<!-- BADGES — staged by OPS-05; not live because this repo is still private.
+     At the flip (go-public-runbook.md step 5), delete this comment's opening and closing
+     markers so the two badge lines below render. Both resolve only for a public repo.
+
+[![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+     CI        — needs nothing but the visibility flip. If you also rename the repo
+                 (runbook step 3), GitHub redirects the old path, but update the two URLs
+                 above anyway rather than relying on a redirect.
+     License   — a static badge; accurate today, unaffected by the rename.
+     Coverage  — deliberately NOT staged. shields.io cannot read coverage without a service
+                 (Codecov/Coveralls) wired first, and a hand-typed percentage goes stale
+                 silently — the exact failure docs/plan/03-documentation.md exists to stop.
+                 Wiring one is its own task; the enforced floors in vitest.config.ts are the
+                 honest claim until then.
+     Mutation  — deliberately NOT staged. The weekly Stryker job has been red since
+                 2026-07-28, so there is no current score to publish. Fix the job first.
+                 Same reasoning DOC-02 used to keep mutation score out of the receipts table.
+-->
+
 **Argus is a deterministic, architecture-aware code-quality scanner for TypeScript monorepos.** It parses your source with tree-sitter, applies explicit rules to the syntax tree, and reports exactly what it found — as readable console output or as a schema-validated JSON document for CI.
 
 - **No model in the scan path.** Same commit in, same findings out — every time. Rule results are sorted by a total order and re-serialise byte-identically, so a diff in CI means your code changed, not that the weather did.
@@ -28,7 +49,7 @@ Every row is one guardrail: what it guarantees, the file that implements it, and
 | **Every third-party license is checked** against an explicit allowlist.                             | [`scripts/check-licenses.mjs`](scripts/check-licenses.mjs) · the `license` job · [ADR-0002](docs/adr/0002-third-party-integration-and-licensing-policy.md)          | [This run](https://github.com/WeaversMask/argus-oss/actions/runs/30641037944) — 563 resolved packages checked, all on the allowlist, 4 named and individually-justified exceptions. Anything else fails the build. Attributions: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES), regenerated with `pnpm notices`. |
 | **The same commit always produces the same bytes.** No model, no nondeterminism, no ordering drift. | [`json.ts`](apps/cli/src/formatters/json.ts) sorts by a total order · the contract is pinned in [`@argus/api-contracts`](packages/api-contracts/src/scan-report.ts) | [#37](https://github.com/WeaversMask/argus-oss/pull/37) — pinned by a golden-bytes test and a second test that shuffles the input and asserts the output bytes do not move ([`json.test.ts`](apps/cli/tests/formatters/json.test.ts)).                                                                        |
 
-Across the workspace, 737 tests cover 97.9% of statements and 94.3% of branches, against [enforced floors](vitest.config.ts) of 85% and 80% — the suite fails below them. Where a defensive branch genuinely cannot be exercised, the exception is written down in that package's README rather than waved through.
+Across the workspace, 806 tests cover 98.0% of statements and 93.9% of branches, against [enforced floors](vitest.config.ts) of 85% and 80% — the suite fails below them. Where a defensive branch genuinely cannot be exercised, the exception is written down in that package's README rather than waved through.
 
 **[docs/workflow.md](docs/workflow.md) is the full story** — the loop a task travels from plan file to `main`, what each guardrail above is actually for, and the four things this process does _not_ protect against.
 
