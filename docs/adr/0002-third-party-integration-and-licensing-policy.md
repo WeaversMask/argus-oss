@@ -122,6 +122,6 @@ An SPDX allowlist gates the dependency tree, wired as both a CI gate and a local
 
 ## References
 
-- `LICENSE` (MIT) at repo root — `TODO(licensing:)` confirm the copyright holder string ("The Argus Authors" is a placeholder the maintainer may replace with a preferred legal name).
+- `LICENSE` (MIT) at repo root — copyright holder **resolved to `WeaversMask`** (OPS-05, 2026-08-04), the project's pseudonymous identity. The former "The Argus Authors" placeholder and its `TODO(licensing:)` are closed; the pre-P0-10 handovers that still quote the placeholder are historical snapshots and are deliberately left as written.
 - Tool licenses cited here are the engines' headline licenses; **re-verify the exact license of each pinned tool version when adapters land (Phase 4)** — licenses change between versions. `TODO(licensing:)`.
 - The design "spec doc" referenced elsewhere (e.g. phase-11 "§4.6") is **not committed**; the in-repo design surface is the phase docs, [`01-repo-structure.md`](../plan/01-repo-structure.md), and [`00-principles.md`](../plan/00-principles.md). `TODO(licensing:)` — fold posture into a canonical spec if one is later added.
