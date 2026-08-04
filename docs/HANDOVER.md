@@ -12,16 +12,16 @@
 
 `pnpm build` was listed as a mandatory sign-off gate in [CLAUDE.md](../CLAUDE.md), asserted green in nearly every handover in [`handovers/`](./handovers/), and ran as its own CI job — while `turbo run build` executed **zero tasks** for the entire life of the project. No workspace package has ever declared a `build` script, and turbo reports `0 successful, 0 total` as a **success**. Every one of those green claims was vacuous. Surfaced by the [OPS-05](https://github.com/WeaversMask/argus-oss/pull/51) independent review.
 
-It was removed, not made real. Making it real means giving `@argus/core` a build step, which is exactly the restructure **D-5 defers** — and `pnpm typecheck` already runs `tsc --noEmit` across all 10 packages, so the compile verification was never missing. The gate list is now `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check`.
+**The claim was withdrawn, not the mechanism deleted** — and that distinction is the maintainer's ruling on this task, after a first pass that deleted the CI job too (Gotcha 1). Making the gate real means giving `@argus/core` a build step, which is exactly the restructure **D-5 defers**; `pnpm typecheck` already runs `tsc --noEmit` across all 10 packages, so the compile verification was never missing, only mislabelled. `pnpm build` and its CI job stay put, no longer cited as sign-off evidence, ready for D-8's bundle. The gate list is now `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check`.
 
 ---
 
 ## What I Did
 
-- **Deleted** the root `build` script, the CI `Build` job, and `pnpm build` from every live gate list: [CLAUDE.md](../CLAUDE.md), [agentic-execution.md](./plan/protocols/agentic-execution.md), [workflow.md](./workflow.md), [README.md](../README.md), and the three `dev/adding-a-*.md` recipes.
-- **Added [`check-gate-coverage.mjs`](../scripts/check-gate-coverage.mjs)** (`pnpm gates:check`, a step in the CI `lint` job) — three fail-closed assertions so the surviving gates cannot rot the same way: every package declares `typecheck`, every package appears in vitest's `projects`, **no** package declares `build`.
+- **Removed `pnpm build` from every live sign-off gate list** — [CLAUDE.md](../CLAUDE.md), [agentic-execution.md](./plan/protocols/agentic-execution.md), [workflow.md](./workflow.md), [README.md](../README.md), and the three `dev/adding-a-*.md` recipes — each now saying plainly that it runs zero tasks and why it is kept anyway. The root `build` script and the CI `Build` job are **unchanged from `main`**.
+- **Added [`check-gate-coverage.mjs`](../scripts/check-gate-coverage.mjs)** (`pnpm gates:check`, a step in the CI `lint` job) — three fail-closed assertions so the gates that _are_ claimed cannot rot the same way: every package declares `typecheck` **and it really runs `tsc --noEmit`**, every package appears in vitest's `projects`, and no package declares `build` — the last a **tripwire, not a prohibition**, firing the day D-5 stops holding so the gate list is updated rather than left stale.
 - **Registered it** in [quality-gates.md](./plan/protocols/quality-gates.md), and annotated the type-check row as the compile verification.
-- **Corrected [workflow.md](./workflow.md)'s job census**, stale twice over: it said "three of eleven report without blocking" when DOC-05's `docs-delta` job had landed a day later and was never counted, and it counted `Build` among the ones that block.
+- **Corrected [workflow.md](./workflow.md)'s job census**, stale twice over: it said "three of eleven report without blocking" when DOC-05's `docs-delta` job had landed a day later and was never counted. Now four of twelve — with the note that `Build`, one of the eight that block, blocks on nothing.
 
 PRs open in this session:
 
@@ -33,14 +33,15 @@ PRs open in this session:
 
 - **Did not touch archived handovers or [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).** Nine snapshots and Phase 0's spec list `pnpm build` as a green gate. The protocol says snapshots are history, not live documents — editing them would rewrite the past into something that was never true, and the claim really was made. Only live instructions were corrected. **If the maintainer wants the archive annotated instead, that is a ruling, not an oversight.**
 - **Did not touch `turbo.json`.** The `build` task definition and the `^build` edges on `test`/`typecheck` are inert with no package declaring a build, and they are the plumbing that makes a future build a normal turbo edge — which is D-5's whole plan. Removing them would only have to be undone by D-5 or D-8.
-- **Did not change branch protection.** See Gotcha 1 — it is a maintainer-only admin step and it **blocks this PR**.
+- **Did not change branch protection, and no longer needs to.** The first pass deleted the CI `Build` job, which would have required an admin-only edit to the required-checks set and blocked every PR until it happened; the maintainer ruled that excessive and the deletion was reverted. See Gotcha 1.
 - **Still inherited, still each needing their own task:** the missing `FormatterPort` fake (10 fakes for 11 ports), the weekly Stryker job red since 2026-07-28, `argus explain` not reporting fixability, `ci.yml`'s stale `license` job comment, and `review-gate`'s frozen-PR-body trap.
 
 ---
 
 ## Gotchas & Surprises
 
-1. **`Build` is a required status check on `main`, so deleting the job blocks every PR — including this one.** The required set is `["Lint + format","Typecheck","Test + coverage","Build","Secret scan (gitleaks)","Commit message validation","Dependency audit (pnpm)","License compliance (SPDX allowlist)"]`, `strict: true`, every entry pinned to `app_id: 15368` (GitHub Actions). GitHub waits indefinitely for a required check whose job no longer exists ("Expected — waiting for status to be reported"); it does not notice the job is gone. **The maintainer must drop `Build` from the required set before merging** — the exact command is in the `ci.yml` comment where the job used to be, and the review's MEDIUM is worth heeding: send the full desired state via `checks` (not the deprecated `contexts`) with `strict` passed explicitly, or the PATCH can silently drop the app pin or the up-to-date-before-merge rule. Snapshot the protection JSON before and diff after. `ci.yml`'s header now says "rename **or delete**" — it only warned about renames, which is how this was easy to miss.
+1. **Deleting a CI job whose name is a required status check blocks every PR in the repo — and I did it before the maintainer pulled it back.** `Build` is one of `main`'s eight required checks (`strict: true`, each pinned to `app_id: 15368`). GitHub does not notice a required check's job is gone; it waits indefinitely at "Expected — waiting for status to be reported". All 12 jobs passed and the PR still reported `mergeStateStatus: BLOCKED`. **The maintainer's ruling (2026-08-04) is the lesson: the finding was a false _claim_, and a claim is fixed by editing documents.** Deleting the mechanism was a different, more expensive change — an admin-only round-trip to remove a job that **D-8's bundle makes real within weeks**, at which point both the job and its required-check entry would have to come back. The command, the root script and the CI job all stay; only the sign-off claim is withdrawn. `ci.yml`'s header did keep one fix from the attempt — it warned only against _renaming_ a branch-protection-coupled job, and now warns against deleting one too.
+
 2. **The rot was documented at P0-05 and closed with a prediction that never came true.** [`p0-05-ci-pipeline-handover.md`](./handovers/p0-05-ci-pipeline-handover.md) recorded the empty-run warning, told the next agent not to add a stub `build` script to silence it, and said the warning would "disappear naturally" once real packages shipped. The packages shipped. D-5 then ruled the workspace stays source-only, which made the prediction permanently false — and nobody went back. **A known-benign warning with an expiry condition needs a mechanism, not a note**, because the note is read once and the condition is checked never.
 3. **`packages/*` is the wrong glob in this repo and it fails silently.** My first enumeration of the workspace — a shell loop over `packages/*/package.json` — quietly skipped `@argus/adapters-prettier`, which lives at `packages/adapters/prettier`. That is the same blind spot DOC-05's review found in the docs-delta gate's `SOURCE_RE`, hit again within minutes of starting. `gates:check` therefore asks `pnpm list` rather than globbing, and the **first** negative test breaks the nested adapter specifically.
 4. **A gate that reaches nothing reports success, and this is a whole class, not one bug.** `turbo run <task>` exits 0 when no package declares the task; `pnpm test` passes when a package is missing from vitest's hand-maintained `projects` array (whose own comment asks you to remember). Both are one careless PR away. That is why the replacement is a guard over the fan-out rather than just a deletion — the same reasoning as DOGFOOD's `filesScanned > 100` floor and OPS-06's fail-closed marker.
@@ -55,7 +56,7 @@ PRs open in this session:
 - ✅ Coverage: 97.91% line / 93.92% branch / 99.79% function / 97.98% statement
 - ✅ Root gates green: `lint`, `typecheck`, `test`, `gates:check`, plus `format:check`, `boundaries` (256 modules, 902 deps, 0 violations)
 - ✅ Dogfooding scan of self: **0 violations, 0 failures, 161 files**
-- ⚠️ CI on this branch will show `Build` as permanently pending until the admin step in Gotcha 1 is done
+- ✅ CI: all **12** jobs green on the branch; no branch-protection change needed
 
 ---
 
@@ -82,8 +83,8 @@ Estimated effort: **M** for OPS-05.
 
 ```
 scripts/check-gate-coverage.mjs                   [created]
-package.json                                      [modified]
-.github/workflows/ci.yml                          [modified]
+.github/workflows/ci.yml                          [modified — comments only]
+package.json                                      [unchanged]
 CLAUDE.md                                         [modified]
 README.md                                         [modified]
 docs/workflow.md                                  [modified]
@@ -102,6 +103,6 @@ docs/handovers/p2-05-diff-mode-handover.md        [created — rotation]
 
 ## Sign-off
 
-All gates green and the self-scan is clean; the tree is in a working state and the next agent can start immediately — but **this PR cannot merge until `Build` is dropped from the required-checks set** (Gotcha 1), which is a maintainer action.
+All gates green and the self-scan is clean; the tree is in a working state and the next agent can start immediately. **No admin step and no merge blocker** — the scope was narrowed on the maintainer's ruling so the CI `Build` job stays exactly where it was.
 
 — claude-opus-5

@@ -1,7 +1,8 @@
-# Argus CI — lint, format, typecheck, test, commit-message validation, secret
-# scanning. Job names are referenced by branch-protection rules — do not rename
-# OR DELETE one without coordinating the admin change in the same PR: GitHub
-# waits forever on a required check whose job no longer exists (OPS-07).
+# Argus CI — lint, format, typecheck, test, build, commit-message validation,
+# secret scanning. Job names are referenced by branch-protection rules — do not
+# rename OR DELETE one without coordinating the admin change in the same PR:
+# GitHub waits forever on a required check whose job no longer exists, blocking
+# every PR in the repo until an admin drops it from the required set (OPS-07).
 #
 # Every third-party action is pinned to a full commit SHA (P0-13, ADR-0003):
 # mutable tags are a supply-chain channel. Dependabot's github-actions
@@ -175,42 +176,49 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  # No `build` job. It existed from P0-05 to OPS-07 and never asserted anything:
-  # `turbo run build` fans out to packages declaring a `build` script, no package
-  # ever declared one, and turbo exits 0 on "0 successful, 0 total". A whole
-  # runner — checkout, install, cache restore — spent proving nothing, while
-  # CLAUDE.md named it a mandatory sign-off gate. The workspace is buildless by
-  # ruling (IMPLEMENTATION.md D-5); `typecheck` is the real compile gate, and the
-  # `gates:check` step in `lint` fails if any package ever gains a build script.
+  # The `build` job runs `pnpm build`, which today executes ZERO tasks: no
+  # workspace package declares a `build` script, and turbo reports
+  # "0 successful, 0 total" as a success. It is therefore NOT a sign-off gate
+  # and must never be cited as one — that false claim is exactly what OPS-07
+  # found and removed from CLAUDE.md and the handovers. `typecheck` is the real
+  # compile verification while the workspace stays buildless (D-5).
   #
-  # ADMIN STEP, MAINTAINER-ONLY: "Build" was one of the 8 required status checks
-  # on `main`. A required check whose job no longer exists never reports, and
-  # GitHub blocks the merge waiting for it — including the merge of this very
-  # change. It must be dropped from the required set before this lands.
-  #
-  # Snapshot first, so a wrong PATCH is visible rather than silent:
-  #
-  #   gh api repos/WeaversMask/argus-oss/branches/main/protection > /tmp/before.json
-  #
-  # Then send the full desired state. `checks` (not the deprecated `contexts`)
-  # preserves the app pin, and `strict` is passed explicitly — omitting either
-  # can silently drop the app_id pin or the up-to-date-before-merge rule:
-  #
-  #   gh api -X PATCH \
-  #     repos/WeaversMask/argus-oss/branches/main/protection/required_status_checks \
-  #     --input - <<'JSON'
-  #   {"strict": true, "checks": [
-  #     {"context": "Lint + format", "app_id": 15368},
-  #     {"context": "Typecheck", "app_id": 15368},
-  #     {"context": "Test + coverage", "app_id": 15368},
-  #     {"context": "Secret scan (gitleaks)", "app_id": 15368},
-  #     {"context": "Commit message validation", "app_id": 15368},
-  #     {"context": "Dependency audit (pnpm)", "app_id": 15368},
-  #     {"context": "License compliance (SPDX allowlist)", "app_id": 15368}]}
-  #   JSON
-  #
-  # Then re-fetch and diff against /tmp/before.json: only the Build entry should
-  # be gone. app_id 15368 is GitHub Actions, and is what all 8 checks carry today.
+  # It is kept, rather than deleted, because it stops being vacuous soon: D-8
+  # is ruled "(a) bundle only", scheduled after Phase 2, and a bundle is a build
+  # step. Deleting the job would mean re-adding it — and re-adding "Build" to
+  # the branch-protection required set, which no agent can do — within weeks.
+  # The `gates:check` step in `lint` fires the day a package declares `build`,
+  # so the gate list gets updated instead of silently going stale again.
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turbo cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-build-
+
+      - name: Build (turbo)
+        run: pnpm build
 
   # Stopgap public-advisory audit (P0-07). Catches the registry-indexed CVE
   # subset of supply-chain risk; explicitly NOT the comprehensive P11-02 audit

@@ -11,6 +11,7 @@
   },
   "scripts": {
     "argus": "node apps/cli/bin/argus.mjs",
+    "build": "turbo run build",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "test:packages": "turbo run test",

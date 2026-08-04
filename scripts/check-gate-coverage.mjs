@@ -14,8 +14,11 @@
 // that verified nothing.
 //
 // A vacuous gate is worse than a missing one: it is cited as evidence. So the
-// build gate is gone (OPS-07), and this guard keeps the surviving gates from
-// rotting the same way. Three assertions, all fail-closed:
+// CLAIM is gone (OPS-07) — `pnpm build` is no longer a sign-off gate anywhere.
+// The command and its CI job stay, because D-8's bundle makes them real soon
+// and deleting them would mean re-adding "Build" to the branch-protection
+// required set within weeks. This guard is what keeps the gates that ARE
+// claimed from rotting the same way. Three assertions, all fail-closed:
 //
 //   1. Every workspace package declares `typecheck`, and it really runs
 //      `tsc --noEmit`. This is the real compile verification now, and a package
@@ -23,11 +26,12 @@
 //      still exits 0. The content is asserted too, because a stub (`"typecheck":
 //      "true"`) satisfies presence and checks nothing — the exact dodge P0-05's
 //      handover warned the next agent away from.
-//   2. No workspace package declares `build`. The workspace is buildless by
-//      ruling (IMPLEMENTATION.md D-5: `exports` point at `src/`, and the #13
-//      turbo cycle-break is benign only because of that). The day that stops
-//      being true the root gates must run a build again — this turns that from
-//      a silent omission into a failing check that says so.
+//   2. No workspace package declares `build` — a tripwire, not a prohibition.
+//      The workspace is buildless by ruling (IMPLEMENTATION.md D-5: `exports`
+//      point at `src/`, and the #13 turbo cycle-break is benign only because of
+//      that), which is the whole reason `pnpm build` is not a sign-off gate.
+//      The day that stops being true the gate list must say so again — this
+//      turns that from a silent omission into a failing check that says so.
 //   3. Every workspace package is listed in the root `vitest.config.ts`
 //      `projects` array. That list is hand-maintained, and its own comment
 //      asks you to remember; a package missing from it is never tested and
@@ -64,15 +68,17 @@ const VITEST_CONFIG = resolve(REPO_ROOT, "vitest.config.ts");
 const REQUIRED_SCRIPTS = [["typecheck", "tsc --noEmit", "pnpm typecheck"]];
 
 /**
- * Scripts no workspace package may declare, with the reason. A package gaining
- * one of these means a root gate stopped covering it — see the header.
+ * Scripts whose appearance means a documented assumption just stopped holding.
+ * Not a prohibition — a tripwire. Declaring one is a legitimate thing to do
+ * (D-8's bundle will), and the point is that it must not happen silently.
  */
-const FORBIDDEN_SCRIPTS = [
+const TRIPWIRE_SCRIPTS = [
   [
     "build",
-    "the workspace is buildless by ruling (IMPLEMENTATION.md D-5) and the root " +
-      "gates run no build. If this package genuinely needs one, restore `pnpm build` " +
-      "to the gate list in CLAUDE.md, re-add the CI `build` job, and re-date D-5.",
+    "the workspace has been buildless since P0 (IMPLEMENTATION.md D-5), which is why " +
+      "`pnpm build` is NOT in the root sign-off gate list — it ran zero tasks. Declaring " +
+      "one makes it real again: put `pnpm build` back in the gate list in CLAUDE.md and " +
+      "agentic-execution.md, and re-date D-5. The CI `build` job already runs it.",
   ],
 ];
 
@@ -157,7 +163,7 @@ function scriptProblems(pkg) {
       );
     }
   }
-  for (const [script, reason] of FORBIDDEN_SCRIPTS) {
+  for (const [script, reason] of TRIPWIRE_SCRIPTS) {
     if (pkg.scripts[script]) problems.push(`declares a \`${script}\` script — ${reason}`);
   }
   return problems;
