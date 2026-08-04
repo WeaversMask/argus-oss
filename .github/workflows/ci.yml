@@ -1,6 +1,7 @@
-# Argus CI — lint, format, typecheck, test, build, commit-message validation,
-# secret scanning. Job names are referenced by branch-protection rules — do not
-# rename without coordinating the admin change in the same PR.
+# Argus CI — lint, format, typecheck, test, commit-message validation, secret
+# scanning. Job names are referenced by branch-protection rules — do not rename
+# OR DELETE one without coordinating the admin change in the same PR: GitHub
+# waits forever on a required check whose job no longer exists (OPS-07).
 #
 # Every third-party action is pinned to a full commit SHA (P0-13, ADR-0003):
 # mutable tags are a supply-chain channel. Dependabot's github-actions
@@ -185,12 +186,31 @@ jobs:
   # ADMIN STEP, MAINTAINER-ONLY: "Build" was one of the 8 required status checks
   # on `main`. A required check whose job no longer exists never reports, and
   # GitHub blocks the merge waiting for it — including the merge of this very
-  # change. It must be dropped from the required set before this lands:
+  # change. It must be dropped from the required set before this lands.
   #
-  #   gh api -X PATCH repos/WeaversMask/argus-oss/branches/main/protection/required_status_checks \
-  #     -f 'contexts[]=Lint + format' -f 'contexts[]=Typecheck' -f 'contexts[]=Test + coverage' \
-  #     -f 'contexts[]=Secret scan (gitleaks)' -f 'contexts[]=Commit message validation' \
-  #     -f 'contexts[]=Dependency audit (pnpm)' -f 'contexts[]=License compliance (SPDX allowlist)'
+  # Snapshot first, so a wrong PATCH is visible rather than silent:
+  #
+  #   gh api repos/WeaversMask/argus-oss/branches/main/protection > /tmp/before.json
+  #
+  # Then send the full desired state. `checks` (not the deprecated `contexts`)
+  # preserves the app pin, and `strict` is passed explicitly — omitting either
+  # can silently drop the app_id pin or the up-to-date-before-merge rule:
+  #
+  #   gh api -X PATCH \
+  #     repos/WeaversMask/argus-oss/branches/main/protection/required_status_checks \
+  #     --input - <<'JSON'
+  #   {"strict": true, "checks": [
+  #     {"context": "Lint + format", "app_id": 15368},
+  #     {"context": "Typecheck", "app_id": 15368},
+  #     {"context": "Test + coverage", "app_id": 15368},
+  #     {"context": "Secret scan (gitleaks)", "app_id": 15368},
+  #     {"context": "Commit message validation", "app_id": 15368},
+  #     {"context": "Dependency audit (pnpm)", "app_id": 15368},
+  #     {"context": "License compliance (SPDX allowlist)", "app_id": 15368}]}
+  #   JSON
+  #
+  # Then re-fetch and diff against /tmp/before.json: only the Build entry should
+  # be gone. app_id 15368 is GitHub Actions, and is what all 8 checks carry today.
 
   # Stopgap public-advisory audit (P0-07). Catches the registry-indexed CVE
   # subset of supply-chain risk; explicitly NOT the comprehensive P11-02 audit

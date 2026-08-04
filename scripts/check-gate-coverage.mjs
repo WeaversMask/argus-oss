@@ -17,10 +17,12 @@
 // build gate is gone (OPS-07), and this guard keeps the surviving gates from
 // rotting the same way. Three assertions, all fail-closed:
 //
-//   1. Every workspace package declares `typecheck`. This is the real compile
-//      verification now — `turbo run typecheck` runs `tsc --noEmit` per
-//      package, and a package that declares no such script is silently skipped
-//      while the root gate still exits 0.
+//   1. Every workspace package declares `typecheck`, and it really runs
+//      `tsc --noEmit`. This is the real compile verification now, and a package
+//      that declares no such script is silently skipped while the root gate
+//      still exits 0. The content is asserted too, because a stub (`"typecheck":
+//      "true"`) satisfies presence and checks nothing — the exact dodge P0-05's
+//      handover warned the next agent away from.
 //   2. No workspace package declares `build`. The workspace is buildless by
 //      ruling (IMPLEMENTATION.md D-5: `exports` point at `src/`, and the #13
 //      turbo cycle-break is benign only because of that). The day that stops
@@ -50,8 +52,16 @@ import console from "node:console";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const VITEST_CONFIG = resolve(REPO_ROOT, "vitest.config.ts");
 
-/** Scripts every workspace package must declare, and the root gate each backs. */
-const REQUIRED_SCRIPTS = [["typecheck", "pnpm typecheck"]];
+/**
+ * Scripts every workspace package must declare, as `[script, mustContain, gate]`.
+ *
+ * `mustContain` is checked because presence alone is not coverage: a package
+ * declaring `"typecheck": "true"` satisfies a presence check and compiles
+ * nothing, which is the stub-script dodge P0-05's handover explicitly warned
+ * the next agent away from. All ten packages already run exactly `tsc --noEmit`,
+ * so asserting the content costs nothing today and closes the loophole.
+ */
+const REQUIRED_SCRIPTS = [["typecheck", "tsc --noEmit", "pnpm typecheck"]];
 
 /**
  * Scripts no workspace package may declare, with the reason. A package gaining
@@ -71,6 +81,10 @@ const FORBIDDEN_SCRIPTS = [
  * `dir` is repo-relative. Asks pnpm rather than globbing the workspace file.
  */
 function workspacePackages() {
+  // POSIX-only, deliberately: `execFileSync` without a shell cannot launch
+  // `pnpm.cmd`, so this exits with ENOENT on Windows rather than a gate result.
+  // The repo targets macOS and ubuntu CI; normalizing `\` separators here would
+  // be dead code claiming a portability the first line does not deliver.
   const raw = execFileSync("pnpm", ["list", "--recursive", "--depth", "-1", "--json"], {
     cwd: REPO_ROOT,
     encoding: "utf8",
@@ -80,7 +94,7 @@ function workspacePackages() {
     .filter((entry) => resolve(entry.path) !== REPO_ROOT)
     .map((entry) => ({
       name: entry.name,
-      dir: relative(REPO_ROOT, resolve(entry.path)).split("\\").join("/"),
+      dir: relative(REPO_ROOT, resolve(entry.path)),
       scripts: readScripts(resolve(entry.path, "package.json")),
     }));
 }
@@ -91,34 +105,72 @@ function readScripts(manifestPath) {
 }
 
 /**
- * The quoted entries of the root vitest config's `projects` array. Read as
- * text rather than imported: importing it executes the config and pulls in
- * vitest, which this check must not need.
+ * The live entries of the root vitest config's `projects` array. Read as text
+ * rather than imported: importing it executes the config and pulls in vitest,
+ * which this check must not need.
+ *
+ * Comments are stripped FIRST, and that is the whole point. Commenting an entry
+ * out is how anyone disables a flaky suite, and a quoted path inside a comment
+ * is textually identical to a live one — so matching quotes over the raw block
+ * reports a package as tested while `pnpm test` skips it entirely. That is this
+ * script's own failure mode reproduced inside the guard written to prevent it;
+ * the independent review caught it by commenting out `@argus/core`.
  */
 function vitestProjects() {
   const source = readFileSync(VITEST_CONFIG, "utf8");
   const block = /projects\s*:\s*\[([^\]]*)\]/s.exec(source);
   if (!block) return null;
-  return [...block[1].matchAll(/["']([^"']+)["']/g)].map((match) => match[1]);
+  const live = block[1].replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  return [...live.matchAll(/["']([^"']+)["']/g)].map((match) => match[1]);
+}
+
+/**
+ * Whether one `projects` entry covers `dir` — either a config path inside it,
+ * or a directory glob matching it. Vitest accepts both, and the glob form is a
+ * legitimate way to retire the hand-maintained list this check polices.
+ *
+ * A glob matches `dir` exactly rather than any prefix of it, because vitest's
+ * own `packages/*` does not reach `packages/adapters/prettier` either — over-
+ * matching here would credit the nested adapter to a glob that never runs it.
+ *
+ * Known limitation: a package directory containing another workspace package
+ * (none today) would be credited by its child's entry.
+ */
+function covers(entry, dir) {
+  if (entry.includes("*")) {
+    const pattern = entry.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+    return new RegExp(`^${pattern}$`).test(dir);
+  }
+  return entry.startsWith(`${dir}/`);
+}
+
+/** Missing-or-stubbed required scripts, and forbidden ones, for one package. */
+function scriptProblems(pkg) {
+  const problems = [];
+  for (const [script, mustContain, gate] of REQUIRED_SCRIPTS) {
+    const declared = pkg.scripts[script];
+    if (!declared) {
+      problems.push(`declares no \`${script}\` script — ${gate} skips it silently.`);
+    } else if (!declared.includes(mustContain)) {
+      problems.push(
+        `declares \`${script}\` as "${declared}", which never runs \`${mustContain}\` — ${gate} passes it without checking anything.`,
+      );
+    }
+  }
+  for (const [script, reason] of FORBIDDEN_SCRIPTS) {
+    if (pkg.scripts[script]) problems.push(`declares a \`${script}\` script — ${reason}`);
+  }
+  return problems;
 }
 
 /** Every gate-coverage violation across `packages`, as human-readable lines. */
 function findProblems(packages, projects) {
   const problems = [];
   for (const pkg of packages) {
-    for (const [script, gate] of REQUIRED_SCRIPTS) {
-      if (!pkg.scripts[script]) {
-        problems.push(
-          `${pkg.name} (${pkg.dir}) declares no \`${script}\` script — ${gate} skips it silently.`,
-        );
-      }
+    for (const problem of scriptProblems(pkg)) {
+      problems.push(`${pkg.name} (${pkg.dir}) ${problem}`);
     }
-    for (const [script, reason] of FORBIDDEN_SCRIPTS) {
-      if (pkg.scripts[script]) {
-        problems.push(`${pkg.name} (${pkg.dir}) declares a \`${script}\` script — ${reason}`);
-      }
-    }
-    if (projects && !projects.some((entry) => entry.startsWith(`${pkg.dir}/`))) {
+    if (!projects.some((entry) => covers(entry, pkg.dir))) {
       problems.push(
         `${pkg.name} (${pkg.dir}) is absent from \`projects\` in vitest.config.ts — \`pnpm test\` never runs its tests.`,
       );
