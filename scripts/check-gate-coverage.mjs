@@ -57,13 +57,19 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const VITEST_CONFIG = resolve(REPO_ROOT, "vitest.config.ts");
 
 /**
- * Scripts every workspace package must declare, as `[script, mustContain, gate]`.
+ * Scripts every workspace package must declare, as `[script, exactCommand, gate]`.
  *
- * `mustContain` is checked because presence alone is not coverage: a package
- * declaring `"typecheck": "true"` satisfies a presence check and compiles
- * nothing, which is the stub-script dodge P0-05's handover explicitly warned
- * the next agent away from. All ten packages already run exactly `tsc --noEmit`,
- * so asserting the content costs nothing today and closes the loophole.
+ * The command is compared for EQUALITY, not containment. Presence alone is not
+ * coverage — `"typecheck": "true"` satisfies a presence check and compiles
+ * nothing, the stub dodge P0-05's handover warned the next agent away from — but
+ * containment is barely better: `tsc --noEmit || true` contains the command and
+ * makes `pnpm typecheck` PRINT a type error and still exit 0. That was found by
+ * the second review, reproduced against the real gate, and it is not adversarial:
+ * `|| true` is how anyone silences a noisy package mid-refactor.
+ *
+ * All ten packages are exactly `tsc --noEmit` today, so equality costs nothing.
+ * If a package ever needs flags, widen this deliberately — and reject `||`, `;`
+ * and `&&` when you do, or the loophole comes straight back.
  */
 const REQUIRED_SCRIPTS = [["typecheck", "tsc --noEmit", "pnpm typecheck"]];
 
@@ -111,60 +117,84 @@ function readScripts(manifestPath) {
 }
 
 /**
- * The live entries of the root vitest config's `projects` array. Read as text
- * rather than imported: importing it executes the config and pulls in vitest,
- * which this check must not need.
+ * The entries of the root vitest config's `projects` array, as
+ * `{ entries }` or `{ error }`. Read as text rather than imported: importing it
+ * executes the config and pulls in vitest, which this check must not need.
  *
- * Comments are stripped FIRST, and that is the whole point. Commenting an entry
- * out is how anyone disables a flaky suite, and a quoted path inside a comment
- * is textually identical to a live one — so matching quotes over the raw block
- * reports a package as tested while `pnpm test` skips it entirely. That is this
- * script's own failure mode reproduced inside the guard written to prevent it;
- * the independent review caught it by commenting out `@argus/core`.
+ * **This function refuses to guess, and that is its entire design.** Two reviews
+ * found the same bug here, twice over: scraping quoted strings out of the block
+ * credits any path that merely LOOKS like an entry. First a commented-out line
+ * (`// "packages/core/…"` — how anyone disables a flaky suite) read as live;
+ * stripping comments fixed that one instance and not the class, because a
+ * conditional spread — `...(process.env.RUN_CORE ? [x] : [])`, an ordinary
+ * vitest pattern — still scraped as live. Reproduced end to end: nine real
+ * projects, `@argus/core` absent, guard exits 0 reporting all ten covered.
+ *
+ * So the block must be a plain list of string literals and nothing else. Any
+ * spread, ternary, variable, inline object or nested array — anything this
+ * function cannot evaluate statically — is an ERROR, not something to squint at.
+ * A guard whose whole promise is "never passes vacuously" may not silently
+ * downgrade to a text search when the input outgrows it.
  */
 function vitestProjects() {
   const source = readFileSync(VITEST_CONFIG, "utf8");
   const block = /projects\s*:\s*\[([^\]]*)\]/s.exec(source);
-  if (!block) return null;
+  if (!block) return { error: "could not find a `projects: [ … ]` array" };
+
   const live = block[1].replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  return [...live.matchAll(/["']([^"']+)["']/g)].map((match) => match[1]);
+  const residue = live.replace(/(["'])[^"']*\1/g, "").replace(/[\s,]/g, "");
+  if (residue !== "") {
+    return {
+      error:
+        "`projects` holds something other than plain string literals " +
+        `(leftover: ${JSON.stringify(residue.slice(0, 40))}), which cannot be ` +
+        "verified statically — a spread, conditional, variable or inline object",
+    };
+  }
+  return { entries: [...live.matchAll(/["']([^"']+)["']/g)].map((match) => match[1]) };
 }
 
 /**
- * Whether one `projects` entry covers `dir` — either a config path inside it,
- * or a directory glob matching it. Vitest accepts both, and the glob form is a
- * legitimate way to retire the hand-maintained list this check polices.
+ * Whether one `projects` entry covers `dir` — either a config-file path inside
+ * it (`packages/core/vitest.config.ts`) or a single-level DIRECTORY glob
+ * matching it (`packages/*`).
  *
- * A glob matches `dir` exactly rather than any prefix of it, because vitest's
- * own `packages/*` does not reach `packages/adapters/prettier` either — over-
- * matching here would credit the nested adapter to a glob that never runs it.
+ * A glob matches `dir` exactly rather than any prefix, because vitest's own
+ * `packages/*` does not reach `packages/adapters/prettier` either — over-
+ * matching would credit the nested adapter to a glob that never runs it.
  *
- * Known limitation: a package directory containing another workspace package
- * (none today) would be credited by its child's entry.
+ * Deliberately narrow, and it fails CLOSED on everything it does not model:
+ * a double star (treated as two single-level stars, so it matches less than
+ * vitest would), a glob over config FILES rather than directories (a star
+ * followed by a slash and a filename), and a bare directory entry with no
+ * trailing slash all report the package absent rather than covered. That is a
+ * false alarm, not a false pass — fix the entry or widen this function, but do
+ * not loosen it into a prefix match. Known limitation: a package directory
+ * containing another workspace package (none today) is credited by its child.
  */
 function covers(entry, dir) {
   if (entry.includes("*")) {
-    const pattern = entry.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+    const pattern = entry.replace(/[.+^${}()|[\]\\?]/g, "\\$&").replace(/\*/g, "[^/]*");
     return new RegExp(`^${pattern}$`).test(dir);
   }
   return entry.startsWith(`${dir}/`);
 }
 
-/** Missing-or-stubbed required scripts, and forbidden ones, for one package. */
+/** Missing-or-weakened required scripts, and tripwire ones, for one package. */
 function scriptProblems(pkg) {
   const problems = [];
-  for (const [script, mustContain, gate] of REQUIRED_SCRIPTS) {
+  for (const [script, exactCommand, gate] of REQUIRED_SCRIPTS) {
     const declared = pkg.scripts[script];
-    if (!declared) {
+    if (declared === undefined) {
       problems.push(`declares no \`${script}\` script — ${gate} skips it silently.`);
-    } else if (!declared.includes(mustContain)) {
+    } else if (declared.trim() !== exactCommand) {
       problems.push(
-        `declares \`${script}\` as "${declared}", which never runs \`${mustContain}\` — ${gate} passes it without checking anything.`,
+        `declares \`${script}\` as "${declared}", not exactly \`${exactCommand}\` — ${gate} cannot be trusted to check it (\`${exactCommand} || true\` prints errors and still exits 0). Widen REQUIRED_SCRIPTS deliberately if this is intended.`,
       );
     }
   }
   for (const [script, reason] of TRIPWIRE_SCRIPTS) {
-    if (pkg.scripts[script]) problems.push(`declares a \`${script}\` script — ${reason}`);
+    if (script in pkg.scripts) problems.push(`declares a \`${script}\` script — ${reason}`);
   }
   return problems;
 }
@@ -194,14 +224,13 @@ function main() {
   }
 
   const projects = vitestProjects();
-  if (projects === null) {
-    console.error(
-      "gates:check: could not read `projects` from vitest.config.ts — refusing to pass vacuously.",
-    );
+  if (projects.error) {
+    console.error(`gates:check: ${projects.error}.`);
+    console.error("  in vitest.config.ts — refusing to pass vacuously.");
     process.exit(1);
   }
 
-  const problems = findProblems(packages, projects);
+  const problems = findProblems(packages, projects.entries);
   if (problems.length > 0) {
     console.error("gates:check: the root gates do not cover every workspace package.\n");
     for (const problem of problems) console.error(`  - ${problem}`);

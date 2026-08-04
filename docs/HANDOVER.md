@@ -48,6 +48,12 @@ PRs open in this session:
 5. **The negative tests are run by breaking the tree and requiring failure**, then restoring — eight of them now. P2-05's lesson (a regression test that cannot fire passes while proving nothing) applies directly to guard scripts.
 6. **The independent review found the anti-vacuity guard passing vacuously, which is the whole lesson of this task repeating itself one level up.** `vitestProjects()` matched quoted strings over the raw `projects` block, so a **commented-out** entry — `// "packages/core/vitest.config.ts",`, exactly how anyone disables a flaky suite — read as live. `@argus/core`'s tests would not run, `pnpm test` would pass, aggregate coverage thresholds are computed over surviving projects so they would not catch it either, and `gates:check` would report all ten packages covered. Reproduced, then fixed by stripping comments before matching. **My own four negative tests missed it because they all deleted lines rather than commenting them** — I tested the edit I would make, not the edit a person under time pressure makes. The reviewer also closed the mirror-image loophole: a **stub** `"typecheck": "true"` satisfied a presence check while compiling nothing, which is the precise dodge P0-05's handover warned against, so the guard now asserts the script actually runs `tsc --noEmit`.
 
+7. **A SECOND review of the first review's fix found the same class of bug again — twice — and that repetition is the finding.** The maintainer asked for a narrow pass over the fix commit alone, on the grounds that its ~75 lines of new regex parsing had been read by nobody but its author. It returned REQUEST CHANGES with two reproduced **fail-opens**, both in `gates:check` itself:
+   - **`projects` scraping credited any quoted path, live or not.** Stripping comments closed one instance and not the class: `...(process.env.RUN_CORE ? ["packages/core/vitest.config.ts"] : [])` — an ordinary vitest pattern — still scraped as live. Reproduced end to end: **nine** real projects, `@argus/core` absent, guard exits 0 reporting all ten covered.
+   - **`declared.includes("tsc --noEmit")` was satisfied by `tsc --noEmit || true`**, which makes `pnpm typecheck` **print a type error and exit 0**. Reproduced against the real gate with a planted error. Not adversarial — `|| true` is how anyone silences a noisy package mid-refactor.
+
+   The fix is the one worth carrying: **`vitestProjects` no longer guesses.** Anything that is not a plain list of string literals — spread, ternary, variable, inline object — is an error, not something to squint at. The script asserted over _text that resembled_ the thing rather than the thing itself, which is how it could keep re-acquiring the exact bug it exists to catch. Script assertions are equality now, not containment.
+
 ---
 
 ## State of the System
@@ -55,6 +61,7 @@ PRs open in this session:
 - ✅ Tests: **806 passing** (74 files), 0 failing
 - ✅ Coverage: 97.91% line / 93.92% branch / 99.79% function / 97.98% statement
 - ✅ Root gates green: `lint`, `typecheck`, `test`, `gates:check`, plus `format:check`, `boundaries` (256 modules, 902 deps, 0 violations)
+- ✅ `gates:check` negative tests: **14**, every one run by breaking the tree and requiring failure, then restoring
 - ✅ Dogfooding scan of self: **0 violations, 0 failures, 161 files**
 - ✅ CI: all **12** jobs green on the branch; no branch-protection change needed
 
