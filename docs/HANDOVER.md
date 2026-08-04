@@ -34,7 +34,9 @@ what is yours".
   trailers, annotated tags (none exist), and `git log -S` over historical file content.
 - **Swept two surfaces the runbook does not mention**, both public the instant the repo
   is: **1.05 MB** of PR + issue + review text (0 personal identifiers, 0 emails) and
-  **9 Actions job logs / 252 KB** (0 hits).
+  **900 Actions job logs / 31.6 MB** (0 hits) — the most recent 900 of roughly 2,556
+  job records, the rest having expired on GitHub's side. Both sweeps are recorded in
+  the runbook as runnable commands, each with a size floor and a sanity match.
 - **Fixed the one real finding** — an archived handover carried an absolute `cd` into
   the maintainer's home directory, forbidden outright by
   [SECURITY-NOTES](./SECURITY-NOTES.md) §Personal Data of Contributors. Now `cd <repo-root>`.
@@ -77,7 +79,7 @@ what is yours".
 2. **The finding was in the tree, not in history — and not in code.** Every instinct
    here points at commit metadata and at source. The one violation was prose: a note
    one agent left for the next, quoting a path. It had been there since 2026-07-24,
-   survived 93 commits, and was carried into four files by handover rotation — the
+   survived 93 commits, and was carried into a second file by handover rotation — the
    mechanism that exists to preserve those notes faithfully propagated it. **Scan the
    documentation with the same suspicion as the code.**
 3. **Writing the finding down reintroduced it.** My first draft of the runbook section
@@ -99,6 +101,13 @@ what is yours".
 - ✅ Root gates green: `lint`, `typecheck`, `test`, `gates:check` (**74 files, 806 tests**)
   — re-run after the OPS-07 rebase, which retired `build` from the list and added
   `gates:check`
+- ✅ **The vacuous `pnpm build` gate this task's review surfaced is fixed.** It reported
+  success having run **zero tasks** because no workspace package defines a `build`
+  script, while being named a sign-off gate in `CLAUDE.md` and asserted green in every
+  handover. Filed and shipped as **OPS-07**
+  ([#52](https://github.com/WeaversMask/argus-oss/pull/52), merged 2026-08-04): the claim
+  was withdrawn rather than the mechanism deleted, and `gates:check` now guards the
+  survivors
 - ✅ Self-scan clean: **160 files, 0 violations, 0 failures**, exit 0
 - ✅ Coverage 97.91% lines / 93.92% branches / 99.79% functions / 97.98% statements
 - ✅ License gate: 563 packages, 4 named exceptions; `notices:check` clean
@@ -116,11 +125,14 @@ what is yours".
    counts — cheap, mechanical, and between them they caught most of what the first pass
    found. Note `architecture.md`'s package count is now **nine**, and that the phase
    cannot be marked ✅ until that report reads pass.
-2. **Do not treat the flip as a follow-up task.** It is four maintainer-only items in
-   the runbook. An agent's involvement ends at the readiness report.
+2. **Do not treat the flip as a follow-up task.** It is the runbook's steps 1 and
+   3–7, all maintainer-only (step 2, LICENSE, was closed by OPS-05). An agent's
+   involvement ends at the readiness report.
 
 ## Open Questions for the Next Agent
 
+- **What to do about the vacuous `pnpm build` gate?** See State of the System. Every
+  sign-off claim in this repo names it; none of them has meant anything.
 - **Should the personal-data scan become a CI gate?** It found something no existing
   gate would have. It is one `git grep` with a pinned expected-hit count, so it is
   cheap — but pinning a count means every legitimate new mention edits the gate.

@@ -1,16 +1,18 @@
 # Argus
 
-<!-- BADGES — staged by OPS-05; not live because this repo is still private.
-     At the flip (go-public-runbook.md step 5), delete this comment's opening and closing
-     markers so the two badge lines below render. Both resolve only for a public repo.
+<!-- BADGES — staged by OPS-05; not live while this repo is private.
 
-[![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+     TO ACTIVATE AT THE FLIP (go-public-runbook.md step 5): delete this ENTIRE comment
+     block, opening marker to closing marker, and put back only these two lines. Nothing
+     else in here is meant to render — un-commenting in place would publish this note.
+
+     [![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
+     [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
      CI        — needs nothing but the visibility flip. If you also rename the repo
-                 (runbook step 3), GitHub redirects the old path, but update the two URLs
-                 above anyway rather than relying on a redirect.
-     License   — a static badge; accurate today, unaffected by the rename.
+                 (runbook step 3), GitHub redirects the old path, but update both URLs
+                 anyway rather than relying on a redirect.
+     License   — a static shields.io badge; accurate today, unaffected by a rename.
      Coverage  — deliberately NOT staged. shields.io cannot read coverage without a service
                  (Codecov/Coveralls) wired first, and a hand-typed percentage goes stale
                  silently — the exact failure docs/plan/03-documentation.md exists to stop.
