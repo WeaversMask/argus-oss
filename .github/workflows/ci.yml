@@ -91,6 +91,17 @@ jobs:
       - name: Check archived handover links resolve (DOC-06)
         run: pnpm handover:check
 
+      # Gate coverage (OPS-07). The root gates fan out — `turbo run typecheck`
+      # to whichever packages declare the script, `pnpm test` to whichever are
+      # listed in vitest's `projects` — and both report success when they reach
+      # nothing. That is not hypothetical: `pnpm build` was a named sign-off
+      # gate for the life of the project and ran zero tasks the entire time.
+      # This step fails when a package is missing from a gate's fan-out, or
+      # when one gains a `build` script the root gates no longer run.
+      # Zero-install (node: builtins + `pnpm list`), so it costs nothing here.
+      - name: Check root gates cover every workspace package (OPS-07)
+        run: pnpm gates:check
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -163,35 +174,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Restore Turbo cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-build-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-build-
-
-      - name: Build (turbo)
-        run: pnpm build
+  # No `build` job. It existed from P0-05 to OPS-07 and never asserted anything:
+  # `turbo run build` fans out to packages declaring a `build` script, no package
+  # ever declared one, and turbo exits 0 on "0 successful, 0 total". A whole
+  # runner — checkout, install, cache restore — spent proving nothing, while
+  # CLAUDE.md named it a mandatory sign-off gate. The workspace is buildless by
+  # ruling (IMPLEMENTATION.md D-5); `typecheck` is the real compile gate, and the
+  # `gates:check` step in `lint` fails if any package ever gains a build script.
+  #
+  # ADMIN STEP, MAINTAINER-ONLY: "Build" was one of the 8 required status checks
+  # on `main`. A required check whose job no longer exists never reports, and
+  # GitHub blocks the merge waiting for it — including the merge of this very
+  # change. It must be dropped from the required set before this lands:
+  #
+  #   gh api -X PATCH repos/WeaversMask/argus-oss/branches/main/protection/required_status_checks \
+  #     -f 'contexts[]=Lint + format' -f 'contexts[]=Typecheck' -f 'contexts[]=Test + coverage' \
+  #     -f 'contexts[]=Secret scan (gitleaks)' -f 'contexts[]=Commit message validation' \
+  #     -f 'contexts[]=Dependency audit (pnpm)' -f 'contexts[]=License compliance (SPDX allowlist)'
 
   # Stopgap public-advisory audit (P0-07). Catches the registry-indexed CVE
   # subset of supply-chain risk; explicitly NOT the comprehensive P11-02 audit

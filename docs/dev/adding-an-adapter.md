@@ -65,7 +65,7 @@ Drive the external tool for real against a temp directory (`mkdtempSync` + an `a
 
 ## 5. Sanity checklist
 
-- Root gates green: `pnpm lint && pnpm typecheck && pnpm build && pnpm test`, plus `pnpm boundaries`.
+- Root gates green: `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check`, plus `pnpm boundaries`. A new adapter is a new package, so `gates:check` is what catches it being wired in half-way — no `typecheck` script, or missing from `projects` in the root `vitest.config.ts`.
 - Coverage ≥85% line / ≥80% branch. Adapters are small, so a single uncovered arm can sink the branch score — if a path is genuinely unreachable through the public surface, export the helper and unit-test it directly, and say why in the README.
 - Package `README.md` written; [`../architecture.md`](../architecture.md)'s package table gains a row.
 - `pnpm license-check` and `pnpm notices` if the dependency tree moved.

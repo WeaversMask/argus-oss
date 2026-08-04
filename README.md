@@ -82,7 +82,7 @@ Copyleft engines are never imported, linked, or vendored — subprocess only, be
 - **Node** — the version pinned in [`.nvmrc`](.nvmrc) (`nvm use`); the exact floor is enforced via `engines.node` in [package.json](package.json).
 - **pnpm** — the exact version pinned in `package.json` → `packageManager`; activate with `corepack enable`. Supply-chain posture (3-day minimum release age for new versions, dependency install scripts blocked by default) per [ADR-0003](docs/adr/0003-supply-chain-hardening-baseline.md).
 - `pnpm install` — also installs the git hooks (husky + repo-local gitleaks).
-- Everyday commands: `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build`.
+- Everyday commands: `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm gates:check`. There is no build step — every package's `exports` point straight at `src/`, so `pnpm typecheck` (`tsc --noEmit`) is what verifies the code compiles.
 
 ### Docker dev environment (optional)
 

@@ -11,7 +11,6 @@
   },
   "scripts": {
     "argus": "node apps/cli/bin/argus.mjs",
-    "build": "turbo run build",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "test:packages": "turbo run test",
@@ -22,6 +21,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",
+    "gates:check": "node scripts/check-gate-coverage.mjs",
     "license-check": "node scripts/check-licenses.mjs",
     "notices": "node scripts/generate-third-party-notices.mjs",
     "notices:check": "node scripts/generate-third-party-notices.mjs --check",
