@@ -162,6 +162,12 @@ docs/handovers/p2-05-diff-mode-handover.md     [created — by the rotation scri
                                                 byte-identical to the copy OPS-07's
                                                 session rotated first, so it drops
                                                 out of this branch's diff post-rebase]
+docs/handovers/ops-07-gate-coverage-handover.md [created — post-rebase, by the rotation
+                                                script. OPS-07's handover was live on
+                                                `main`; this branch's HANDOVER.md
+                                                replaces it, so it is archived here
+                                                rather than lost. Maintainer's call,
+                                                2026-08-09]
 ```
 
 ## Sign-off
