@@ -31,7 +31,7 @@
 
 ## Argus scanning Argus
 
-Argus's own CI runs Argus over this repository on every pull request and fails if it finds anything. Both frames below are real output, recorded 2026-08-01 — the second was produced by adding one file that breaks four rules, scanning, and deleting it. The file counts are that recording's and climb as the repo grows; the CI job, not this image, is what keeps the claim true today:
+Argus's own CI runs Argus over this repository on every pull request and fails if it finds anything. Both frames below are real output, recorded 2026-08-01 — the second was produced by adding one file that breaks four rules, scanning, and deleting it. Those file counts are the recording's, and climb as the repo grows; what keeps the claim true today is the `dogfood` job in [`ci.yml`](.github/workflows/ci.yml), not this image:
 
 ![Terminal recording from 2026-08-01: pnpm -s argus check . reports no violations across 151 files, then catches four violations across four rules after one bad file is added](docs/assets/argus-self-scan.svg)
 

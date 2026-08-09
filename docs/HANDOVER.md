@@ -65,6 +65,11 @@ what is yours".
 - **Regenerating the README demo SVG.** It still shows 151 files against today's 161.
   It is a dated recording, internally consistent with its own alt text, and there is no
   generator script — regenerating is DOC-02's territory, not a readiness sweep's.
+  **Resolved differently (2026-08-09):** the recording is now dated explicitly — in the
+  README prose, in the markdown alt text, and in the asset's own `aria-label` and
+  `<title>` — so the count reads as the snapshot it is rather than as a current
+  measurement. Re-recording stays DOC-02's call; if it happens, all four places move
+  together.
 - **Archiving the retired `WeaversMask/argus` repo.** Still private (verified), still
   not archived. Maintainer action, already in the runbook.
 - **Still inherited, still each needing their own task:** the missing `FormatterPort`
