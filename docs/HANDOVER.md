@@ -46,7 +46,9 @@ what is yours".
 - **Corrected the runbook** in four places and added a "Readiness sweep" section
   recording what was checked, with re-runnable commands.
 - **Re-measured stale numbers** in the README and tracker: 737 → **806 tests**,
-  97.9 → **98.0%** statements, 94.3 → **93.9%** branches, self-scan 151 → **160 files**.
+  97.9 → **98.0%** statements, 94.3 → **93.9%** branches, self-scan 151 → **160 files**
+  (**161** after the OPS-07 rebase added `check-gate-coverage.mjs`; the tracker carries
+  the current number).
 
 ## What I Did NOT Do (Deferred)
 
@@ -56,7 +58,7 @@ what is yours".
   service wired and a hand-typed percentage goes stale silently; the Stryker job has
   been red since 2026-07-28. Both are staged as commented notes explaining the blocker.
   This is DOC-02's own precedent for keeping mutation score out of the receipts table.
-- **Regenerating the README demo SVG.** It still shows 151 files against today's 160.
+- **Regenerating the README demo SVG.** It still shows 151 files against today's 161.
   It is a dated recording, internally consistent with its own alt text, and there is no
   generator script — regenerating is DOC-02's territory, not a readiness sweep's.
 - **Archiving the retired `WeaversMask/argus` repo.** Still private (verified), still
@@ -108,7 +110,8 @@ what is yours".
   ([#52](https://github.com/WeaversMask/argus-oss/pull/52), merged 2026-08-04): the claim
   was withdrawn rather than the mechanism deleted, and `gates:check` now guards the
   survivors
-- ✅ Self-scan clean: **160 files, 0 violations, 0 failures**, exit 0
+- ✅ Self-scan clean: **161 files, 0 violations, 0 failures**, exit 0 (re-run after the
+  OPS-07 rebase; 160 before it)
 - ✅ Coverage 97.91% lines / 93.92% branches / 99.79% functions / 97.98% statements
 - ✅ License gate: 563 packages, 4 named exceptions; `notices:check` clean
 - ✅ Paranoia check **0** across every publishable ref; tree scan at its documented 2 hits
@@ -155,7 +158,10 @@ docs/handovers/p2-01-builtin-rules-handover.md [modified — home path removed]
 docs/IMPLEMENTATION.md                         [modified — OPS-05 + P2-05 rows, Up Next, metrics, ADRs]
 docs/progress.md                               [modified — OPS-05 entry]
 docs/HANDOVER.md                               [rewritten — this file]
-docs/handovers/p2-05-diff-mode-handover.md     [created — by the rotation script]
+docs/handovers/p2-05-diff-mode-handover.md     [created — by the rotation script;
+                                                byte-identical to the copy OPS-07's
+                                                session rotated first, so it drops
+                                                out of this branch's diff post-rebase]
 ```
 
 ## Sign-off
