@@ -1516,7 +1516,7 @@ js-tokens 10.0.0, 4.0.0
   Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell
   https://github.com/lydell/js-tokens#readme
 
-js-yaml 3.15.0, 4.3.1
+js-yaml 3.15.1, 4.3.1
   Copyright (C) 2011-2015 by Vitaly Puzrin
   https://github.com/nodeca/js-yaml#readme
 

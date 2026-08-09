@@ -116,7 +116,9 @@ pnpm audit --prod --audit-level=high   # what reaches a user
 pnpm audit --audit-level=critical      # what can take over CI
 ```
 
-**Why.** Between 2026-07-22 and 2026-07-24 the npm ecosystem published **4,000+ advisories** against a prior baseline of roughly 55–70 per week. Four of them blocked unrelated PRs here in a single week (postcss, brace-expansion ×2, js-yaml). Every one was a **dev-only transitive**, every one was rated **high**, and every one was CWE-400 resource exhaustion. None was reachable in shipped code.
+**Why.** Between 2026-07-22 and 2026-07-24 the npm ecosystem published **4,000+ advisories** against a prior baseline of roughly 55–70 per week. Four of them blocked unrelated PRs here in a single week (postcss, brace-expansion ×2, js-yaml). Every one was rated **high** and every one was CWE-400 resource exhaustion. Three of the four were **dev-only transitives**, unreachable from shipped code.
+
+> **Correction (2026-08-09, SEC-03).** The fourth, **js-yaml, is not dev-only** — it reaches the shipped tree through `@argus/config → cosmiconfig`, and `pnpm why js-yaml --prod` has always said so. This paragraph asserted the opposite, and the `pnpm-workspace.yaml` comment block was headed "dev-only transitives" on the same mistaken basis. The gate itself was never fooled: it correctly classified js-yaml as `--prod` and blocked on it, which is how the error surfaced. **What failed was the hand-written note beside the gate, and it stayed wrong for five weeks because nobody re-ran `--prod` after the config loader was built.** Treat the classification in any of these notes as a claim with an expiry date; the command is the authority.
 
 The old single gate (`--audit-level=high` over the full tree) makes a solo maintainer hand-write a `pnpm-workspace.yaml` override every few days for denial-of-service bugs in test tooling. A gate that fires constantly on things nobody can act on decays into a gate people route around with `SKIP=` — which is a worse security outcome than a narrower gate that is always meaningful.
 
@@ -126,6 +128,7 @@ The old single gate (`--audit-level=high` over the full tree) makes a solo maint
 
 - A high-severity dev-tool bug that is _not_ a DoS — an information disclosure or a path traversal held under 9.0 by some prerequisite — no longer blocks a merge. Dependabot still raises it; a human decides.
 - The prod/dev boundary is cosmetic today (everything is `private: true`, nothing publishes) and becomes **load-bearing at first publish**. A dependency misclassified as dev, or one pulled into a published bundle, would sit outside the blocking gate. Guarded by a pre-publish item in the [go-public runbook](./go-public-runbook.md).
+  - **This risk half-materialised on 2026-08-09 (SEC-03), in the safe direction.** js-yaml was misclassified as dev in _prose_ while pnpm always resolved it as `--prod`, so the gate blocked correctly and only the documentation was wrong. Had the misclassification been in `package.json` instead of a comment, the same advisory would have sat outside the blocking gate silently. The lesson stands whichever direction it falls: **`pnpm why <pkg> --prod` is the classification, and it must be re-run after any change to a package's dependencies — not inherited from a note.**
 
 **What this does _not_ weaken.** `pnpm audit` only ever knew about disclosed CVEs in legitimate packages. Defence against a genuinely _malicious_ package is `minimumReleaseAge`, `allowBuilds: false`, and the committed lockfile (§5) — untouched by this change.
 
