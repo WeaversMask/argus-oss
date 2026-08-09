@@ -2,7 +2,7 @@
 
 **From:** claude-opus-5
 **To:** next picker (**the Phase 2 transition** — the only thing left)
-**Date:** 2026-08-04
+**Date:** 2026-08-04 · rebased and re-verified 2026-08-09
 **Phase:** P2 — MVP (6/6 numbered · 9/9 added) → Milestone M1 Showcase-Ready
 **Last task completed:** OPS-05 — go-public readiness sweep. PR open, awaiting merge.
 **Rebased onto:** OPS-07 ([#52](https://github.com/WeaversMask/argus-oss/pull/52), merged
@@ -27,10 +27,14 @@ what is yours".
 ## What I Did
 
 - **Widened the paranoia check, which was the real finding.** The documented check
-  reads `origin/main` — 242 of the 264 commits GitHub would publish, and **none** of
-  the 57 `refs/pull/*` refs. That is the exact ref class [the runbook](./go-public-runbook.md)
-  itself names as the reason the retired repo can never be published. Widened: **0**
-  personal-email hits across **528** identity fields. Also swept message bodies and
+  reads `origin/main` — 242 of the 264 commits GitHub would publish **as measured on
+  2026-08-04**, and **none** of the 57 `refs/pull/*` refs. That is the exact ref class
+  [the runbook](./go-public-runbook.md) itself names as the reason the retired repo can
+  never be published. Widened: **0** personal-email hits across **528** identity fields.
+  (Every commit total here is a measurement with a date on it, not a constant: `main`
+  was 249 commits by 2026-08-09 after OPS-07 merged. The runbook's totals are higher
+  again — 267 / 534 — because they count this branch's own commits too. Re-run the
+  commands rather than quoting the numbers.) Also swept message bodies and
   trailers, annotated tags (none exist), and `git log -S` over historical file content.
 - **Swept two surfaces the runbook does not mention**, both public the instant the repo
   is: **1.05 MB** of PR + issue + review text (0 personal identifiers, 0 emails) and
@@ -134,8 +138,11 @@ what is yours".
 
 ## Open Questions for the Next Agent
 
-- **What to do about the vacuous `pnpm build` gate?** See State of the System. Every
-  sign-off claim in this repo names it; none of them has meant anything.
+- ~~**What to do about the vacuous `pnpm build` gate?**~~ **Answered — shipped as
+  OPS-07 ([#52](https://github.com/WeaversMask/argus-oss/pull/52)), merged 2026-08-04.**
+  The claim was withdrawn rather than the mechanism deleted, and `gates:check` now
+  guards the survivors. Left struck through rather than deleted because this question
+  is what filed OPS-07.
 - **Should the personal-data scan become a CI gate?** It found something no existing
   gate would have. It is one `git grep` with a pinned expected-hit count, so it is
   cheap — but pinning a count means every legitimate new mention edits the gate.

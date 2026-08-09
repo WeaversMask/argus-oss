@@ -195,13 +195,24 @@ grep -oiE '/Users/[a-z0-9._-]+' /tmp/alllogs.txt | sort | uniq -c
      heavyweight criteria and all are already in place.
 7. Optional, cosmetic: the GitHub profile display name (real name) is stamped on
    commits **the web UI created or rewrote** — the email stays safe either way.
-   Measured on `origin/main` 2026-08-04 (OPS-05): **86 of 242 commits**, in two
+   Re-measured on `origin/main` 2026-08-09: **87 of 249 commits**, in two
    distinct shapes that a `%an`-only check would half-miss —
-   **59** web-UI merge commits carry it as the _author_ name, and **27** commits
+   **60** web-UI merge commits carry it as the _author_ name, and **27** commits
    rewritten by a web-UI "Update branch" / "Rebase and merge" carry it as the
    _committer_ name, which is invisible unless you ask for `%cn`. **Zero**
    locally-made commits are affected: the repo-local identity is the noreply
    address, so every commit written on the maintainer's machine is already clean.
+
+   **Treat that as a floor, not a fact — it grows by one per web-UI merge and
+   never shrinks.** OPS-05 first measured 86 of 242 on 2026-08-04; merging OPS-07
+   (#52) through the web UI added exactly one, and merging this task will add
+   another. Re-run rather than cite:
+
+   ```bash
+   git rev-list --count origin/main   # denominator
+   git log --format='%H %an|%cn' origin/main | grep -vc 'WeaversMask|WeaversMask'
+   ```
+
    The name is public on the GitHub profile by choice, so this stays optional.
 
 ## Before the first npm publish (separate step, any time after going public)
