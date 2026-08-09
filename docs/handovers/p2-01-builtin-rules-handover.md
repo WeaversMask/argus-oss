@@ -43,7 +43,7 @@ Reference: [`docs/guide/rules.md`](../guide/rules.md) (what each flags, defaults
 - prettier reflows Markdown tables — `pnpm exec prettier --write <files>` before staging.
 - commitlint header ≤100 chars; a failed commit leaves files staged.
 - `gh pr edit` fails here (projectCards GraphQL) — PATCH via `gh api`.
-- **Bash CWD drifts** when a `cd` fails mid-session — prefer absolute paths / `cd /Users/martinrodriguez/argus` first.
+- **Bash CWD drifts** when a `cd` fails mid-session — prefer absolute paths / `cd <repo-root>` first.
 - Never `--no-verify`; scoped `SKIP=<gate>` with written justification only.
 
 ## Open decisions / scope calls to revisit
