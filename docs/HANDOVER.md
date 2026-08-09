@@ -1,96 +1,116 @@
-# Handover — P2-05 complete (diff mode) · every numbered Phase 2 task done
+# Handover — OPS-07 complete (the build gate never checked anything)
 
 **From:** claude-opus-5
-**To:** next picker (Phase 2 — **OPS-05 is the only task left**, then the phase transition)
-**Date:** 2026-08-02
-**Phase:** P2 — MVP (6/6 numbered · 7/8 added) → Milestone M1 Showcase-Ready at phase end
-**Last task completed:** P2-05 — diff-only scan mode. PR open, awaiting merge.
+**To:** next picker (Phase 2 — **OPS-05 is still the only numbered task left**, then the phase transition)
+**Date:** 2026-08-04
+**Phase:** P2 — MVP (6/6 numbered · 8/9 added) → Milestone M1 Showcase-Ready at phase end
+**Last task completed:** OPS-07 — retire the vacuous build gate, guard the survivors. PR open, awaiting merge.
 
 ---
 
 ## Context
 
-`argus check --diff <ref>` scans only what a branch changed and reports only the violations on the lines it changed. It is the last numbered Phase 2 task, it was never a phase exit criterion, and nothing waited on it — which is why it ran after the whole M1 documentation tail.
+`pnpm build` was listed as a mandatory sign-off gate in [CLAUDE.md](../CLAUDE.md), asserted green in nearly every handover in [`handovers/`](./handovers/), and ran as its own CI job — while `turbo run build` executed **zero tasks** for the entire life of the project. No workspace package has ever declared a `build` script, and turbo reports `0 successful, 0 total` as a **success**. Every one of those green claims was vacuous. Surfaced by the [OPS-05](https://github.com/WeaversMask/argus-oss/pull/51) independent review.
 
-It also created [`packages/orchestrator/`](../packages/orchestrator/README.md), a package `01-repo-structure.md` has reserved since P0 and Phase 6 expects ("routes call orchestrators").
+**The claim was withdrawn, not the mechanism deleted** — and that distinction is the maintainer's ruling on this task, after a first pass that deleted the CI job too (Gotcha 1). Making the gate real means giving `@argus/core` a build step, which is exactly the restructure **D-5 defers**; `pnpm typecheck` already runs `tsc --noEmit` across all 10 packages, so the compile verification was never missing, only mislabelled. `pnpm build` and its CI job stay put, no longer cited as sign-off evidence, ready for D-8's bundle. The gate list is now `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check`.
+
+---
 
 ## What I Did
 
-- **[`@argus/orchestrator`](../packages/orchestrator/README.md)** — `extractChangeSet` (base ref → changed files and lines) and `filterToChangedLines` (violations → the ones that overlap a changed line). Git arrives as an injected `GitRunner`; the package imports no Node builtins, enforced by `orchestrator-no-infrastructure`.
-- **`apps/cli`** — `--diff <ref>` on `check`, [`git.ts`](../apps/cli/src/git.ts) (the ~50-line subprocess half), and [`scan-scope.ts`](../apps/cli/src/scan-scope.ts), which narrows discovery to the change set and turns every git failure into an exit code.
-- **[ADR-0008](./adr/0008-scan-scope-orchestration.md)** — why git is injected rather than a core port, and the three alternatives rejected.
-- Full wiring per the new-package checklist: cruiser rules (both **negative-tested** with probe imports), root `vitest` projects entry, `Dockerfile.dev`, `docker-compose.yml` ×2, package README, [`architecture.md`](./architecture.md) row.
-- User-facing: [`guide/cli.md`](./guide/cli.md) §"Only what changed", including the table of what does and does not count.
+- **Removed `pnpm build` from every live sign-off gate list** — [CLAUDE.md](../CLAUDE.md), [agentic-execution.md](./plan/protocols/agentic-execution.md), [workflow.md](./workflow.md), [README.md](../README.md), and the three `dev/adding-a-*.md` recipes — each now saying plainly that it runs zero tasks and why it is kept anyway. The root `build` script and the CI `Build` job are **unchanged from `main`**.
+- **Added [`check-gate-coverage.mjs`](../scripts/check-gate-coverage.mjs)** (`pnpm gates:check`, a step in the CI `lint` job) — three fail-closed assertions so the gates that _are_ claimed cannot rot the same way: every package declares `typecheck` **and it really runs `tsc --noEmit`**, every package appears in vitest's `projects`, and no package declares `build` — the last a **tripwire, not a prohibition**, firing the day D-5 stops holding so the gate list is updated rather than left stale.
+- **Registered it** in [quality-gates.md](./plan/protocols/quality-gates.md), and annotated the type-check row as the compile verification.
+- **Corrected [workflow.md](./workflow.md)'s job census**, stale twice over: it said "three of eleven report without blocking" when DOC-05's `docs-delta` job had landed a day later and was never counted. Now four of twelve — with the note that `Build`, one of the eight that block, blocks on nothing.
+
+PRs open in this session:
+
+- #52 — fix(ci,docs): retire the vacuous build gate, guard the survivors (OPS-07)
+
+---
 
 ## What I Did NOT Do (Deferred)
 
-- **`fix --diff`.** `argus fix` still works on the whole path. It shares `planScan`, so the plumbing is one argument away, but "fix only the lines I touched" is a different question from "report only the lines I touched" — a fix's edit span is not the violation's span, and deciding what happens when a safe fix would touch an unchanged line deserves its own thinking.
-- **No `--diff` in the CI dogfood job.** It still scans the whole repo, which is right for a gate on a repo that is already clean; diff mode is for consumers with a backlog.
-- **`GitRunner` has no contract test.** See Gotcha 4.
+- **Did not touch archived handovers or [`phase-00-foundation.md`](./plan/phases/phase-00-foundation.md).** Nine snapshots and Phase 0's spec list `pnpm build` as a green gate. The protocol says snapshots are history, not live documents — editing them would rewrite the past into something that was never true, and the claim really was made. Only live instructions were corrected. **If the maintainer wants the archive annotated instead, that is a ruling, not an oversight.**
+- **Did not touch `turbo.json`.** The `build` task definition and the `^build` edges on `test`/`typecheck` are inert with no package declaring a build, and they are the plumbing that makes a future build a normal turbo edge — which is D-5's whole plan. Removing them would only have to be undone by D-5 or D-8.
+- **Did not change branch protection, and no longer needs to.** The first pass deleted the CI `Build` job, which would have required an admin-only edit to the required-checks set and blocked every PR until it happened; the maintainer ruled that excessive and the deletion was reverted. See Gotcha 1.
+- **Did not write automated tests for `gates:check`, and this is the one piece of debt OPS-07 adds.** Its 14 negative cases were each run by breaking the tree and requiring failure — but by hand, in a shell one-liner, not in the repo and not in CI. **Two independent reviews found a fail-open in this script, and every fix was verified once, manually, by the person who wrote it.** Nothing prevents a third. The blocker is that `scripts/` has no test harness at all (`check-licenses.mjs`, `generate-third-party-notices.mjs` and `rotate-handover.mjs` are equally untested, so this is a pre-existing gap OPS-07 widens rather than creates). **Filed rather than done, on the maintainer's explicit ship decision (2026-08-04)** — the fix is a vitest project over `scripts/` seeded with the 14 cases, and it is worth more than a third review pass, because a review catches one bug once whereas the tests catch regressions forever.
 - **Still inherited, still each needing their own task:** the missing `FormatterPort` fake (10 fakes for 11 ports), the weekly Stryker job red since 2026-07-28, `argus explain` not reporting fixability, `ci.yml`'s stale `license` job comment, and `review-gate`'s frozen-PR-body trap.
+
+---
 
 ## Gotchas & Surprises
 
-1. **Every interesting decision here has a silent failure mode, and they all fail the same direction — quieter.** A two-dot `git diff main` attributes a colleague's post-branch-point work to you; comparing against `HEAD` puts line numbers out of step with the bytes on disk; untracked files have no diff at all, so the newest code in a change reports nothing; a pure rename produces no hunks, so every violation in it is suppressed. Four separate ways to ship a scan that exits 0 and looks like it worked. The countermeasures are merge base, working tree, `ls-files --others`, and `--no-renames` — and the reason there are tests for each is that no output would have shown the difference.
-2. **The path vocabulary is string arithmetic on `git rev-parse --show-prefix`, and it has to be.** The obvious approach — ask git for `--show-toplevel`, compare absolute paths — fails on macOS, where `os.tmpdir()` is `/var/folders/…` to Node and `/private/var/folders/…` to git. Every `--diff` test would have matched zero files and passed as "nothing changed". `--show-prefix` sidesteps it because git computes the answer relative to the cwd it was handed, symlinks and all.
-3. **Hunk bodies are stepped over by counting, not by scanning for the next marker.** An added line whose content is `+++ b/other.ts` is indistinguishable from a header once it carries its own `+`. Reading it as one attributes the rest of the diff to the wrong file — a wrong-file suppression that nothing in the output reveals. There is a test that adds exactly that content.
-4. **The injection buys the test suite, and that is the actual argument for it.** 48 orchestrator tests cover the diff grammar — omitted hunk counts, `/dev/null` targets, binary files, C-quoted UTF-8 paths, `\ No newline at end of file` — with no repository on disk. Against a real `git`, most of those would have been too expensive to write, which is exactly how the quiet edge cases survive. The cost is recorded in ADR-0008: `GitRunner` is a contract with one implementation and no contract test, unlike a real port.
-5. **The dogfood scan caught this task, twice.** `planScan` reached complexity 12 / 69 lines and `diff-extractor.ts` reached 356 lines. Both were split (`resolveContext` + `narrowToChanges`; `change-set.ts` + `unified-diff.ts`), not waived. The `diff-extractor.ts` split turned out to be the better structure anyway — "how to talk to git" and "how to read a unified diff" had no business in one file.
-6. **The independent review found three real bugs, and all three were in my own stated defence.** `DIFF_FLAGS` carries a comment saying it exists to stop a user's git _config_ producing output that parses to silently fewer changed lines — and the reviewer found two configs it missed (`diff.interHunkContext`, which reintroduces context despite `--unified=0`; `diff.relative`, which empties the change set whenever the project root sits below the repo root) plus one plain-git behaviour (a **trailing tab** after any path containing a space, which made a change-set key no discovered file could match). The last needs no unusual config at all — `git add 'has space.ts'` was enough. All three reproduce on git 2.49; all three are now flagged, stripped, or backstopped, with a test each. **Probing the fix then turned up a fourth, of my own making:** once `skipHunkBody`'s new backstop re-synchronises mid-body, the remaining body lines _are_ walked line by line, so a file adding a line that reads `+++ b/…` — a patch file — could rename the current target and swallow its own later hunks. Reproduced (a second hunk landed on `evil.ts`), then closed by requiring the `---` partner git always emits alongside a real header. The two hardenings are one mechanism; neither is safe alone. **The lesson is narrower than "test more":** every one of them is invisible from this repo's own layout — no spaces in paths, project root == repo root, default git config — so no amount of dogfooding here would have surfaced them. A parser fed by a tool you do not control needs its inputs probed against that tool, not against your repo.
-7. **A second review pass found that my fix to the first review's findings was itself incomplete — twice over.** The `---`/`+++` pairing I added is necessary but **not sufficient**: content forges the pair, because a removed line `-- x` renders as `--- x` and an added `++ b/evil.ts` right after it as `+++ b/evil.ts`. My own regression test for that fix used `-old` as the preceding line, a shape that _cannot_ fire — so it passed while proving nothing. Worse, the reviewer found `diff.submodule=diff` reaches the same desynced walk through **plain config, no environment variable**, which is exactly the class `DIFF_FLAGS` claims to defend against. Both reproduced. The real fix is structural: `parseDiff` now refuses to re-target for anything but a `diff --git ` line while desynced — a marker content can never impersonate, since every body line carries its own `+`, `-` or `\`. A desync can now only over-report.
-8. **My first attempt at the end-to-end test passed without testing anything, twice.** First it set `GIT_DIFF_OPTS` through `captureIO`'s `env` — but `gitRunner` gives the child no explicit env, so it inherits `process.env` and the injected value never reached git. Then, with that fixed, the fixture wrote the forged line as a comment (`// -- old signature`), which renders as `-// -- …` and forges nothing. **The habit worth keeping is the one that caught both: disable the fix, and require the test to fail.** It passed green through both broken versions.
-9. **`pnpm handover:rotate <slug>` takes the slug of the handover **going out**, not the task coming in.** I filed DOC-06's handover as `p2-05-diff-mode-handover.md` on the first run, which is wrong and which the script cannot detect — it is a `cp` with link rewriting, and the name is whatever you type. Nothing validates it against the file's own `# Handover — <task>` heading, which is right there in line 1. Small, cheap gate if anyone wants it.
+1. **Deleting a CI job whose name is a required status check blocks every PR in the repo — and I did it before the maintainer pulled it back.** `Build` is one of `main`'s eight required checks (`strict: true`, each pinned to `app_id: 15368`). GitHub does not notice a required check's job is gone; it waits indefinitely at "Expected — waiting for status to be reported". All 12 jobs passed and the PR still reported `mergeStateStatus: BLOCKED`. **The maintainer's ruling (2026-08-04) is the lesson: the finding was a false _claim_, and a claim is fixed by editing documents.** Deleting the mechanism was a different, more expensive change — an admin-only round-trip to remove a job that **D-8's bundle makes real within weeks**, at which point both the job and its required-check entry would have to come back. The command, the root script and the CI job all stay; only the sign-off claim is withdrawn. `ci.yml`'s header did keep one fix from the attempt — it warned only against _renaming_ a branch-protection-coupled job, and now warns against deleting one too.
+
+2. **The rot was documented at P0-05 and closed with a prediction that never came true.** [`p0-05-ci-pipeline-handover.md`](./handovers/p0-05-ci-pipeline-handover.md) recorded the empty-run warning, told the next agent not to add a stub `build` script to silence it, and said the warning would "disappear naturally" once real packages shipped. The packages shipped. D-5 then ruled the workspace stays source-only, which made the prediction permanently false — and nobody went back. **A known-benign warning with an expiry condition needs a mechanism, not a note**, because the note is read once and the condition is checked never.
+3. **`packages/*` is the wrong glob in this repo and it fails silently.** My first enumeration of the workspace — a shell loop over `packages/*/package.json` — quietly skipped `@argus/adapters-prettier`, which lives at `packages/adapters/prettier`. That is the same blind spot DOC-05's review found in the docs-delta gate's `SOURCE_RE`, hit again within minutes of starting. `gates:check` therefore asks `pnpm list` rather than globbing, and the **first** negative test breaks the nested adapter specifically.
+4. **A gate that reaches nothing reports success, and this is a whole class, not one bug.** `turbo run <task>` exits 0 when no package declares the task; `pnpm test` passes when a package is missing from vitest's hand-maintained `projects` array (whose own comment asks you to remember). Both are one careless PR away. That is why the replacement is a guard over the fan-out rather than just a deletion — the same reasoning as DOGFOOD's `filesScanned > 100` floor and OPS-06's fail-closed marker.
+5. **The negative tests are run by breaking the tree and requiring failure**, then restoring — eight of them now. P2-05's lesson (a regression test that cannot fire passes while proving nothing) applies directly to guard scripts.
+6. **The independent review found the anti-vacuity guard passing vacuously, which is the whole lesson of this task repeating itself one level up.** `vitestProjects()` matched quoted strings over the raw `projects` block, so a **commented-out** entry — `// "packages/core/vitest.config.ts",`, exactly how anyone disables a flaky suite — read as live. `@argus/core`'s tests would not run, `pnpm test` would pass, aggregate coverage thresholds are computed over surviving projects so they would not catch it either, and `gates:check` would report all ten packages covered. Reproduced, then fixed by stripping comments before matching. **My own four negative tests missed it because they all deleted lines rather than commenting them** — I tested the edit I would make, not the edit a person under time pressure makes. The reviewer also closed the mirror-image loophole: a **stub** `"typecheck": "true"` satisfied a presence check while compiling nothing, which is the precise dodge P0-05's handover warned against, so the guard now asserts the script actually runs `tsc --noEmit`.
+
+7. **A SECOND review of the first review's fix found the same class of bug again — twice — and that repetition is the finding.** The maintainer asked for a narrow pass over the fix commit alone, on the grounds that its ~75 lines of new regex parsing had been read by nobody but its author. It returned REQUEST CHANGES with two reproduced **fail-opens**, both in `gates:check` itself:
+   - **`projects` scraping credited any quoted path, live or not.** Stripping comments closed one instance and not the class: `...(process.env.RUN_CORE ? ["packages/core/vitest.config.ts"] : [])` — an ordinary vitest pattern — still scraped as live. Reproduced end to end: **nine** real projects, `@argus/core` absent, guard exits 0 reporting all ten covered.
+   - **`declared.includes("tsc --noEmit")` was satisfied by `tsc --noEmit || true`**, which makes `pnpm typecheck` **print a type error and exit 0**. Reproduced against the real gate with a planted error. Not adversarial — `|| true` is how anyone silences a noisy package mid-refactor.
+
+   The fix is the one worth carrying: **`vitestProjects` no longer guesses.** Anything that is not a plain list of string literals — spread, ternary, variable, inline object — is an error, not something to squint at. The script asserted over _text that resembled_ the thing rather than the thing itself, which is how it could keep re-acquiring the exact bug it exists to catch. Script assertions are equality now, not containment.
+
+---
 
 ## State of the System
 
-- ✅ Root gates green: `lint`, `typecheck`, `build`, `test` (**74 files, 806 tests** — up 69 from 737), `boundaries` (262 modules, 902 deps, 0 violations)
-- ✅ Both new cruiser rules negative-tested — probe imports tripped `orchestrator-public-entry-only` and `orchestrator-no-infrastructure`, then were removed and the clean run re-verified
-- ✅ Self-scan clean: 160 files, 0 violations, 0 failures, exit 0 — and `check . --diff main` on this branch selected **13** files, matching git's own count of non-test source files it touched
-- ✅ Coverage: orchestrator + `scan-scope.ts` 100% lines (94.3–100% branches); repo totals 97.9% lines / 94.0% branches
-- ⚠️ Weekly Stryker still red since 2026-07-28 — report-only; do not cite 85.74% as current
-- ⚠️ Two pre-existing flaky tests under full-suite parallel load (`@argus/ast` parse benchmark, `@argus/cli` `bin.test.ts`)
-- ⬜ Awaiting the maintainer's merge decision — agents never merge
+- ✅ Tests: **806 passing** (74 files), 0 failing
+- ✅ Coverage: 97.91% line / 93.92% branch / 99.79% function / 97.98% statement
+- ✅ Root gates green: `lint`, `typecheck`, `test`, `gates:check`, plus `format:check`, `boundaries` (256 modules, 902 deps, 0 violations)
+- ✅ `gates:check` negative tests: **14**, every one run by breaking the tree and requiring failure, then restoring
+- ✅ Dogfooding scan of self: **0 violations, 0 failures, 161 files**
+- ✅ CI: all **12** jobs green on the branch; no branch-protection change needed
+
+---
 
 ## Recommended Next Steps
 
-1. **OPS-05 — go-public readiness sweep**, effort S. The last M1 task, and now the last task in the phase. It inherits one correction rather than a question: [runbook](./go-public-runbook.md) item 7 misdescribes how the maintainer's real name reaches history. Measured: **79 of 205 commits** — 52 web-UI merges (name in _author_) plus 27 rewritten by a web-UI "Update branch"/"Rebase and merge" (name in _committer_, invisible without `%cn`). **Zero** locally-made commits are affected, and the paranoia check passes clean. The name is public on the GitHub profile by choice, so "optional, cosmetic" stands — fix item 7's wording only.
-2. **Then the phase transition**, which re-runs the consolidation pass. Phase 2's report was written mid-phase and says so; P2-05 and OPS-05 add surface it never saw. Start with §6's link check and §1's counts — both cheap, both mechanical, and between them they caught most of what the first pass found. Note the package count in [`architecture.md`](./architecture.md) moved to **nine**.
+Pick up **OPS-05** (its PR [#51](https://github.com/WeaversMask/argus-oss/pull/51) is open and awaiting merge — it is the phase's final task by design), in this order:
+
+1. **Expect conflicts with #51 and rebase whichever merges second.** Both branches touch `IMPLEMENTATION.md`, `HANDOVER.md`, `progress.md`, `README.md`, and both rotate `p2-05-diff-mode-handover.md` into the archive under the same slug. This is the documented parallel-lane case in [agentic-execution.md](./plan/protocols/agentic-execution.md) §Parallel Lanes.
+2. Read the OPS-05 spec in [`phase-02-mvp.md`](./plan/phases/phase-02-mvp.md) §OPS-05 — note it carries the correction to [go-public-runbook](./go-public-runbook.md) item 7 (79 of 205 commits, not the account written there).
+3. Then the phase transition, which re-runs the documentation consolidation pass.
+
+Estimated effort: **M** for OPS-05.
+
+---
 
 ## Open Questions for the Next Agent
 
-- **Should `fix` learn `--diff`?** See Deferred — the plumbing is trivial, the semantics are not.
-- **Should the link check widen from the archive to all of `docs/`?** Still open from DOC-06. The archive half is gated per PR; the rest of `docs/` is checked only at phase boundaries, and DOC-05's audit found its one live break there.
-- **Should `handover:rotate` validate the slug against the file's own heading?** See Gotcha 6.
-- **Should `scripts/` get a test project?** Four scripts, still zero automated coverage.
-- Should `notices:check` join the pre-push hook? ~3s per push to catch drift before CI.
+- **Should the archived handovers be annotated?** Nine of them assert `build` green. I left them as history. A one-line note at the top of the archive index would preserve the record while stopping a reader from trusting the claim — but it edits snapshots, which the protocol restricts to link repair.
+- **Is `typecheck` load-bearing enough alone?** It proves the code type-checks, not that it _runs_ — `bin/argus.mjs` re-execs Node with `--experimental-transform-types`, and type-stripping has syntax constraints `tsc --noEmit` does not model. The test suite covers it in practice today; when D-8's bundle lands, that gap closes properly.
+
+---
 
 ## Files Touched This Session
 
 ```
-packages/orchestrator/                            [created — package: 5 src files, 3 test files, README, configs]
-apps/cli/src/git.ts                               [created — the GitRunner implementation]
-apps/cli/src/scan-scope.ts                        [created — --diff wiring: ScanScope, resolveChanges, narrowToChanges]
-apps/cli/src/scan.ts                              [modified — planScan split, scope threaded through]
-apps/cli/src/check.ts                             [modified — line filtering + diffBase option]
-apps/cli/src/main.ts                              [modified — --diff <ref> on check]
-apps/cli/package.json                             [modified — @argus/orchestrator dependency]
-apps/cli/tests/check-diff.test.ts                 [created — end-to-end against a real repo]
-apps/cli/tests/git.test.ts                        [created — the subprocess, against a real git]
-apps/cli/tests/{support,main}.test.ts             [modified — gitRepo helper, two --diff cases]
-dependency-cruiser-rules.cjs                      [modified — two orchestrator rules]
-vitest.config.ts, Dockerfile.dev, docker-compose.yml [modified — new-package wiring]
-docs/adr/0008-scan-scope-orchestration.md         [created — the injected-git boundary]
-docs/guide/cli.md                                 [modified — §Only what changed, exit codes, global flags]
-docs/architecture.md                              [modified — orchestrator row, count → nine]
-docs/plan/phases/phase-02-mvp.md                  [modified — P2-05 rulings]
-docs/progress.md                                  [modified — P2-05 entry]
-docs/IMPLEMENTATION.md                            [modified — row, Up Next, counters]
-docs/HANDOVER.md                                  [rewritten — this file]
-docs/handovers/doc-06-audit-backlog-handover.md   [created — by the rotation script]
+scripts/check-gate-coverage.mjs                   [created]
+.github/workflows/ci.yml                          [modified — comments only]
+package.json                                      [unchanged]
+CLAUDE.md                                         [modified]
+README.md                                         [modified]
+docs/workflow.md                                  [modified]
+docs/plan/protocols/quality-gates.md              [modified]
+docs/plan/protocols/agentic-execution.md          [modified]
+docs/dev/adding-a-language.md                     [modified]
+docs/dev/adding-a-report-formatter.md             [modified]
+docs/dev/adding-an-adapter.md                     [modified]
+docs/IMPLEMENTATION.md                            [modified]
+docs/progress.md                                  [modified]
+docs/HANDOVER.md                                  [rewritten]
+docs/handovers/p2-05-diff-mode-handover.md        [created — rotation]
 ```
+
+---
 
 ## Sign-off
 
-The acceptance criteria were two lines and the work was almost entirely in what they left unsaid. "Analyses only files changed since `main`" has four defensible readings, and the difference between them is whether a reviewer sees a colleague's warnings under their own name, whether a brand-new file is checked at all, and whether the line numbers refer to the file on disk. None of those choices announce themselves: pick wrong and you get a clean scan that exits 0, which is the same thing you get when the code is fine. That is the whole reason the git calls are injected — not architectural taste, but that it made twenty-odd diff shapes cheap enough to actually test, and the quiet ones are the ones that matter. The dogfood gate then caught me doing exactly what the rules exist to catch, in the file arguing for careful boundaries.
+All gates green and the self-scan is clean; the tree is in a working state and the next agent can start immediately. **No admin step and no merge blocker** — the scope was narrowed on the maintainer's ruling so the CI `Build` job stays exactly where it was.
 
 — claude-opus-5

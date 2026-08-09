@@ -1,6 +1,8 @@
 # Argus CI — lint, format, typecheck, test, build, commit-message validation,
 # secret scanning. Job names are referenced by branch-protection rules — do not
-# rename without coordinating the admin change in the same PR.
+# rename OR DELETE one without coordinating the admin change in the same PR:
+# GitHub waits forever on a required check whose job no longer exists, blocking
+# every PR in the repo until an admin drops it from the required set (OPS-07).
 #
 # Every third-party action is pinned to a full commit SHA (P0-13, ADR-0003):
 # mutable tags are a supply-chain channel. Dependabot's github-actions
@@ -91,6 +93,17 @@ jobs:
       - name: Check archived handover links resolve (DOC-06)
         run: pnpm handover:check
 
+      # Gate coverage (OPS-07). The root gates fan out — `turbo run typecheck`
+      # to whichever packages declare the script, `pnpm test` to whichever are
+      # listed in vitest's `projects` — and both report success when they reach
+      # nothing. That is not hypothetical: `pnpm build` was a named sign-off
+      # gate for the life of the project and ran zero tasks the entire time.
+      # This step fails when a package is missing from a gate's fan-out, or
+      # when one gains a `build` script the root gates no longer run.
+      # Zero-install (node: builtins + `pnpm list`), so it costs nothing here.
+      - name: Check root gates cover every workspace package (OPS-07)
+        run: pnpm gates:check
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -162,6 +175,20 @@ jobs:
           path: coverage/
           if-no-files-found: warn
           retention-days: 14
+
+  # The `build` job runs `pnpm build`, which today executes ZERO tasks: no
+  # workspace package declares a `build` script, and turbo reports
+  # "0 successful, 0 total" as a success. It is therefore NOT a sign-off gate
+  # and must never be cited as one — that false claim is exactly what OPS-07
+  # found and removed from CLAUDE.md and the handovers. `typecheck` is the real
+  # compile verification while the workspace stays buildless (D-5).
+  #
+  # It is kept, rather than deleted, because it stops being vacuous soon: D-8
+  # is ruled "(a) bundle only", scheduled after Phase 2, and a bundle is a build
+  # step. Deleting the job would mean re-adding it — and re-adding "Build" to
+  # the branch-protection required set, which no agent can do — within weeks.
+  # The `gates:check` step in `lint` fires the day a package declares `build`,
+  # so the gate list gets updated instead of silently going stale again.
 
   build:
     name: Build

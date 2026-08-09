@@ -28,6 +28,6 @@ Official grammars live at `tree-sitter-<lang>` on npm, maintained by the tree-si
 
 ## 4. Sanity checklist
 
-- `pnpm boundaries`, root `pnpm lint && pnpm typecheck && pnpm build && pnpm test` — all green.
+- `pnpm boundaries`, root `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check` — all green. `gates:check` is the one that catches a new package wired in half-way: no `typecheck` script, or missing from `projects` in the root `vitest.config.ts`, both of which leave a root gate silently skipping it.
 - Grammar ships **no runtime code we execute** — if a future grammar needs its install script (it shouldn't), that's an ADR-0003 §3 review, not a quiet `true`.
 - Update `packages/ast/README.md` (supported languages) and this recipe if the pattern shifted.

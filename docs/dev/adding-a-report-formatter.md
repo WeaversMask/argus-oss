@@ -29,7 +29,7 @@ A formatter is a **pure function from `ScanReport` to a string**. It renders; it
 
 ## 4. Sanity checklist
 
-- Root gates green: `pnpm lint && pnpm typecheck && pnpm build && pnpm test`, plus `pnpm boundaries`.
+- Root gates green: `pnpm lint && pnpm typecheck && pnpm test && pnpm gates:check`, plus `pnpm boundaries`.
 - `docs/guide/cli.md` documents the flag value, with a sample document and at least one real pipeline.
 - `apps/cli/README.md` "Output: the formatters" gains a paragraph.
 - New package (a schema package, say)? Run the new-package checklist: root `vitest.config.ts` projects entry, per-package `*-public-entry-only` cruiser rule, `Dockerfile.dev` mkdir + compose volume, README, `pnpm license-check`/`notices` if the dependency tree moved.
