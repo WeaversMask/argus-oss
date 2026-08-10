@@ -197,7 +197,7 @@ Not part of the M1 showcase tail — maintenance the [audit](../../audits/phase-
 
 ## Phase 2 Exit Criteria
 
-- [ ] **MVP demo recorded:** `pnpm install -g @argus/cli && argus check .` produces findings on a real-world TS project
+- [ ] **MVP demo recorded:** `pnpm install -g @argus/cli && argus check .` produces findings on a real-world TS project — **half done, deliberately unticked (DOC-07).** The second clause is settled with evidence: three SHA-pinned third-party repos scanned, 464 files, 0 parse failures, findings on all three ([`field-results.json`](../../field-results.json), README §Field results). The first clause is unreachable until packaging lands — nothing is published to npm, so `install -g` cannot be demonstrated at all
 - [ ] 10 rules in production with full fixture coverage
 - [x] CI of Argus itself runs Argus on Argus — dogfooding starts here
 - [ ] **Milestone M1 — Showcase-Ready reached:** DOC-02/DOC-03/DOC-04/DOC-05/OPS-05 shipped and the [roadmap §Milestone M1](../02-roadmap.md#milestone-m1--showcase-ready-end-of-phase-2) criteria all hold
