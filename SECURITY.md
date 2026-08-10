@@ -14,18 +14,20 @@ There are no published releases yet; security fixes land on `main`.
 
 ## Reporting a Vulnerability
 
-**Do not open a public issue for security reports.**
-
-Use GitHub's private vulnerability reporting for this repository — it is
-**enabled** (since 2026-08-10), so the form below is live:
+**Never put vulnerability details in a public issue.** Use GitHub's private
+vulnerability reporting, which is enabled on this repository:
 
 **→ [Report a vulnerability privately](https://github.com/WeaversMask/argus-oss/security/advisories/new)**
 
 Equivalently: the repository's **Security** tab → _Report a vulnerability_.
-Reports go privately to the maintainer and are not publicly visible. If you
-cannot use that form for any reason, open a **public issue containing no
-technical detail** — just asking for a private channel — and it will be
-followed up.
+Reports go privately to the maintainer and are not publicly visible.
+
+If that form is unavailable to you, open a public issue that asks for a
+private channel and **contains nothing about the vulnerability itself** — no
+description, no reproduction, no affected version. That is a request for
+contact, not a report, which is why it is not covered by the line above.
+Both routes need a GitHub account; there is no email fallback, because the
+maintainer's public address is a `noreply` one that cannot receive mail.
 
 - Best-effort acknowledgment within **7 days** — usually much faster,
   occasionally slower; there is no paid on-call behind this repo.
@@ -34,11 +36,15 @@ followed up.
   prefer otherwise.
 - No bug bounty is offered.
 
-Alongside reports, this repository runs
-[CodeQL](https://github.com/WeaversMask/argus-oss/security/code-scanning),
-[secret scanning with push protection](https://docs.github.com/code-security/secret-scanning/introduction/about-secret-scanning),
-and [Dependabot alerts](https://github.com/WeaversMask/argus-oss/security/dependabot);
-gitleaks scans at commit, at push, and over full history in CI.
+So you know what is already watched before you spend time on a report: this
+repository runs CodeQL analysis and GitHub secret scanning with push
+protection, takes Dependabot alerts and automated security updates, and runs
+gitleaks three times over — as a local hook when a commit is made, again on
+the outgoing range when it is pushed, and across full history in CI. The
+layers and what each is for are written up in
+[docs/SECURITY-NOTES.md](https://github.com/WeaversMask/argus-oss/blob/main/docs/SECURITY-NOTES.md)
+§"Defences in Place". Published advisories, once any exist, appear under
+[Security → Advisories](https://github.com/WeaversMask/argus-oss/security/advisories).
 
 ## What Belongs Where
 
