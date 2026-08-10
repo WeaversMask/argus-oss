@@ -15,7 +15,10 @@ clean-history repo:
   history from birth (API-verified 0 personal-email hits at migration);
   every commit after 2026-07-04 is clean by construction (repo-local git
   identity is the noreply address). Going public = flipping **this** repo's
-  visibility. The name is a placeholder — rename freely before publishing.
+  visibility. **The name stays `argus-oss`** — maintainer ruling 2026-08-10,
+  superseding the earlier "placeholder, rename freely". That is why the issue
+  templates and the staged README badges hardcode this slug instead of waiting
+  on step 3.
 - **`WeaversMask/argus` — the retired pre-scrub repo. Must NEVER go
   public:** its `refs/pull/*` keep pre-rewrite commits (with the personal
   email) fetchable. It holds the old PR/issue archaeology (#1–#31).
@@ -78,27 +81,45 @@ that, reintroducing the path it was recording the removal of. Note this scans th
 **working tree**; appending `HEAD` scans the last commit instead, which will still
 show a path you have fixed but not yet committed.
 
-**Stale links to the retired repo** — the identity sweep checks _who wrote_ the code;
-this checks _what it points at_, which is a different failure:
+**Stale links to the retired repo** — added 2026-08-10, so unlike the rest of this
+section it was **not** part of the OPS-05 sweep. The identity checks ask _who wrote_
+the code; this asks _what it points at_, which is a different failure:
 
 ```bash
-git grep -nE 'WeaversMask/argus([^-]|$)' -- . ':!pnpm-lock.yaml'
+git grep -nE 'WeaversMask/argus([^-]|$)' -- ':(top)' ':(top,exclude)docs/handovers'
 ```
 
-Every hit must be either prose _about_ the retired repo (this file, `CLAUDE.md`,
-`HANDOVER.md`) or a historical PR link inside `docs/handovers/`. A hit in a **live,
-user-facing** file is a finding: the retired repo is private forever, so those URLs
-404 for everyone the moment this repo goes public — silently, since nothing in CI
-fetches them.
+**Expect a non-zero count in exactly four files** — this one, `CLAUDE.md`,
+`docs/HANDOVER.md`, `docs/IMPLEMENTATION.md` — all of them prose _about_ the retired
+repo. A hit in any **other** live file is a finding: the retired repo is private
+forever, so such a URL 404s for the public the moment this repo goes public, and
+nothing in CI fetches these links, so the failure is silent. The `docs/handovers/`
+archives are excluded deliberately — they carry historical PR links to the retired
+repo by design, and they are dated session records rather than live instructions.
 
-This is not hypothetical. The OPS-05 sweep passed while **two** such links were live,
-because it scanned for identity and secrets and never for stale references:
-`.github/ISSUE_TEMPLATE/config.yml` pointed the "Report a vulnerability" chooser entry
-at the retired repo — breaking the exact path [SECURITY.md](../SECURITY.md) instructs
-reporters to use — and `bug_report.md` pointed its SECURITY.md link there too. Both were
-written 2026-07-04, the **same day** work migrated to `argus-oss`, and were never
-updated. Fixed 2026-08-10. Anything that hardcodes the repo slug is the risk surface;
-a rename (step 3) re-arms it for every `argus-oss` URL in the tree.
+> **The pathspecs and the non-zero floor are both load-bearing.** `:(top)` anchors to
+> the repo root, so a run from a subdirectory cannot silently narrow the scan to
+> nothing and read as a pass — the same fail-open shape the caveat below describes for
+> the other two checks. A count of **zero** means the scan did not run.
+>
+> **This command matches itself:** the pattern above is a literal hit in this file.
+> That is why the assertion is the _set of files_ rather than a pinned total — the
+> number moves whenever this section is edited.
+>
+> **OPS-05 passed with two such links live**, because it scanned for identity and
+> secrets and never for what the tree points at.
+> `.github/ISSUE_TEMPLATE/config.yml` sent the "Report a vulnerability" entry in the
+> new-issue chooser to the retired repo, and `bug_report.md` pointed its SECURITY.md
+> link there. Both were written 2026-07-04 — the same day work migrated to
+> `argus-oss` — and were never updated. Fixed 2026-08-10. The blast radius was
+> narrower than it first looks: [SECURITY.md](../SECURITY.md) directs reporters to the
+> repo's **Security tab**, which works regardless, so only someone starting from
+> "New issue" would have met the dead link.
+>
+> **Anything hardcoding the repo slug is the risk surface.** Renaming this repo would
+> not by itself break the `argus-oss` URLs in the tree — GitHub redirects the old
+> path — but step 3's rename also _re-occupies_ the retired repo's slug, and that is
+> what breaks. The rename was declined on 2026-08-10, so the committed URLs stand.
 
 **PR, issue and review text** — everything written around the code, public on flip:
 
@@ -188,10 +209,13 @@ grep -oiE '/Users/[a-z0-9._-]+' /tmp/alllogs.txt | sort | uniq -c
 
 2. **LICENSE:** ✅ **done** — resolved to `Copyright (c) 2026 WeaversMask` in OPS-05
    (2026-08-04), closing the placeholder pending since P0-10. Nothing to do at flip time.
-3. **Optional renames:** archive/rename the retired repo (e.g.
-   `argus-private-archive`), then rename this one to `argus`. Reusing the
-   name breaks links to the retired repo's PRs — the archaeology stays
-   browsable under its new name.
+3. **Renaming this repo: ❌ declined** (maintainer ruling, 2026-08-10) — it keeps the
+   name `argus-oss`, so nothing here is pending and every committed `argus-oss` URL is
+   correct as written. **Archiving the retired repo is unaffected and still
+   recommended** (see the sweep table above); renaming _it_ stays optional. Recorded
+   for the record, since it is the part that surprises: renaming this repo to `argus`
+   would _re-occupy_ the retired repo's old slug, and it is that re-occupation — not
+   the rename by itself — that breaks GitHub's redirect to the old PR archaeology.
 4. **Public-only settings on this repo** (cannot be pre-set while private):
    - Private vulnerability reporting toggle (SECURITY.md §Reporting relies on it)
    - Review the Actions/fork-PR permission defaults GitHub applies on flip.
