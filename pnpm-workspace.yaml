@@ -69,27 +69,38 @@ allowBuilds:
 #          which is exactly why the false claim would have survived unchallenged.
 # fast-uri: GHSA-v2hh-gcrm-f6hx (HIGH, host confusion via literal backslash
 #          authority delimiter, <=3.1.3); via ajv ← @commitlint/* and
-#          @stryker-mutator/core. **Stepped over 2026-08-10:** a further HIGH
-#          advisory widened the vulnerable range to >=3.0.0 <3.1.5, so the 3.1.4
-#          pin written for the advisory above no longer cleared it. Now 3.1.5.
+#          @stryker-mutator/core. **Stepped over 2026-08-10:**
+#          GHSA-7p8r-x3mc-p8w7 (HIGH) supersedes it with three nodes —
+#          <2.4.4, >=3.0.0 <3.1.5, >=4.0.0 <4.1.2 — so the 3.1.4 pin written for
+#          the advisory above no longer cleared it. Now 3.1.5. Only the 3.x node
+#          is pinned: 2.x and 4.x are absent from this tree. Known and accepted;
+#          if either line ever appears, it needs its own entry.
 # brace-expansion: GHSA-3jxr-9vmj-r5cp (HIGH, ReDoS via exponential expansion),
 #          two affected ranges (<1.1.16 and >=2.0.0 <2.1.2) both reached through
 #          the old license-checker ← glob ← minimatch chain. **Stepped over
-#          2026-08-10, on every range at once.** A distinct HIGH advisory (DoS via
-#          unbounded intermediate arrays) shipped FOUR vulnerability nodes for this
-#          one package — >=2.0.0 <2.1.3, >=2.0.0 <2.1.4, >=4.0.0 <5.0.8 and
-#          >=4.0.0 <5.0.9 — plus <1.1.18 on the 1.x line. Pin each line to the
-#          WIDEST range's patch: 1.1.18, 2.1.4, 5.0.9. The 5.x entry is new —
-#          rimraf ← glob ← minimatch pulled a 5.x line in that no earlier pin
-#          covered.
-#          **How this nearly shipped wrong, worth more than the pins:** the first
-#          pass triaged `pnpm audit --json` with a script that keyed advisories by
-#          module name, so three of these four records silently overwrote each
-#          other and only ONE range was seen. The 2.x fix went in claiming "the 2.x
-#          range is NOT named by the new advisory" — false, and it only surfaced
-#          because fixing 1.x exposed the next range behind it. Never collapse
-#          advisory records by package: one package can carry many disjoint ranges,
-#          and a per-package view shows you exactly one of them.
+#          2026-08-10, on every line at once, by TWO advisories — not one:**
+#            GHSA-mh99-v99m-4gvg  <1.1.17 · >=2.0.0 <2.1.3 · >=3.0.0 <3.0.3 · >=4.0.0 <5.0.8
+#            GHSA-rgw5-rvv9-x895  <1.1.18 · >=2.0.0 <2.1.4 · >=3.0.0 <3.0.6 · >=4.0.0 <5.0.9
+#          Four release lines, each pinned to the WIDER of the two bounds:
+#          1.1.18, 2.1.4, 3.0.6, 5.0.9. **3.x is pinned pre-emptively** — no 3.x
+#          resolves here today, but this package already spans three lines in this
+#          tree and both advisories name 3.x, so the entry is cheaper than the
+#          next surprise (same reasoning as the js-yaml 3.x entry above).
+#          Two distinct chains, and they are not interchangeable: the 2.x line
+#          comes via minimatch@9 ← glob ← rimraf, the 5.x line via minimatch@10 ←
+#          eslint / typescript-eslint / @stryker-mutator/core. The 5.x *resolution*
+#          is not new — it has been in the lockfile since 2026-07-04; only the
+#          override entry is.
+#          **How this nearly shipped wrong, and it is the reason this block exists:**
+#          the first triage keyed `pnpm audit --json` records by module name, so
+#          records silently overwrote each other and exactly ONE range was seen.
+#          The 2.x pin went in asserting "the 2.x range is NOT named by the new
+#          advisory" — false — and surfaced only because fixing 1.x exposed the
+#          range behind it. The review then found the *same* collapse a second
+#          time in the correction itself: two GHSAs merged into one, dropping the
+#          3.x node. **Never collapse advisory records by package, and never trust
+#          a per-package view to be complete** — one package here carries eight
+#          nodes across two advisories.
 # qs:      GHSA-q8mj-m7cp-5q26 (moderate, remotely triggerable DoS in
 #          qs.stringify, <6.15.2); via @stryker-mutator/core ← typed-rest-client.
 # postcss: HIGH — path traversal via previous-source-map auto-loading
@@ -102,13 +113,18 @@ allowBuilds:
 #          2026-08-10:** GHSA-fxqj-rqcc-2cmp is explicitly an *incomplete fix* of
 #          the above — same attack, range extended to <=8.5.22. Pin 8.5.18 →
 #          8.5.23. A pin written against advisory N does not survive advisory N+1
-#          on the same defect.
-# nanoid:  HIGH, new 2026-08-10 — custom generators can loop indefinitely on
-#          certain sizes (<3.3.17). Reached only through postcss ← vite ←
-#          vitest, so it arrived with the postcss chain above and is dev-only;
-#          `pnpm why nanoid --prod` returns nothing. Dependabot also opened
-#          argus-oss#53 for it; this override fixes it at the tree level, which
-#          that PR alone would not (pnpm cannot reach a deep transitive).
+#          on the same defect. Note the successor is **moderate**, not HIGH like
+#          its predecessor: it is the single moderate in the 2026-08-10 batch.
+# nanoid:  TWO advisories, both HIGH, both published 2026-07-29 (noticed here
+#          2026-08-10) — GHSA-2v37-7h3g-55p8 (custom generators loop indefinitely
+#          on size zero, <3.3.17) and GHSA-28wg-ghj8-5hjv (non-secure generators,
+#          negative size, <3.3.16). The ranges nest, so the single 3.3.17 pin
+#          clears both; both also carry 4.x/5.x nodes that are absent from this
+#          tree. Reached only through postcss ← vite ← vitest, so it arrived with
+#          the postcss chain above and is dev-only; `pnpm why nanoid --prod`
+#          returns nothing. Dependabot also opened argus-oss#53 for it; this
+#          override fixes it at the tree level, which that PR alone would not
+#          (pnpm cannot reach a deep transitive).
 # **js-yaml is the ONLY pin here on a shipped path**, and therefore the only one
 # that can trip the blocking `pnpm audit --prod --audit-level=high` gate —
 # `pnpm why <pkg> --prod` returns nothing for every other package in this list.
@@ -124,6 +140,7 @@ overrides:
   "fast-uri@>=3.0.0 <3.1.5": 3.1.5
   "brace-expansion@<1.1.18": 1.1.18
   "brace-expansion@>=2.0.0 <2.1.4": 2.1.4
+  "brace-expansion@>=3.0.0 <3.0.6": 3.0.6
   "brace-expansion@>=4.0.0 <5.0.9": 5.0.9
   "qs@>=6.11.1 <6.15.2": 6.15.2
   "postcss@<8.5.23": 8.5.23
