@@ -1,62 +1,65 @@
 #!/usr/bin/env node
 // Field scan (DOC-07) — measure Argus against real third-party TypeScript.
 //
-// Dogfooding proves Argus holds its own bar. It cannot prove the parser
-// survives code nobody here wrote, because this repo's code was written to
-// pass. P2-05's review already recorded the general form of that lesson: a
-// parser fed by a tool you do not control has to be probed against that tool,
-// not against your repo. This script is the same idea pointed at source.
-//
-// MANUAL BY MAINTAINER RULING (2026-08-10). There is no CI job and no cron.
-// Wiring this into the gate path would make the build fetch three third-party
-// repositories on a trigger nobody schedules, which sits badly beside ADR-0003
-// — install scripts blocked, a 3-day minimum release age — where the whole
-// posture is to NOT consume third-party code on autopilot. The cost is honest
-// and stated in the README: these numbers are a dated measurement, not a
-// continuously verified one. In the badge comment's taxonomy they are STATED
-// tier, alongside License and tree-sitter: true, ungated, safe because they
-// change only by deliberate act. The deliberate act here is editing a rule.
-//
-// WHAT THE PIN IS FOR. Each target is pinned to a full commit SHA, which
-// freezes THEIR side permanently — zod at ead9fcb is the same bytes forever,
-// and a SHA is content-addressed, so the fetch either returns exactly those
-// bytes or fails. What can still move is Argus. Re-running after a rule change
-// is therefore a regression check on our own published claims, not a check on
-// zod. Without the pin a changed number would tell you nothing, because the
-// target moved too.
+// Dogfooding proves Argus holds its own bar, but cannot prove the parser
+// survives code nobody here wrote — this repo's code was written to pass.
+// P2-05's review recorded the general form: a parser fed by a tool you do not
+// control has to be probed against that tool. Same idea, pointed at source.
 //
 //   pnpm field-scan           re-measure and rewrite the snapshot
-//   pnpm field-scan:check     re-measure and diff; non-zero on any difference
+//   pnpm field-scan:check     re-measure and diff (see lib/field-snapshot.mjs)
+//   pnpm field-results:check  verify the README still matches the snapshot
 //
-// CLONES NEVER TOUCH THE WORKING TREE. Targets are fetched into os.tmpdir()
-// and removed in a `finally`. Deliberately not a repo-local directory with a
-// .gitignore entry: .gitignore is a filter that `git add -f` or a mistyped
-// path defeats, whereas "not in the tree" has no failure mode. That is a
-// policy requirement, not tidiness — the README's Posture section commits to
-// shipping no vendored third-party source, and zod's repo carries a docs site
-// and benchmarks alongside its MIT library code.
+// MANUAL BY MAINTAINER RULING (2026-08-10) — no CI job, no cron. Fetching
+// three third-party repositories on a trigger nobody schedules sits badly
+// beside ADR-0003, where the whole posture is to NOT consume third-party code
+// on autopilot. So the published NUMBERS are STATED tier: true, ungated, safe
+// only because they change by deliberate act. The PROSE quoting them is not —
+// `check-field-results.mjs` gates that half offline, in CI. Read its header
+// before changing either; the split between them is the point.
+//
+// THE TRIGGER IS WIDER THAN "EDITING A RULE" — the first draft of this comment
+// said otherwise and was wrong. The columns also move with packages/ast,
+// including a tree-sitter bump, which arrives as a Dependabot PR exempt from
+// docs-delta, and which moves the "0 parse failures" the README leans on
+// hardest. Full list in README.md's badge comment.
+//
+// WHAT THE PIN IS FOR. A full SHA freezes THEIR side permanently — zod at
+// ead9fcb is the same bytes forever, and a SHA is content-addressed, so a
+// fetch returns exactly those bytes or fails. What can still move is Argus, so
+// re-running is a regression check on our own claims. Without the pin a
+// changed number would tell you nothing, because the target moved too.
 //
 // `git clone --depth 1` CANNOT DO THIS. It shallow-clones the default branch
 // tip, whatever that is today, silently ignoring the SHA you meant. The pin
 // needs init + fetch of the specific commit, which GitHub serves.
+//
+// CLONES NEVER TOUCH THE WORKING TREE — os.tmpdir(), removed in a `finally`.
+// Deliberately not a repo-local dir with a .gitignore entry: an ignore rule is
+// a filter that `git add -f` or a mistyped path defeats, whereas "not in the
+// tree" has no failure mode. The README's Posture section promises no vendored
+// third-party source, and zod's repo carries a docs site and benchmarks.
 //
 // FAIL CLOSED, TWICE. A failed clone and a scan reporting zero files both
 // yield "nothing found", and a comparison of zero against zero passes. That
 // exact shape has burned this repo twice — gitleaks exiting 0 when its own
 // `git log` failed (#14), and `gh run view --log` returning an empty file with
 // exit 0 during the OPS-05 sweep. Both are asserted against here.
-//
-// DURATION IS RECORDED BUT NEVER COMPARED. It is wall clock on whatever
-// machine ran it; comparing it would fail for reasons that have nothing to do
-// with Argus, and a check that cries wolf is a check people learn to ignore.
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import process from "node:process";
 import console from "node:console";
+
+import {
+  assertUnconfigured,
+  countByRule,
+  differences,
+  readSnapshot,
+} from "./lib/field-snapshot.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAPSHOT = resolve(REPO_ROOT, "docs/field-results.json");
@@ -102,7 +105,7 @@ function run(command, args, options = {}) {
   return execFileSync(command, args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 256 * 1024 * 1024,
+    maxBuffer: 64 * 1024 * 1024,
     ...options,
   });
 }
@@ -134,31 +137,40 @@ function cloneAt(target, dir) {
  */
 function scan(dir) {
   let stdout;
+  let failure;
   try {
     stdout = run(process.execPath, [CLI, "check", dir, "--format", "json"]);
   } catch (error) {
+    // `status` is null when the spawn itself failed (ENOENT, ENOBUFS) rather
+    // than the child exiting; `argus exited null` reads as a bug in this
+    // script, so say what actually happened.
     if (error.status !== 1) {
-      throw new Error(`argus exited ${error.status}: ${error.stderr || error.message}`, {
-        cause: error,
-      });
+      const what = error.status === null ? "argus failed to run" : `argus exited ${error.status}`;
+      throw new Error(`${what}: ${error.stderr || error.message}`, { cause: error });
     }
     stdout = error.stdout;
+    failure = error;
   }
-  return JSON.parse(stdout);
-}
 
-/** Count violations per rule id, so the README's split is derived, not typed. */
-function countByRule(violations) {
-  const counts = {};
-  for (const violation of violations) {
-    counts[violation.ruleId] = (counts[violation.ruleId] ?? 0) + 1;
+  // Exit 1 is not only "violations found". Node itself exits 1 on a module
+  // resolution failure or an uncaught throw, and the CLI shim propagates that
+  // verbatim — so a crash arrives here indistinguishable from a clean run with
+  // findings, with the real stack trace sitting in stderr. Parsing "" then
+  // dies with `Unexpected end of JSON input` and throws that trace away.
+  try {
+    return JSON.parse(stdout);
+  } catch (error) {
+    throw new Error(
+      `argus exited 1 without a JSON report — it likely crashed:\n${failure?.stderr ?? "(no stderr)"}`,
+      { cause: error },
+    );
   }
-  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /** Clone, scan, and tear down one target. */
 function measure(target) {
   const dir = mkdtempSync(join(tmpdir(), `argus-field-${target.name}-`));
+  assertUnconfigured(dir);
   try {
     cloneAt(target, dir);
     const started = Date.now();
@@ -170,6 +182,17 @@ function measure(target) {
     // zero and passes. Refuse the reading rather than publish it.
     if (!report.summary?.filesScanned) {
       throw new Error(`${target.name}: scan reported 0 files — refusing to record an empty scan`);
+    }
+
+    // All three counts are asserted, not just the first. A renamed contract
+    // field reads as `undefined`, JSON.stringify DROPS the key entirely, and
+    // the write path would publish a snapshot silently missing it.
+    for (const field of ["filesScanned", "violations", "failures"]) {
+      if (!Number.isInteger(report.summary[field])) {
+        throw new Error(
+          `${target.name}: summary.${field} is not an integer — report contract changed?`,
+        );
+      }
     }
 
     return {
@@ -187,6 +210,23 @@ function measure(target) {
   }
 }
 
+/**
+ * The Argus commit these numbers came from, marked `-dirty` when it isn't.
+ *
+ * Without the marker this records "HEAD at the time", not "the code that
+ * produced these numbers" — and the prescribed workflow guarantees they
+ * differ: you edit a rule, run `pnpm field-scan` while that edit is still
+ * uncommitted, and the field names the parent commit, which is precisely the
+ * version that did NOT produce the measurement. The README publishes this
+ * value, so a provenance claim that is wrong by one commit is worse than one
+ * that admits it was taken mid-edit.
+ */
+function argusCommit() {
+  const head = run("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT }).trim();
+  const dirty = run("git", ["status", "--porcelain"], { cwd: REPO_ROOT }).trim() !== "";
+  return dirty ? `${head}-dirty` : head;
+}
+
 /** Re-measure every target and assemble the snapshot document. */
 function buildSnapshot() {
   const targets = TARGETS.map((target) => {
@@ -200,54 +240,31 @@ function buildSnapshot() {
       "see scripts/field-scan.mjs for why this is manual. durationSeconds is " +
       "machine-dependent and is never compared by --check.",
     measuredAt: new Date().toISOString().slice(0, 10),
-    argusCommit: run("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT }).trim(),
+    argusCommit: argusCommit(),
     targets,
   };
 }
 
-/**
- * The per-target fields `--check` compares, listed rather than subtracted.
- *
- * `durationSeconds` is deliberately absent, as are the top-level `measuredAt`
- * and `argusCommit`: all three move for reasons unrelated to Argus's
- * behaviour, and a check that fires on a slower machine is a check people
- * learn to ignore. An allowlist also means a field added to the snapshot later
- * is opted IN by hand, rather than silently joining the comparison.
- */
-const COMPARED_FIELDS = ["name", "url", "sha", "filesScanned", "violations", "failures", "byRule"];
-
-/** Compare a fresh measurement against the committed one; null when identical. */
-function differences(fresh, committed) {
-  const strip = (snapshot) =>
-    JSON.stringify(
-      (snapshot.targets ?? []).map((target) =>
-        Object.fromEntries(COMPARED_FIELDS.map((field) => [field, target[field]])),
-      ),
-      null,
-      2,
-    );
-  const a = strip(fresh);
-  const b = strip(committed);
-  return a === b ? null : { fresh: a, committed: b };
-}
-
-/** Read the committed snapshot, or fail with the command that would create it. */
-function readSnapshot() {
-  try {
-    return JSON.parse(readFileSync(SNAPSHOT, "utf8"));
-  } catch {
-    throw new Error(`no snapshot at ${SNAPSHOT} — run \`pnpm field-scan\` to create it`);
-  }
-}
-
 function main() {
-  const checkOnly = process.argv.includes("--check");
+  // Unrecognised arguments are rejected rather than ignored. The default path
+  // OVERWRITES the committed baseline, so a typo (`-check`, `--dry-run`) must
+  // not silently fall through to the destructive mode.
+  const args = process.argv.slice(2);
+  const unknown = args.filter((arg) => arg !== "--check");
+  if (unknown.length > 0) {
+    throw new Error(`unrecognised argument(s): ${unknown.join(", ")} — the only flag is --check`);
+  }
+  const checkOnly = args.includes("--check");
+
+  // Read the snapshot BEFORE measuring in check mode: three network clones to
+  // then discover there is nothing to compare against is a slow way to fail.
+  const committed = checkOnly ? readSnapshot(SNAPSHOT) : null;
+
   process.stderr.write(
     checkOnly
       ? "Re-measuring field results to verify the snapshot …\n"
       : "Measuring field results …\n",
   );
-
   const fresh = buildSnapshot();
 
   if (!checkOnly) {
@@ -259,17 +276,17 @@ function main() {
           `${target.failures} failures, ${target.durationSeconds}s`,
       );
     }
+    console.log("\nRe-run `pnpm field-results:check` — the README quotes these numbers.");
     return;
   }
 
-  const diff = differences(fresh, readSnapshot());
-  if (diff) {
+  const found = differences(fresh, committed);
+  if (found.length > 0) {
+    console.error("\nField results have changed:\n");
+    for (const line of found) console.error(`  ${line}`);
     console.error(
-      "\nField results have changed. Argus's behaviour moved; the README is now stale.\n",
+      "\nRe-run `pnpm field-scan`, then `pnpm field-results:check` to find every README figure that moved.",
     );
-    console.error(`committed:\n${diff.committed}\n`);
-    console.error(`measured now:\n${diff.fresh}\n`);
-    console.error("Re-run `pnpm field-scan` and update the README table to match.");
     process.exit(1);
   }
   console.log("\nField results match the committed snapshot.");

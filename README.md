@@ -26,13 +26,23 @@
                  stops being private@0.0.0; an ADR is a document. They are safe
                  because they change only by deliberate act — and they are the
                  tier to re-check by hand when such an act happens.
-     The "Field results" table below is STATED tier too, for the same reason and
-     with the same obligation: its targets are SHA-pinned so their side cannot
-     drift, but editing a rule or a default threshold moves OUR side and makes
-     the table silently false. The deliberate act is any change under
-     packages/rules-builtin or a default threshold; the re-check is one command,
-     `pnpm field-scan:check`, which re-measures and fails on any difference.
-     Manual by maintainer ruling 2026-08-10 — see scripts/field-scan.mjs.
+     The "Field results" table below is split across two of these tiers, and
+     which half you are looking at matters.
+       Its PROSE is GATED: `field-results:check` runs in the lint job and
+                 recomputes every figure from docs/field-results.json, so the
+                 text cannot drift from the snapshot it quotes.
+       Its NUMBERS are STATED: nothing re-measures them, because measuring
+                 means fetching third-party repos and that is manual by
+                 maintainer ruling 2026-08-10 (see scripts/field-scan.mjs).
+     The targets are SHA-pinned, so their side cannot drift — but OUR side moves
+     on more than a rule edit, and the trigger list is wider than it first
+     looks: anything under packages/rules-builtin (rule logic or a default
+     threshold), packages/rule-engine, packages/core, apps/cli/src/discover.ts
+     (which decides what counts as a file at all), and packages/ast — including
+     a tree-sitter version bump, which arrives as a Dependabot PR and so is
+     exempt from docs-delta. That last one moves "0 parse failures", the column
+     the section calls the one that matters. The re-check is `pnpm
+     field-scan:check`; it needs the network, which is why it is not the gate.
      Deliberately absent: coverage %, test count, rule count. A binary property
      can be held up by a gate; a NUMBER cannot. An ungated number is how the demo
      recording below came to claim 151 files against an actual 161. See
@@ -70,7 +80,9 @@ Dogfooding proves Argus clears its own bar, but this repo's code was written to 
 
 **The violation counts are not defect counts, and reading them that way would be wrong.** They measure distance from Argus's unconfigured defaults. Of zod's 3,225, **2,817 — 87% — come from four convention rules**: naming (1,413), required JSDoc (1,005), wildcard imports (388), import order (11). zod deliberately uses lowercase type aliases (`inferFlattenedErrors`) and `$`-prefixed internals (`$ZodString`), where Argus's defaults want PascalCase types and camelCase constants. Neither party is wrong, and configuring that away is what a `rules:` block in [`argus.yaml`](docs/guide/configuration.md) is for.
 
-The other **408 are structural** — function length (250), cyclomatic complexity (95), file length (53), nesting depth (8), empty tests (2). Those transfer across house styles, because no naming convention makes a 15-branch function easy to read. The ratio inverts on smaller codebases: 86% of ky's 64 findings are structural.
+The other **408 are structural** — function length (250), cyclomatic complexity (95), file length (53), nesting depth (8), empty tests (2). Those transfer across house styles, because no naming convention makes a 15-branch function easy to read. **The ratio is not stable, and it does not track size**: 86% of ky's 64 findings are structural, while zustand — smaller again, at 30 files — runs the other way at 60% convention. Which is the argument for reading the split rather than the total.
+
+The `Scan` column is wall clock on one laptop, and is the one figure here that nothing re-checks; treat it as an indication, not a benchmark.
 
 These numbers are a **dated measurement, not a live one** — taken 2026-08-10 with Argus at `033ca2c`, and re-measured by hand rather than by CI:
 
@@ -78,7 +90,12 @@ These numbers are a **dated measurement, not a live one** — taken 2026-08-10 w
 pnpm field-scan
 ```
 
-Each target is pinned by full SHA, so their side is frozen and a changed number means **Argus** moved, not zod; `pnpm field-scan:check` re-measures and exits non-zero on any difference. It is deliberately not a CI job — that would fetch third-party repositories on a trigger nobody schedules, against the same posture that makes [ADR-0003](docs/adr/0003-supply-chain-hardening-baseline.md) block install scripts. Clones go to a temp directory and are deleted after; no third-party source enters this repository. Raw per-rule counts: [`docs/field-results.json`](docs/field-results.json).
+Each target is pinned by full SHA, so their side is frozen and a changed number means **Argus** moved, not zod. Two checks divide the work, because only one of them needs the network:
+
+- `pnpm field-scan:check` re-measures and fails on any difference in the compared fields — everything above except `Scan`, which is machine-dependent. **Manual**, since fetching third-party repositories on a trigger nobody schedules runs against the same posture that makes [ADR-0003](docs/adr/0003-supply-chain-hardening-baseline.md) block install scripts.
+- `pnpm field-results:check` recomputes every figure in this section from [`docs/field-results.json`](docs/field-results.json) and fails if the prose has drifted from it. No network, no third-party code, so it **runs in CI on every PR** — the snapshot and this text cannot disagree without the build saying so.
+
+Clones go to a temp directory and are deleted after; no third-party source enters this repository. Raw per-rule counts are in the snapshot.
 
 ## How the quality was enforced
 
@@ -120,13 +137,13 @@ Exit codes follow the usual convention: `0` clean, `1` violations found, `2` som
 pnpm -s argus check ~/code/your-project
 ```
 
-Argus only reads. Nothing is written to that project and nothing is installed into it — `argus fix` is a separate command you have to ask for, and it only touches import order. This is the same path the [field results](#field-results--argus-on-code-it-didnt-write) above were measured on, so it is exercised against real third-party repositories rather than only this one.
+Argus writes nothing to that project on its own, and installs nothing into it — `argus fix` is a separate command you have to ask for, and it only touches import order. This is the same path the [field results](#field-results--argus-on-code-it-didnt-write) above were measured on, so it is exercised against real third-party repositories rather than only this one.
 
-Three things worth knowing before you judge the output:
+Three things worth knowing before you judge the output. **Start with the first — the other two depend on it:**
 
 - **Put an `argus.yaml` at your project root, even an empty `{}`.** Argus resolves the project root from that file. With it, findings read `src/index.ts`; without it, paths are printed relative to your Argus clone and come out as `../../../code/your-project/src/index.ts`. That file is also where rules get reconfigured or switched off — [configuration reference](docs/guide/configuration.md).
-- **Expect the first run on an established codebase to be noisy, and read the split before drawing conclusions.** All ten rules run at their defaults, and defaults encode _a_ house style, not _the_ house style. In the field results above, 87% of the largest project's findings were convention disagreement rather than defects.
-- **Narrow it to a branch's own work** with `--diff`, which is usually the more useful first look:
+- **Expect the first run on an established codebase to be noisy, and read the split before drawing conclusions.** All ten rules run at their defaults, and defaults encode _a_ house style, not _the_ house style. In the field results above, 87% of the largest project's findings were convention disagreement rather than defects. `node_modules`, `dist/`, `build/` and `coverage/` are skipped for you; generated output living anywhere else — `.next/`, `out/`, `lib/`, `es/` — needs an `ignore:` entry, or it lands in your first run as though you wrote it.
+- **Narrow it to a branch's own work** with `--diff`, which is usually the more useful first look. This one **needs the `argus.yaml` from the first bullet** — without a project root to resolve against, it exits `2` rather than guessing:
 
 ```bash
 pnpm -s argus check ~/code/your-project --diff main
