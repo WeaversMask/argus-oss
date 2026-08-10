@@ -28,6 +28,8 @@
     "notices:check": "node scripts/generate-third-party-notices.mjs --check",
     "handover:rotate": "node scripts/rotate-handover.mjs",
     "handover:check": "node scripts/rotate-handover.mjs --check",
+    "field-scan": "node scripts/field-scan.mjs",
+    "field-scan:check": "node scripts/field-scan.mjs --check",
     "dev": "turbo run dev --parallel",
     "clean": "turbo run clean && rimraf node_modules .turbo coverage .stryker-tmp reports",
     "prepare": "husky && ./scripts/install-gitleaks.sh"
