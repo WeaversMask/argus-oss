@@ -2,6 +2,23 @@
 
 [![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status: pre-1.0, not published](https://img.shields.io/badge/status-pre--1.0%20%C2%B7%20not%20published-orange)](#status)
+[![Last commit](https://img.shields.io/github/last-commit/WeaversMask/argus-oss)](https://github.com/WeaversMask/argus-oss/commits/main)
+
+[![TypeScript: strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.base.json)
+[![Node: see engines](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FWeaversMask%2Fargus-oss%2Fmain%2Fpackage.json&query=%24.engines.node&label=node&color=339933&logo=nodedotjs&logoColor=white)](package.json)
+[![Parser: tree-sitter](https://img.shields.io/badge/parser-tree--sitter-4B8BBE)](docs/adr/0005-ast-adapter-wasm-tree-sitter.md)
+[![Code style: Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4?logo=prettier&logoColor=white)](.prettierrc.json)
+[![Commits: Conventional](https://img.shields.io/badge/commits-conventional-fe5196?logo=conventionalcommits&logoColor=white)](commitlint.config.cjs)
+
+<!-- Every badge above is backed by a mechanism that fails the build if it stops
+     being true — the typecheck gate, format:check, commitlint, ADR-0005 — or it
+     reads the repository directly (the node badge parses engines.node out of
+     package.json on main, so it is the file, not a copy of it).
+     Deliberately absent: coverage %, test count, rule count. Those are numbers
+     with nothing re-measuring them; see docs/plan/03-documentation.md
+     §"A published metric needs a mechanism that keeps it true". Coverage becomes
+     honest the day a coverage service is wired, not before. -->
 
 **Argus is a deterministic, architecture-aware code-quality scanner for TypeScript monorepos.** It parses your source with tree-sitter, applies explicit rules to the syntax tree, and reports exactly what it found — as readable console output or as a schema-validated JSON document for CI.
 
