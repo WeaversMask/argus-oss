@@ -104,6 +104,18 @@ jobs:
       - name: Check root gates cover every workspace package (OPS-07)
         run: pnpm gates:check
 
+      # README ↔ field-results propagation (DOC-07). `field-scan:check`
+      # guards the SNAPSHOT and needs the network, so it stays manual by
+      # maintainer ruling. This guards the PROSE: it recomputes every figure
+      # in README §Field results from docs/field-results.json and fails if the
+      # two have drifted. The gap it closes is the prescribed workflow itself
+      # — regenerating the snapshot makes `field-scan:check` pass again while
+      # the README still quotes the old numbers, so every gate goes green on
+      # stale claims. Offline (node: builtins, two committed files), so it
+      # fetches nothing and costs nothing here.
+      - name: Check README matches the field-results snapshot (DOC-07)
+        run: pnpm field-results:check
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
