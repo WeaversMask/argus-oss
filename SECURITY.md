@@ -16,9 +16,16 @@ There are no published releases yet; security fixes land on `main`.
 
 **Do not open a public issue for security reports.**
 
-Use GitHub's private vulnerability reporting for this repository:
-**Security → Report a vulnerability** (or `/security/advisories/new`).
-Reports go privately to the maintainer.
+Use GitHub's private vulnerability reporting for this repository — it is
+**enabled** (since 2026-08-10), so the form below is live:
+
+**→ [Report a vulnerability privately](https://github.com/WeaversMask/argus-oss/security/advisories/new)**
+
+Equivalently: the repository's **Security** tab → _Report a vulnerability_.
+Reports go privately to the maintainer and are not publicly visible. If you
+cannot use that form for any reason, open a **public issue containing no
+technical detail** — just asking for a private channel — and it will be
+followed up.
 
 - Best-effort acknowledgment within **7 days** — usually much faster,
   occasionally slower; there is no paid on-call behind this repo.
@@ -27,21 +34,24 @@ Reports go privately to the maintainer.
   prefer otherwise.
 - No bug bounty is offered.
 
-> Maintainer setup note: private vulnerability reporting is a one-time
-> repo-settings toggle (Settings → Advanced Security). Same pending admin
-> bucket as branch-protection required checks (open since P0-03).
+Alongside reports, this repository runs
+[CodeQL](https://github.com/WeaversMask/argus-oss/security/code-scanning),
+[secret scanning with push protection](https://docs.github.com/code-security/secret-scanning/introduction/about-secret-scanning),
+and [Dependabot alerts](https://github.com/WeaversMask/argus-oss/security/dependabot);
+gitleaks scans at commit, at push, and over full history in CI.
 
 ## What Belongs Where
 
 - **A secret accidentally committed to this repo** — operational incident,
   not a vulnerability report: follow
-  [docs/SECURITY-NOTES.md](docs/SECURITY-NOTES.md) §"If You Accidentally
+  [docs/SECURITY-NOTES.md](https://github.com/WeaversMask/argus-oss/blob/main/docs/SECURITY-NOTES.md) §"If You Accidentally
   Commit a Secret".
 - **Supply-chain posture** (dependency pinning, 3-day minimum release age,
   install-script blocking, SHA-pinned CI actions, verified binary
   downloads) — documented in
-  [ADR-0003](docs/adr/0003-supply-chain-hardening-baseline.md) and
-  [docs/SECURITY-NOTES.md](docs/SECURITY-NOTES.md) §"Defences in Place".
+  [ADR-0003](https://github.com/WeaversMask/argus-oss/blob/main/docs/adr/0003-supply-chain-hardening-baseline.md)
+  and
+  [docs/SECURITY-NOTES.md](https://github.com/WeaversMask/argus-oss/blob/main/docs/SECURITY-NOTES.md) §"Defences in Place".
 - **Vulnerabilities in the external engines Argus orchestrates**
   (TruffleHog, Semgrep, osv-scanner) — report to those projects. Reports
   about how Argus _invokes or sandboxes_ them belong here.
