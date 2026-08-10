@@ -78,6 +78,28 @@ that, reintroducing the path it was recording the removal of. Note this scans th
 **working tree**; appending `HEAD` scans the last commit instead, which will still
 show a path you have fixed but not yet committed.
 
+**Stale links to the retired repo** — the identity sweep checks _who wrote_ the code;
+this checks _what it points at_, which is a different failure:
+
+```bash
+git grep -nE 'WeaversMask/argus([^-]|$)' -- . ':!pnpm-lock.yaml'
+```
+
+Every hit must be either prose _about_ the retired repo (this file, `CLAUDE.md`,
+`HANDOVER.md`) or a historical PR link inside `docs/handovers/`. A hit in a **live,
+user-facing** file is a finding: the retired repo is private forever, so those URLs
+404 for everyone the moment this repo goes public — silently, since nothing in CI
+fetches them.
+
+This is not hypothetical. The OPS-05 sweep passed while **two** such links were live,
+because it scanned for identity and secrets and never for stale references:
+`.github/ISSUE_TEMPLATE/config.yml` pointed the "Report a vulnerability" chooser entry
+at the retired repo — breaking the exact path [SECURITY.md](../SECURITY.md) instructs
+reporters to use — and `bug_report.md` pointed its SECURITY.md link there too. Both were
+written 2026-07-04, the **same day** work migrated to `argus-oss`, and were never
+updated. Fixed 2026-08-10. Anything that hardcodes the repo slug is the risk surface;
+a rename (step 3) re-arms it for every `argus-oss` URL in the tree.
+
 **PR, issue and review text** — everything written around the code, public on flip:
 
 ```bash
