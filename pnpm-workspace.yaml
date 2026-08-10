@@ -69,10 +69,27 @@ allowBuilds:
 #          which is exactly why the false claim would have survived unchallenged.
 # fast-uri: GHSA-v2hh-gcrm-f6hx (HIGH, host confusion via literal backslash
 #          authority delimiter, <=3.1.3); via ajv ← @commitlint/* and
-#          @stryker-mutator/core.
+#          @stryker-mutator/core. **Stepped over 2026-08-10:** a further HIGH
+#          advisory widened the vulnerable range to >=3.0.0 <3.1.5, so the 3.1.4
+#          pin written for the advisory above no longer cleared it. Now 3.1.5.
 # brace-expansion: GHSA-3jxr-9vmj-r5cp (HIGH, ReDoS via exponential expansion),
 #          two affected ranges (<1.1.16 and >=2.0.0 <2.1.2) both reached through
-#          the old license-checker ← glob ← minimatch chain.
+#          the old license-checker ← glob ← minimatch chain. **Stepped over
+#          2026-08-10, on every range at once.** A distinct HIGH advisory (DoS via
+#          unbounded intermediate arrays) shipped FOUR vulnerability nodes for this
+#          one package — >=2.0.0 <2.1.3, >=2.0.0 <2.1.4, >=4.0.0 <5.0.8 and
+#          >=4.0.0 <5.0.9 — plus <1.1.18 on the 1.x line. Pin each line to the
+#          WIDEST range's patch: 1.1.18, 2.1.4, 5.0.9. The 5.x entry is new —
+#          rimraf ← glob ← minimatch pulled a 5.x line in that no earlier pin
+#          covered.
+#          **How this nearly shipped wrong, worth more than the pins:** the first
+#          pass triaged `pnpm audit --json` with a script that keyed advisories by
+#          module name, so three of these four records silently overwrote each
+#          other and only ONE range was seen. The 2.x fix went in claiming "the 2.x
+#          range is NOT named by the new advisory" — false, and it only surfaced
+#          because fixing 1.x exposed the next range behind it. Never collapse
+#          advisory records by package: one package can carry many disjoint ranges,
+#          and a per-package view shows you exactly one of them.
 # qs:      GHSA-q8mj-m7cp-5q26 (moderate, remotely triggerable DoS in
 #          qs.stringify, <6.15.2); via @stryker-mutator/core ← typed-rest-client.
 # postcss: HIGH — path traversal via previous-source-map auto-loading
@@ -81,7 +98,17 @@ allowBuilds:
 #          the dev/test toolchain; Argus ships no CSS pipeline and never runs
 #          postcss on untrusted input. Advisory published after the P2-01
 #          merge, so it began failing the audit gate on main and on every open
-#          PR without any dependency change on our side.
+#          PR without any dependency change on our side. **Stepped over
+#          2026-08-10:** GHSA-fxqj-rqcc-2cmp is explicitly an *incomplete fix* of
+#          the above — same attack, range extended to <=8.5.22. Pin 8.5.18 →
+#          8.5.23. A pin written against advisory N does not survive advisory N+1
+#          on the same defect.
+# nanoid:  HIGH, new 2026-08-10 — custom generators can loop indefinitely on
+#          certain sizes (<3.3.17). Reached only through postcss ← vite ←
+#          vitest, so it arrived with the postcss chain above and is dev-only;
+#          `pnpm why nanoid --prod` returns nothing. Dependabot also opened
+#          argus-oss#53 for it; this override fixes it at the tree level, which
+#          that PR alone would not (pnpm cannot reach a deep transitive).
 # **js-yaml is the ONLY pin here on a shipped path**, and therefore the only one
 # that can trip the blocking `pnpm audit --prod --audit-level=high` gate —
 # `pnpm why <pkg> --prod` returns nothing for every other package in this list.
@@ -94,8 +121,10 @@ overrides:
   "vite@>=8.0.0 <8.0.16": 8.0.16
   "js-yaml@>=4.0.0 <4.3.1": 4.3.1
   "js-yaml@>=3.0.0 <3.15.1": 3.15.1
-  "fast-uri@>=3.0.0 <3.1.4": 3.1.4
-  "brace-expansion@<1.1.16": 1.1.16
-  "brace-expansion@>=2.0.0 <2.1.2": 2.1.2
+  "fast-uri@>=3.0.0 <3.1.5": 3.1.5
+  "brace-expansion@<1.1.18": 1.1.18
+  "brace-expansion@>=2.0.0 <2.1.4": 2.1.4
+  "brace-expansion@>=4.0.0 <5.0.9": 5.0.9
   "qs@>=6.11.1 <6.15.2": 6.15.2
-  "postcss@<8.5.18": 8.5.18
+  "postcss@<8.5.23": 8.5.23
+  "nanoid@<3.3.17": 3.3.17
