@@ -242,10 +242,13 @@ grep -oiE '/Users/[a-z0-9._-]+' /tmp/alllogs.txt | sort | uniq -c
    > existence and CI status are already publicly readable, whatever the visibility
    > setting says.
 
-   > **Why only two badges.** **CI** needs nothing but the flip; **License** is a static
-   > shields.io badge, accurate today. **Coverage and mutation are deliberately absent** —
-   > coverage has no service wired, and the Stryker job has been red since 2026-07-28, so
-   > neither has an honest number to publish. That reasoning used to live in the deleted
+   > **Two badges at the flip; nine since.** **CI** needed nothing but the flip; **License**
+   > is a static shields.io badge, accurate today. Seven more were added later the same day
+   > once the repo was public — status, last-commit, node, TypeScript strict, tree-sitter,
+   > Prettier, Conventional Commits — in three tiers documented beside them in `README.md`.
+   > **Coverage and mutation are still deliberately absent** — coverage has no service
+   > wired, and the Stryker job has been red since 2026-07-28, so neither has an honest
+   > number to publish. That reasoning used to live in the deleted
    > staging comment; its durable home is now
    > [03-documentation.md §A published metric needs a mechanism that keeps it true](./plan/03-documentation.md),
    > because this runbook is spent once the flip happens and the rule outlives it.
