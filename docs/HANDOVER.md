@@ -72,9 +72,23 @@ what is yours".
   together.
 - **Archiving the retired `WeaversMask/argus` repo.** Still private (verified), still
   not archived. Maintainer action, already in the runbook.
+
 - **Still inherited, still each needing their own task:** the missing `FormatterPort`
   fake (10 fakes for 11 ports), the red Stryker job, `argus explain` not reporting
   fixability, `ci.yml`'s stale `license` job comment, `review-gate`'s frozen-PR-body trap.
+
+> **Addendum, 2026-08-10 — the name is settled and two stale links are fixed.** The
+> maintainer ruled that this repo **keeps the name `argus-oss`**; runbook step 3
+> (renaming it to `argus`) is declined, not pending, and the runbook and the Up Next
+> list both say so now. That ruling made a real defect actionable: two links written
+> 2026-07-04 — the day work migrated here — still hardcoded the **retired** repo's
+> slug, so both would have 404'd for the public on the flip.
+> `.github/ISSUE_TEMPLATE/config.yml` sent the "Report a vulnerability" entry in the
+> new-issue chooser there, and `bug_report.md` pointed its SECURITY.md link there.
+> Both now point at `argus-oss`. **OPS-05's sweep passed with both live**, because it
+> looked for identity and secrets and never for what the tree _points at_ — the
+> runbook's "Re-running the sweep" section has gained that check, anchored with
+> `:(top)` pathspecs and a non-zero floor so it cannot pass by scanning nothing.
 
 ## Gotchas & Surprises
 
