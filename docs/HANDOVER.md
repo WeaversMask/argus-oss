@@ -47,6 +47,8 @@ what is yours".
 - **Resolved the LICENSE placeholder** to `Copyright (c) 2026 WeaversMask` (maintainer
   ruling, in session), closing the item pending since P0-10 and ADR-0002's `TODO(licensing:)`.
 - **Staged badges** in a README HTML comment — CI + License ready to uncomment.
+  (Activated 2026-08-10, ahead of the flip; the comment is gone and the two badge
+  lines are live. See [runbook step 5](./go-public-runbook.md).)
 - **Corrected the runbook** in four places and added a "Readiness sweep" section
   recording what was checked, with re-runnable commands.
 - **Re-measured stale numbers** in the README and tracker: 737 → **806 tests**,
@@ -60,8 +62,10 @@ what is yours".
   Gotcha 3. Recorded in the runbook with the reasoning, not silently dropped.
 - **Coverage and mutation badges.** Neither can be honest today: coverage has no
   service wired and a hand-typed percentage goes stale silently; the Stryker job has
-  been red since 2026-07-28. Both are staged as commented notes explaining the blocker.
-  This is DOC-02's own precedent for keeping mutation score out of the receipts table.
+  been red since 2026-07-28. This is DOC-02's own precedent for keeping mutation score
+  out of the receipts table. (Both were staged as commented notes; when the CI and
+  License badges went live on 2026-08-10 that comment was removed, and the reasoning
+  moved to [runbook step 5](./go-public-runbook.md) so it did not go with it.)
 - **Regenerating the README demo SVG.** It still shows 151 files against today's 161.
   It is a dated recording, internally consistent with its own alt text, and there is no
   generator script — regenerating is DOC-02's territory, not a readiness sweep's.

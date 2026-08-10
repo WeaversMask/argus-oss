@@ -1,27 +1,7 @@
 # Argus
 
-<!-- BADGES — staged by OPS-05; not live while this repo is private.
-
-     TO ACTIVATE AT THE FLIP (go-public-runbook.md step 5): delete this ENTIRE comment
-     block, opening marker to closing marker, and put back only these two lines. Nothing
-     else in here is meant to render — un-commenting in place would publish this note.
-
-     [![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
-     [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-     CI        — needs nothing but the visibility flip. If you also rename the repo
-                 (runbook step 3), GitHub redirects the old path, but update both URLs
-                 anyway rather than relying on a redirect.
-     License   — a static shields.io badge; accurate today, unaffected by a rename.
-     Coverage  — deliberately NOT staged. shields.io cannot read coverage without a service
-                 (Codecov/Coveralls) wired first, and a hand-typed percentage goes stale
-                 silently — the exact failure docs/plan/03-documentation.md exists to stop.
-                 Wiring one is its own task; the enforced floors in vitest.config.ts are the
-                 honest claim until then.
-     Mutation  — deliberately NOT staged. The weekly Stryker job has been red since
-                 2026-07-28, so there is no current score to publish. Fix the job first.
-                 Same reasoning DOC-02 used to keep mutation score out of the receipts table.
--->
+[![CI](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WeaversMask/argus-oss/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Argus is a deterministic, architecture-aware code-quality scanner for TypeScript monorepos.** It parses your source with tree-sitter, applies explicit rules to the syntax tree, and reports exactly what it found — as readable console output or as a schema-validated JSON document for CI.
 
