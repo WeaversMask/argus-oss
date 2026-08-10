@@ -17,7 +17,7 @@ clean-history repo:
   identity is the noreply address). Going public = flipping **this** repo's
   visibility. **The name stays `argus-oss`** — maintainer ruling 2026-08-10,
   superseding the earlier "placeholder, rename freely". That is why the issue
-  templates and the staged README badges hardcode this slug instead of waiting
+  templates and the live README badges hardcode this slug instead of waiting
   on step 3.
 - **`WeaversMask/argus` — the retired pre-scrub repo. Must NEVER go
   public:** its `refs/pull/*` keep pre-rewrite commits (with the personal
@@ -225,11 +225,31 @@ grep -oiE '/Users/[a-z0-9._-]+' /tmp/alllogs.txt | sort | uniq -c
      `allowed_actions=all`. Repo secrets: **none configured** (the `TURBO_*` pair
      is still pending Open Decision D-1) — a visibility flip never exposes secret
      _values_, but it does let fork PRs run workflows, so set them after, not before.
-5. **Flip visibility → Public**, then **activate the README badges.** `README.md`
-   opens with a staged `<!-- BADGES … -->` block; its own instructions say to delete
-   the entire comment and put back only its two badge lines. Do not un-comment it in
-   place — that publishes the staging note at the top of the most-read page in the
-   repo instead of the badges.
+5. **Flip visibility → Public.** The badge half of this step is ✅ **done** — the staged
+   `<!-- BADGES … -->` comment was replaced with its two live badge lines on 2026-08-10,
+   ahead of the flip rather than after it, so the README is already correct the instant
+   the repo becomes visible. Nothing to edit here.
+
+   > **Doing it early costs nothing — and not for the reason you would guess.** GitHub's
+   > badge endpoint is **anonymously readable even while the repo is private**: verified
+   > 2026-08-10, `curl` with no token against
+   > `…/actions/workflows/ci.yml/badge.svg?branch=main` returns **HTTP 200** and
+   > `<title>CI - passing</title>`, while a nonexistent-slug control returns **404** — so
+   > the 200 is this repo's real status, not a placeholder. The badge is already live and
+   > green; the flip changes only who can reach the README that embeds it. An earlier
+   > draft of this step asserted the opposite (that the badge renders broken until the
+   > flip) and was wrong. **Worth knowing on its own:** that URL means this repo's
+   > existence and CI status are already publicly readable, whatever the visibility
+   > setting says.
+
+   > **Why only two badges.** **CI** needs nothing but the flip; **License** is a static
+   > shields.io badge, accurate today. **Coverage and mutation are deliberately absent** —
+   > coverage has no service wired, and the Stryker job has been red since 2026-07-28, so
+   > neither has an honest number to publish. That reasoning used to live in the deleted
+   > staging comment; its durable home is now
+   > [03-documentation.md §A published metric needs a mechanism that keeps it true](./plan/03-documentation.md),
+   > because this runbook is spent once the flip happens and the rule outlives it.
+
 6. **Immediately after the flip — public-only quality layers** (maintainer-approved 2026-07-07):
    - Enable **CodeQL default setup** (Settings → Code security and analysis).
      Free semantic SAST for public repos, low-noise; gitleaks covers secrets,

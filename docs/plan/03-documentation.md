@@ -96,6 +96,13 @@ A **documentation consolidation pass** against [`templates/PHASE-DOC-AUDIT.templ
 
 The first pass was executed against Phase 2 itself — [`../audits/phase-02-doc-audit.md`](../audits/phase-02-doc-audit.md) — so the cadence proved itself on the phase that installed it rather than shipping as an untested checklist.
 
+### A published metric needs a mechanism that keeps it true
+
+The rule this standard keeps running into: **do not publish a number unless something re-measures it.** A figure a human types is correct on the day it is typed and silently wrong afterwards, and the more prominently it is displayed the longer it stays believed. Two standing applications, recorded here because they otherwise live only in documents that expire:
+
+- **README badges.** CI and License went live on 2026-08-10. **Coverage and mutation are deliberately absent, and adding either means doing the work, not adding a line.** Coverage needs a service (Codecov/Coveralls) wired before shields.io can read it; until then the enforced floors in [`../../vitest.config.ts`](../../vitest.config.ts) are the honest claim. Mutation has no score to publish while the weekly Stryker job is red (since 2026-07-28) — fix the job first. This is DOC-02's own precedent for keeping mutation score out of the README's receipts table.
+- **Figures quoted in prose.** Anchor them to something immutable — a linked CI run, or an explicit recording date — rather than leaving a bare number. The README's self-scan recording carries its date for exactly this reason: the file count it shows was true when recorded and climbs as the repo grows.
+
 ## Assembly at Phase 11 (what this feeds)
 
 [`P11-03`](./phases/phase-11-hardening.md) does **not** write documentation from scratch. It assembles and polishes what these streams have already captured:
