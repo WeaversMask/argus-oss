@@ -65,7 +65,9 @@ what is yours".
   been red since 2026-07-28. This is DOC-02's own precedent for keeping mutation score
   out of the receipts table. (Both were staged as commented notes; when the CI and
   License badges went live on 2026-08-10 that comment was removed, and the reasoning
-  moved to [runbook step 5](./go-public-runbook.md) so it did not go with it.)
+  moved to [03-documentation.md §A published metric needs a mechanism that keeps it
+  true](./plan/03-documentation.md) — a durable home, rather than the runbook, which is
+  spent at the flip.)
 - **Regenerating the README demo SVG.** It still shows 151 files against today's 161.
   It is a dated recording, internally consistent with its own alt text, and there is no
   generator script — regenerating is DOC-02's territory, not a readiness sweep's.
