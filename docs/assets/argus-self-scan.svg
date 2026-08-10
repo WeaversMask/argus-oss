@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="981" height="405" viewBox="0 0 981 405" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="14" role="img" aria-label="Terminal recording: argus check on the Argus repository reports no violations across 151 files, then catches four real violations after one bad file is added.">
-  <title>argus check running on Argus itself</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="981" height="405" viewBox="0 0 981 405" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="14" role="img" aria-label="Terminal recording from 2026-08-01: argus check on the Argus repository reports no violations across 151 files, then catches four real violations after one bad file is added. The file count is that day's and grows with the repo.">
+  <title>argus check running on Argus itself (recorded 2026-08-01)</title>
   <rect width="981" height="405" rx="8" fill="#0d1117"/>
   <rect width="981" height="30" rx="8" fill="#161b22"/>
   <rect y="22" width="981" height="8" fill="#161b22"/>
