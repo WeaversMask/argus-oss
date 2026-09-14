@@ -23,7 +23,7 @@
     "cosmiconfig": "9.0.2",
     "neverthrow": "8.2.0",
     "yaml": "2.9.0",
-    "zod": "4.4.3"
+    "zod": "4.6.2"
   },
   "devDependencies": {
     "@argus/testing": "workspace:*",

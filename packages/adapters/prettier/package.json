@@ -21,7 +21,7 @@
   "dependencies": {
     "@argus/core": "workspace:*",
     "neverthrow": "8.2.0",
-    "prettier": "3.9.4"
+    "prettier": "3.9.6"
   },
   "devDependencies": {
     "@argus/testing": "workspace:*",
