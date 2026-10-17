@@ -15,6 +15,8 @@
 // (@stryker-mutator/typescript-checker) — type-invalid mutants can survive
 // as false positives, but the checker roughly doubles run time. Revisit if
 // the survivor list shows mostly type-invalid noise.
+const SOURCE_GLOB = "packages/*/src/**/*.ts";
+
 const config = {
   testRunner: "vitest",
   // Explicit plugin list: Stryker's default "@stryker-mutator/*" glob
@@ -25,7 +27,41 @@ const config = {
   plugins: ["@stryker-mutator/vitest-runner"],
   // Root vitest.config.ts fans out to every workspace project, so one
   // Stryker run covers the whole monorepo's src.
-  mutate: ["packages/*/src/**/*.ts"],
+  mutate: [SOURCE_GLOB],
+  // Stryker's default (`disableTypeChecks: true`) stamps `// @ts-nocheck` onto
+  // EVERY .ts/.js file in the sandbox — fixtures included. The rule fixtures
+  // are inputs whose exact bytes matter, so the extra first line breaks seven
+  // of them (`--disableBail --dryRunOnly` lists them all): `max-file-length`'s
+  // `exactly-five.ts` (a 5-line file, budget 5) becomes 6 lines and "violates",
+  // plus six `require-jsdoc` valid fixtures. The dry run (initial test run)
+  // then aborts — that is the 2026-07-28 failure (`documented-class.ts`),
+  // which was masked rather than fixed: the runner bails on the first failure,
+  // so only one of the eight dry-run failures was ever reported per run. Only
+  // mutated files can become type-invalid, and vitest never type-checks
+  // anyway, so the header is confined to the source files being mutated and
+  // tests/fixtures stay byte-identical to what `pnpm test` reads.
+  disableTypeChecks: SOURCE_GLOB,
+  // Wall-clock benchmarks are kept out of the sandbox (OPS-08). Stryker's dry
+  // run aborts on ANY failing test, and instrumentation makes the P1-04 engine
+  // benchmark far slower than its 10ms CI budget (BASELINE.medianMs × 20,
+  // applied because `CI` is set): 21–32ms measured under Stryker, on GitHub's
+  // runners and on a local M-series Mac alike, against a ~0.5ms baseline. This
+  // job was red every week from 2026-08-04 without a single mutant ever being
+  // tested.
+  //
+  // Excluding it loses nothing mutation testing is for: the benchmark asserts
+  // speed, not behaviour (the engine's behaviour is pinned by the sibling
+  // tests). Running it would be worse than pointless — under instrumentation a
+  // timing assertion fails for noise, and every failure counts as a "kill", so
+  // it would inflate the score with kills that no assertion earned.
+  //
+  // This is NOT a loosening of the benchmark: the file, its budget and its
+  // place in `pnpm test` / ci.yml are untouched (the P1-04 acceptance
+  // criterion is still enforced there). `ignorePatterns` only keeps the
+  // directory out of Stryker's sandbox copy, so no `perf/` test is ever seen
+  // by the mutation run — keep wall-clock tests in `tests/perf/` and they are
+  // excluded automatically; put anything that asserts behaviour elsewhere.
+  ignorePatterns: ["packages/*/tests/perf"],
   // perTest coverage analysis: only the tests that cover a mutant re-run,
   // the main speed lever at this suite size.
   coverageAnalysis: "perTest",
