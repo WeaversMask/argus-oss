@@ -96,6 +96,14 @@ what is yours".
 > runbook's "Re-running the sweep" section has gained that check, anchored with
 > `:(top)` pathspecs and a non-zero floor so it cannot pass by scanning nothing.
 
+> **Addendum, 2026-10-18 — the red Stryker job is fixed (OPS-08,
+> [#70](https://github.com/WeaversMask/argus-oss/pull/70)).** Every mention above of the weekly
+> job being red since 2026-07-28 is a dated snapshot, not the live state. It never reached
+> a mutant: the dry run failed on two independent causes (the engine benchmark's 10ms CI
+> budget under instrumentation; `// @ts-nocheck` stamped onto rule fixtures), and the
+> runner reports only the first failure per run. Read the comments in
+> `stryker.config.mjs` before touching `ignorePatterns` or `disableTypeChecks`.
+
 ## Gotchas & Surprises
 
 1. **Two of my own checks produced false passes, and both printed a clean `0`.** In
