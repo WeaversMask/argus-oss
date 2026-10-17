@@ -97,7 +97,7 @@ what is yours".
 > `:(top)` pathspecs and a non-zero floor so it cannot pass by scanning nothing.
 
 > **Addendum, 2026-10-18 — the red Stryker job is fixed (OPS-08,
-> [#70](https://github.com/WeaversMask/argus-oss/pull/70)).** Every mention above of the weekly
+> [#70](https://github.com/WeaversMask/argus-oss/pull/70)).** Every mention in this file of the weekly
 > job being red since 2026-07-28 is a dated snapshot, not the live state. It never reached
 > a mutant: the dry run failed on two independent causes (the engine benchmark's 10ms CI
 > budget under instrumentation; `// @ts-nocheck` stamped onto rule fixtures), and the
